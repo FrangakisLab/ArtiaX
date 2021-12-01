@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# ChimeraX
+build/
+dist/
+ChimeraX_TestBundle.egg-info/
+.idea/
