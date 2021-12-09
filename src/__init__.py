@@ -23,9 +23,9 @@ class _MyAPI(BundleAPI):
         # ones listed in bundle_info.xml (without leading and
         # trailing whitespace), and create and return an instance of the
         # appropiate class from the ''tool'' module.
-        if ti.name == "Tomo Dialog":
+        if ti.name == "ArtiaX Dialog":
             from . import start_tomo_dialogue
-            return start_tomo_dialogue.TomoDialog(session, ti.name)
+            return start_tomo_dialogue.ArtiaXDialog(session, ti.name)
         raise ValueError("Trying to start unknown tool: %s" % ti.name)
 
     @staticmethod
