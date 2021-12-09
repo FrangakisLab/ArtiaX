@@ -5,21 +5,20 @@ When uploaded to the ChimeraX toolshed, the bundle
 will be displayed without the ChimeraX- prefix.
 -->
 
-<BundleInfo name="ChimeraX-TestBundle"
+<BundleInfo name="ArtiaX_Bundle"
 	    version="0.1" package="chimerax.test_bundle"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
-  <Author>Mirko Ploesser</Author>
-  <Email>ploesser@biophysik.org</Email>
+  <Author>Utz Ermel, Serena M. Arghittu, Conny Sick, Mirko Ploesser and Achilleas Frangakis</Author>
+  <Email>achilleas.frankgakis@biophysik.org</Email>
   <URL>https://www.bmls.de/Electron_Microscopy/aboutus.html</URL>
 
   <!-- Synopsis is a one-line description
        Description is a full multi-line description -->
   <Synopsis>Amira EM Plugin for ChimeraX</Synopsis>
-  <Description>This bundle is the ChimeraX version of the TomoPlugin for Chimera.
-
-Implements lots of features. More to be listed soon.
+  <Description>ArtiaX is an open-source extension of the molecular visualisation program ChimeraX and is primarily aimed on processing data from electron microscopy.
+  The plugin ties in with the possibility of ChimeraX to display and manipulate objects in virtual space.
   </Description>
 
   <!-- Categories is a list where this bundle should appear -->
@@ -70,8 +69,8 @@ Implements lots of features. More to be listed soon.
     <PythonClassifier>Development Status :: 3 - Alpha</PythonClassifier>
     <PythonClassifier>License :: Freeware</PythonClassifier>
     <!-- ChimeraX classifiers describe supplied functionality -->
-    <ChimeraXClassifier>ChimeraX :: Tool :: Tomo Dialog :: 
-      Tomo Bundle ::  Opens Tomo Plugin GUI</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: ArtiaX Dialog ::
+      ArtiaX Bundle ::  Opens Tomo Plugin GUI</ChimeraXClassifier>
     
   </Classifiers>
 
