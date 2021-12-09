@@ -90,7 +90,7 @@ def event(self, e):
 
 
 # Define the tomo class which is a ChimeraX tool window
-class TomoDialog(ToolInstance):
+class ArtiaXDialog(ToolInstance):
 
     # Inheriting from ToolInstance makes us known to the ChimeraX tool manager,
     # so we can be notified and take appropiate action when sessions are closed,
