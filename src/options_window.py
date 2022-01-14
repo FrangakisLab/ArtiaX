@@ -14,6 +14,8 @@ import numpy as np
 from .emwrite import emwrite
 from .emread import emread
 from .euler_rotation import detRotMat, detInvRotMat, mulMatMat, mulVecMat, getEulerAngles, updateCoordinateSystem, rotateArray
+from .object_settings import TomoInstance, MotlInstance
+#from .start_tomo_dialogue import ArtiaXDialog
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QColor, QPalette
@@ -222,6 +224,39 @@ class OptionsWindow(ToolInstance):
         # Add grid to group
         self.group_contrast.setLayout(self.group_contrast_layout)
 
+        # Define a group for different orthoplanes of a tomogram
+        self.group_orthoplanes = QGroupBox("Orthoplanes")
+        self.group_orthoplanes.setFont(self.font)
+        # Set the layout of the group
+        self.group_orthoplanes_layout = QGridLayout()
+        # Define different buttons to press for the different orthoslices 
+        self.group_orthoplanes_buttonxy = QPushButton("xy")
+        self.group_orthoplanes_buttonxz = QPushButton("xz")
+        self.group_orthoplanes_buttonyz = QPushButton("yz")
+        self.group_orthoplanes_buttonxyz = QPushButton("xyz")
+        # Add to the grid layout
+        self.group_orthoplanes_layout.addWidget(self.group_orthoplanes_buttonxy, 0, 0)
+        self.group_orthoplanes_layout.addWidget(self.group_orthoplanes_buttonxz, 0, 1)
+        self.group_orthoplanes_layout.addWidget(self.group_orthoplanes_buttonyz, 0, 2)
+        self.group_orthoplanes_layout.addWidget(self.group_orthoplanes_buttonxyz, 0, 3)
+        # Add grid to group
+        self.group_orthoplanes.setLayout(self.group_orthoplanes_layout)
+
+        # Define a group for the fourier transform of a volume
+        self.group_fourier_transform = QGroupBox("Fourier transformation")
+        self.group_fourier_transform.setFont(self.font)
+        # Set the layout of the group
+        self.group_fourier_transform_layout = QGridLayout()
+        # Define Button to press for execute the transformation
+        self.group_fourier_transform_execute_label = QLabel("FT current volume:")
+        self.group_fourier_transform_execute_label.setFont(self.font)
+        self.group_fourier_transform_execute_button = QPushButton("FT Execute")
+        # Add to the grid layout
+        self.group_fourier_transform_layout.addWidget(self.group_fourier_transform_execute_label, 0, 0)
+        self.group_fourier_transform_layout.addWidget(self.group_fourier_transform_execute_button, 0, 1)
+        # Add grid to group
+        self.group_fourier_transform.setLayout(self.group_fourier_transform_layout)
+
         # Define a group that jumps through the slices
         self.group_slices = QGroupBox("Jump Through Slices")
         self.group_slices.setFont(self.font)
@@ -260,7 +295,8 @@ class OptionsWindow(ToolInstance):
         self.tomo_layout.addWidget(self.group_pixel)
         self.tomo_layout.addWidget(self.group_contrast)
         self.tomo_layout.addWidget(self.group_slices)
-
+        self.tomo_layout.addWidget(self.group_orthoplanes)
+        self.tomo_layout.addWidget(self.group_fourier_transform)
 
         # And finally set the layout of the widget
         self.tomo_widget.setLayout(self.tomo_layout)
@@ -346,8 +382,7 @@ class OptionsWindow(ToolInstance):
         self.group_slices_slider.setMaximum(tomo_instance.z_dim)
         self.group_slices_slider.setValue(tomo_instance.slice_position)
         self.group_slices_edit.setText(str(tomo_instance.slice_position))
-
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        
 
 # ==============================================================================
 # Options Menu for Motivelists =================================================
@@ -377,7 +412,7 @@ class OptionsWindow(ToolInstance):
         self.group_select_selection_edit.setFont(self.font)
         self.group_select_selection_NumObjLabel = QLabel()
         self.group_select_selection_NumObjLabel.setText("# obj.")
-        self.group_select_selection_clampview = QCheckBox("Clamp View")
+        self.group_select_selection_clampview = QPushButton("Clamp View")
         # Row Slider 1
         self.group_select_row1_label = QLabel("Row 1:")
         self.group_select_row1_label.setFont(self.font)
@@ -517,44 +552,18 @@ class OptionsWindow(ToolInstance):
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Motl Group Functions +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    #
+    def ClampView_execute(self, session, value):
 
-    def select_execute(self, session, value, motl_instance):
+        if value == 0:      #Every thing is selected in the motivelist, zoom on them all
 
-        if value == 0:      # Select all
-            command = "select "
-            # for i in range(len(motl_instance.motivelist)):
-            #     command += "#{}".format(motl_instance.motivelist[i][21])
-            # for surface in session.models.list():
-            #         if isinstance(surface, Surface):
-            #             command += "#{}".format(surface.id)
-            run(session, command)
-            if self.group_select_selection_clampview.isChecked():
-                run(session,"view sel clip true pad 0.5")
+            run(session,"view sel clip true pad 0.5")
+
         else:               # Only show object/marker with index value-1
-            run(session, "select #{}".format(motl_instance.motivelist[value-1][21]))
-            if self.group_select_selection_clampview.isChecked():
-                run(session,"view sel clip false pad  0.9")
+
+            run(session,"view sel clip false pad  0.7")
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-    def select_surface_execute(self, session, value):
-
-        # if value == 0:      # Select all
-        #     command = "select "
-        #     for surface in session.models.list():
-        #         if isinstance(surface, Surface):
-        #             command += "#{}".format(surface.id)
-        #     run(session, command)
-        #     if self.group_select_selection_clampview.isChecked():
-        #         run(session,"view sel clip true pad 0.5")
-        # Only show object/marker with index value-1
-            run(session, "select #{}".format(value))
-            if self.group_select_selection_clampview.isChecked():
-                run(session,"view sel clip false pad  0.9")
-
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
 
     def row1_execute(self, session, value, motl_instance):
         # At first show all objects again
@@ -590,95 +599,10 @@ class OptionsWindow(ToolInstance):
         else:           # Build color gradient
             self.motl_colorgradient(session, value, motl_instance)
 
-
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    #
-    # def lower_thresh_execute(self, session, value, motl_instance):
-    #     #Row 1
-    #     if motl_instance.row1_position != 0:
-    #         # Every object with the corresponding value lower than the threshold
-    #         # Gets hidden, everything else is shown
-    #         row_list = [particle[motl_instance.row1_position - 1] for particle in motl_instance.motivelist]
-    #         object_list = [particle[20] for particle in motl_instance.motivelist]
-    #
-    #         for i in range(len(row_list)):
-    #             object = object_list[i]
-    #             if row_list[i] < value:      # Hide the objects
-    #                 if isinstance(object, Volume):
-    #                     object.show(show=False)
-    #                 else:
-    #                     object.hide = True
-    #             else:                        # Show the objects
-    #                 if isinstance(object, Volume):
-    #                     object.show(show=True)
-    #                 else:
-    #                     object.hide = False
-    #     #Row 2
-    #     if motl_instance.row2_position != 0:
-    #         # Every object with the corresponding value lower than the threshold
-    #         # Gets hidden, everything else is shown
-    #         row_list = [particle[motl_instance.row2_position - 1] for particle in motl_instance.motivelist]
-    #         object_list = [particle[20] for particle in motl_instance.motivelist]
-    #
-    #         for i in range(len(row_list)):
-    #             object = object_list[i]
-    #             if row_list[i] < value:      # Hide the objects
-    #                 if isinstance(object, Volume):
-    #                     object.show(show=False)
-    #                 else:
-    #                     object.hide = True
-    #             else:                        # Show the objects
-    #                 if isinstance(object, Volume):
-    #                     object.show(show=True)
-    #                 else:
-    #                     object.hide = False
-
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    # def upper_thresh_execute(self, session, value, motl_instance):
-    #     #Row 1
-    #     if motl_instance.row1_position != 0:
-    #         # Every object with the corresponding value larger than the threshold
-    #         # Gets hidden, everything else is shown
-    #         row_list = [particle[motl_instance.row1_position - 1] for particle in motl_instance.motivelist]
-    #         object_list = [particle[20] for particle in motl_instance.motivelist]
-    #
-    #         for i in range(len(row_list)):
-    #             object = object_list[i]
-    #             if row_list[i] > value:      # Hide the objects
-    #                 if isinstance(object, Volume):
-    #                     object.show(show=False)
-    #                 else:
-    #                     object.hide = True
-    #             else:                        # Show the objects
-    #                 if isinstance(object, Volume):
-    #                     object.show(show=True)
-    #                 else:
-    #                     object.hide = False
-    #     #Row 2
-    #     if motl_instance.row2_position != 0:
-    #         # Every object with the corresponding value larger than the threshold
-    #         # Gets hidden, everything else is shown
-    #         row_list = [particle[motl_instance.row2_position - 1] for particle in motl_instance.motivelist]
-    #         object_list = [particle[20] for particle in motl_instance.motivelist]
-    #
-    #         for i in range(len(row_list)):
-    #             object = object_list[i]
-    #             if row_list[i] > value:      # Hide the objects
-    #                 if isinstance(object, Volume):
-    #                     object.show(show=False)
-    #                 else:
-    #                     object.hide = True
-    #             else:                        # Show the objects
-    #                 if isinstance(object, Volume):
-    #                     object.show(show=True)
-    #                 else:
-    #                     object.hide = False
-
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     def threshold_execute(self, session, lower_thresh1, upper_thresh1, lower_thresh2, upper_thresh2, motl_instance):
-        #Row 1
+        # Row 1
         if motl_instance.row1_position != 0 and motl_instance.row2_position != 0:
             # Every object within the threshold boundaries is shown
             # Every object outside the boundaries is hidden
@@ -698,6 +622,7 @@ class OptionsWindow(ToolInstance):
                         object.show(show=False)
                     else:
                         object.hide = True
+                        
         if motl_instance.row1_position != 0 and motl_instance.row2_position == 0 :
             # Every object within the threshold boundaries is shown
             # Every object outside the boundaries is hidden
@@ -716,7 +641,7 @@ class OptionsWindow(ToolInstance):
                         object.show(show=False)
                     else:
                         object.hide = True
-
+        # Row 2
         if motl_instance.row2_position != 0 and motl_instance.row1_position == 0 :
             # Every object within the threshold boundaries is shown
             # Every object outside the boundaries is hidden

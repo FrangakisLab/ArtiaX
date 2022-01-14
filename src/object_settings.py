@@ -53,6 +53,8 @@ class TomoInstance:
         self.center_position = 0
         self.width_position = 0
         self.slice_position = 0
+        self.fourier_transform = True
+
 
     def set_tomo(self, tomo_instance):
         self.volume = tomo_instance

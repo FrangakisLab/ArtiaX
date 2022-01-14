@@ -165,7 +165,7 @@ class ArtiaXDialog(ToolInstance):
         # Create a file dialog to browse through in order to open tomogram/motl
         self.file_dialog_open = QFileDialog()
         self.file_dialog_open.setFileMode(QFileDialog.AnyFile)
-        self.file_dialog_open.setNameFilters(["Volume (*.em *.mrc *.mrcs)"])
+        self.file_dialog_open.setNameFilters(["Volume (*.em *.mrc *.mrcs *.pdb)"])
         self.file_dialog_open.setAcceptMode(QFileDialog.AcceptOpen)
         self.file_dialog_save = QFileDialog()
         self.file_dialog_save.setFileMode(QFileDialog.AnyFile)
@@ -256,12 +256,16 @@ class ArtiaXDialog(ToolInstance):
         self.menu_bar_load_motl.triggered.connect(partial(self.load_motl_pressed, session))
         self.menu_bar_save_motl = QAction("Save Motivelist")
         self.menu_bar_save_motl.triggered.connect(partial(self.save_motl_pressed, session))
+        self.menu_bar_load_pdb = QAction("Load PDB File")
+        self.menu_bar_load_pdb.triggered.connect(partial(self.load_pdb_pressed, session))
         # Prepare the file menu
         self.menu = QMenu("&File")
         self.menu.addAction(self.menu_bar_open_tomogram)
         self.menu.addSeparator()
         self.menu.addAction(self.menu_bar_load_motl)
         self.menu.addAction(self.menu_bar_save_motl)
+        self.menu.addSeparator()
+        self.menu.addAction(self.menu_bar_load_pdb)
         # Add to the actual menu
         self.menuBar = QMenuBar()
         self.menuBar.addMenu(self.menu)
@@ -357,11 +361,6 @@ class ArtiaXDialog(ToolInstance):
             print("No tomogram selected.")
         else:
             run(session, "open {}".format(self.tomo_filepath[0]))
-        # else:
-        #     tomo_name = os.path.basename(self.tomo_filepath[0])
-        #     print('Hi there!')
-        #     tomo_data = emread(self.tomo_filepath[0])
-        #     tomo_data = np.ndarray.tolist(tomo_data[0])
 
             # Unable the capFaces
             # Get the volume ID
@@ -492,6 +491,23 @@ class ArtiaXDialog(ToolInstance):
             # Save the data in the corresponding path
             emwrite(em_data, self.motl_filename[0])
 
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    def load_pdb_pressed(self, session):
+        self.pdb_filename = None
+
+        # Open file dialog to open the pdb file
+        self.select = self.file_dialog_open.exec()
+
+        if self.select:
+            self.pdb_filename = self.file_dialog_open.selectedFiles()
+
+        if self.pdb_filename == None:
+            print("No pdb file selected.")
+        else:
+            run(session, "open {}".format(self.pdb_filename[0]))
+
+        self.pdb_filename = None
 
 # ==============================================================================
 # Main Window Functions ========================================================
@@ -879,6 +895,13 @@ class ArtiaXDialog(ToolInstance):
         self.options_window.group_slices_previous_1.clicked.connect(partial(self.skip_planes, session, -1))
         self.options_window.group_slices_next_1.clicked.connect(partial(self.skip_planes, session, 1))
         self.options_window.group_slices_next_10.clicked.connect(partial(self.skip_planes, session, 10))
+        # Fourier transform
+        self.options_window.group_fourier_transform_execute_button.clicked.connect(partial(self.fourier_transform, session))
+        # Orthoplanes
+        self.options_window.group_orthoplanes_buttonxy.clicked.connect(partial(self.orthoplanes_buttonxy_execute, session))
+        self.options_window.group_orthoplanes_buttonxz.clicked.connect(partial(self.orthoplanes_buttonxz_execute, session))
+        self.options_window.group_orthoplanes_buttonyz.clicked.connect(partial(self.orthoplanes_buttonyz_execute, session))
+        self.options_window.group_orthoplanes_buttonxyz.clicked.connect(partial(self.orthoplanes_buttonxyz_execute, session))
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -1105,15 +1128,47 @@ class ArtiaXDialog(ToolInstance):
         # Execute the slice function
         self.options_window.slice_execute(session, self.tomo_selected_instance.slice_position, self.tomo_selected_instance)
 
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    def orthoplanes_buttonxy_execute(self, session):
+        id = self.tomo_selected_instance.id_string
+        command = "volume #{} orthoplanes xy".format(id)
+        run(session, command)
+        run(session, "mousemode rightMode "+'"move planes"')
+
+    def orthoplanes_buttonxz_execute(self, session):
+        id = self.tomo_selected_instance.id_string
+        command = "volume #{} orthoplanes xz".format(id)
+        run(session, command)
+        run(session, "mousemode rightMode "+'"move planes"')
+
+    def orthoplanes_buttonyz_execute(self, session):
+        id = self.tomo_selected_instance.id_string
+        command = "volume #{} orthoplanes yz".format(id)
+        run(session, command)
+        run(session, "mousemode rightMode "+'"move planes"')
+
+    def orthoplanes_buttonxyz_execute(self, session):
+        id = self.tomo_selected_instance.id_string
+        command = "volume #{} orthoplanes xyz".format(id)
+        run(session, command)
+        run(session, "mousemode rightMode "+'"move planes"')
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    def fourier_transform(self, session):
+        # Execute the fourier transform of the current volume
+        id = self.tomo_selected_instance.id_string
+        command = "volume fourier #{} phase true".format(id)
+        run(session, command)
+
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Motl Functions +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     def connect_motl_functions(self, session):
         # Select slider
-        self.options_window.group_select_selection_edit.returnPressed.connect(partial(self.selection_edit, session))
-        #self.options_window.group_select_selection_slider.valueChanged.connect(partial(self.selection_slider, session))
-        #self.options_window.group_select_selection_slider.sliderReleased.connect(partial(self.selection_released))
+        self.options_window.group_select_selection_clampview.clicked.connect(partial(self.selection_check, session))
         # Row 1 Slider
         self.options_window.group_select_row1_edit.returnPressed.connect(partial(self.row1_edit, session))
         self.options_window.group_select_row1_slider.valueChanged.connect(partial(self.row1_slider, session))
@@ -1149,70 +1204,33 @@ class ArtiaXDialog(ToolInstance):
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-    def selection_edit(self, session):
+    def selection_check(self, session):
 
-        #run(session,"mousemode right select")
-        # try:
-        #     markers = selected_markers(session)
-        #     for i in markers:
-        #         i.id
-        # except:
-        #     print("Error: Please enter a number")
+        list_selected = []
+        #Check what is selected on the image
+        for i in session.models.list():
+            if i.selected:
+                list_selected.append(i.id_string)
 
-        # Get text from edit
-        value = int(self.options_window.group_select_selection_edit.text())
-        # Update the selection position in the tomo instance
-        self.motl_selected_instance.selection_position = value
-        # Update the tomo list with the updated selected tomo instance
-        self.motl_list[self.motl_selected_instance.list_index] = self.motl_selected_instance
+        # Execute the ClampView function
+        if len(list_selected) == len(self.motl_selected_instance.motivelist):
 
-
-        # Execute the selection function
-        if value == 0:
-            self.options_window.select_execute(session, value, self.motl_selected_instance)
-
-        elif value != 0 and (not value > len(self.motl_selected_instance.motivelist[:][20])):
-            object = self.motl_selected_instance.motivelist[value-1][20]
-            # print(object)
-            # if (not isinstance(object, Volume)) and (isinstance(object, Atom)) :
-            #     self.options_window.select_execute(session, value, self.motl_selected_instance)
-            if (not isinstance(object, Volume)) and (not isinstance(object, Atom)):
-                model = session.models[value-1]
-                print(model)
-                if isinstance(model, Surface):
-                    self.options_window.select_surface_execute(session, value)
-
-        elif value != 0 and ((value) <= len(session.models.list())) and (value > len(self.motl_selected_instance.motivelist[:][20])):
-            model = session.models[value-1]
-            print(model)
-            if isinstance(model, Surface):
-                self.options_window.select_surface_execute(session, value)
+            self.options_window.ClampView_execute(session, 0)
+            self.options_window.group_select_selection_edit.setText('all')
 
         else:
-            print("Error: Please enter a valid number")
+            print()
+            if  len(list_selected) > 2:
+                self.options_window.ClampView_execute(session, 0)
+            elif len(list_selected) <= 2:
+                self.options_window.ClampView_execute(session, len(list_selected))
+                string = ''
+                for i in list_selected:
+                    string += str(i)+' '
+                self.options_window.group_select_selection_edit.setText(string)
 
-
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    # def selection_slider(self, session):
-    #     run(session,"mousemode right select")
-    #     # Get the value from the slider
-    #     value = self.options_window.group_select_selection_slider.value()
-    #     # Set value in edit
-    #     self.options_window.group_select_selection_edit.setText(str(value))
-    #     # Execute the slice function
-    #     self.options_window.select_execute(session, value, self.motl_selected_instance)
-
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    # def selection_released(self):
-    #     run(session,"mousemode right select")
-    #     # Get the value from the slider
-    #     value = self.options_window.group_select_selection_slider.value()
-    #     # Update the selection position in the tomo instance
-    #     self.motl_selected_instance.selection_position = value
-    #     # Update the tomo list with the updated selected tomo instance
-    #     self.motl_list[self.motl_selected_instance.list_index] = self.motl_selected_instance
+        # Update the tomo list with the updated selected tomo instance
+        self.motl_list[self.motl_selected_instance.list_index] = self.motl_selected_instance
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -1295,7 +1313,7 @@ class ArtiaXDialog(ToolInstance):
                 self.options_window.threshold_execute(session, 100*lower_value1, 100*upper_value1, lower_value2, upper_value2, self.motl_selected_instance)
             else:
                 # Set value in slider
-                self.options_window.group_select_lower_thresh_slider.setValue(int(lower_value))
+                self.options_window.group_select_lower_thresh_slider.setValue(int(lower_value1))
                 # Execute lower threshold function
                 self.options_window.threshold_execute(session, lower_value1, upper_value1, lower_value2, upper_value2, self.motl_selected_instance)
         except:
@@ -1539,6 +1557,7 @@ class ArtiaXDialog(ToolInstance):
 
         # Update the tomo list with the updated selected tomo instance
         self.motl_list[self.motl_selected_instance.list_index] = self.motl_selected_instance
+        print('Motivelist updated!')
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -1589,33 +1608,25 @@ class ArtiaXDialog(ToolInstance):
                     if marker.hide == False :
                         marker_instance.append(marker)
 
+            self.motl_selected_instance.row1_position = int(self.options_window.group_select_row1_slider.value())
+            self.motl_selected_instance.row2_position = int(self.options_window.group_select_row2_slider.value())
+
             # Add the markers as Volumes
             self.motl_selected_instance.add_marker_as_volume(session, marker_instance)
+
             # Update the sliders
-            self.options_window.build_motl_sliders(session, self.motl_selected_instance)
+            self.options_window.row1_execute(session, self.motl_selected_instance.row1_position, self.motl_selected_instance)
+            self.options_window.row2_execute(session, self.motl_selected_instance.row2_position, self.motl_selected_instance)
+
+            # Update the other sliders
+            ###self.options_window.threshold_execute(session, self.motl_selected_instance.lower_thresh1, self.motl_selected_instance.upper_thresh1, self.motl_selected_instance.lower_thresh2, self.motl_selected_instance.upper_thresh2, self.motl_selected_instance)
+            self.options_window.build_other_motl_sliders(session, self.motl_selected_instance.row1_position, self.motl_selected_instance)
+            self.options_window.build_other_motl_sliders2(session, self.motl_selected_instance.row2_position, self.motl_selected_instance)
+
             # Update the tomo list with the updated selected tomo instance
             self.motl_list[self.motl_selected_instance.list_index] = self.motl_selected_instance
 
-
-
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    #
-    # def select_via_DblClick(self, session, event: QMouseEvent ):
-    #
-    #     if  event.MouseButtonDblClick:
-    #
-    #         run(session, "redo")
-    #         if self.group_select_selection_clampview.isChecked():
-    #             run(session,"view sel clip false pad  0.9")
-    #
-    #         return
-    #
-    #     else :
-    #
-    #         return
-
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
 
     def print_button_pressed(self, session):
         # Print the selected motivelist
@@ -1652,8 +1663,24 @@ class ArtiaXDialog(ToolInstance):
                 # And close the volume
                 volume.delete()
 
+        self.motl_selected_instance.row1_position = int(self.options_window.group_select_row1_slider.value())
+        self.motl_selected_instance.row2_position = int(self.options_window.group_select_row2_slider.value())
+
+        ###self.motl_selected_instance.lower_thresh1 = self.options_window.group_select_lower_thresh_slider.value()
+        ###self.motl_selected_instance.lower_thresh2 = self.options_window.group_select_lower_thresh_slider2.value()
+        ###self.motl_selected_instance.upper_thresh1 = self.options_window.group_select_upper_thresh_slider.value()
+        ###self.motl_selected_instance.upper_thresh2 = self.options_window.group_select_upper_thresh_slider2.value()
+
         # Update the sliders
-        self.options_window.build_motl_sliders(session, self.motl_selected_instance)
+        self.options_window.row1_execute(session, self.motl_selected_instance.row1_position, self.motl_selected_instance)
+        self.options_window.row2_execute(session, self.motl_selected_instance.row2_position, self.motl_selected_instance)
+
+        # Update the other sliders 
+        ###self.options_window.threshold_execute(session, self.motl_selected_instance.lower_thresh1, self.motl_selected_instance.upper_thresh1, self.motl_selected_instance.lower_thresh2, self.motl_selected_instance.upper_thresh2, self.motl_selected_instance)
+        self.options_window.build_other_motl_sliders(session, self.motl_selected_instance.row1_position, self.motl_selected_instance)
+        self.options_window.build_other_motl_sliders2(session, self.motl_selected_instance.row2_position, self.motl_selected_instance)
+        ###self.options_window.threshold_execute(session, self.motl_selected_instance.lower_thresh1, self.motl_selected_instance.upper_thresh1, self.motl_selected_instance.lower_thresh2, self.motl_selected_instance.upper_thresh2, self.motl_selected_instance)
+
         # Update the tomo list with the updated selected tomo instance
         self.motl_list[self.motl_selected_instance.list_index] = self.motl_selected_instance
 
@@ -1789,14 +1816,13 @@ class ArtiaXDialog(ToolInstance):
         index_list = []
         for i in range(len(self.motl_selected_instance.motivelist)):
             id = self.motl_selected_instance.motivelist[i][21]
+            print(id)
             object = self.motl_selected_instance.motivelist[i][20]
             if object.hide == False:
                 if not isinstance(object, Volume):
                     id_list.append(id[0])
                     index_list.append(i)
                     object.hide = True
-
-
 
         # Just a quick routine to get the surface level
         # It's a bad workaround, but it works
@@ -1848,8 +1874,7 @@ class ArtiaXDialog(ToolInstance):
 
             # Turn GridData to a ChimeraX volume which automatically is also
             # Added to the open models
-            volume_from_grid_data(data_grid, session, 'surface', (id_list[i],self.motl_selected_instance.list_index+1))
-
+            volume_from_grid_data(data_grid, session, 'surface')
             # Add new volume to the object list in the motl instance
             current_volume = [v for v in session.models.list() if isinstance(v, Volume)][-1]
             # Add surface to the volume with default selected colors
@@ -1857,8 +1882,9 @@ class ArtiaXDialog(ToolInstance):
             # Add volume and ID to motivelist
             self.motl_selected_instance.motivelist[i][20] = current_volume
 
-            self.motl_selected_instance.motivelist[i][21] = current_volume.id_string
-            print(current_volume.id_string)
+            self.motl_selected_instance.motivelist[i][21] = current_volume.id_string      #+'.'+str(int(self.motl_selected_instance.list_index)+1)
+            print(self.motl_selected_instance.motivelist[i][21])
+
 
             # Use ChimeraX's view matrix method to rotate and translate
             # For this we need the rotation matrix appended by the translation vector
@@ -1892,11 +1918,6 @@ class ArtiaXDialog(ToolInstance):
         self.options_window.row1_execute(session, int(self.options_window.group_select_row1_edit.text()), self.motl_selected_instance)
         self.options_window.row2_execute(session, int(self.options_window.group_select_row2_edit.text()), self.motl_selected_instance)
         self.options_window.build_motl_sliders(session, self.motl_selected_instance)
-
-
-        # # At first delete the markers
-        # for id in set(id_list):
-        #     run(session, "delete #{}".format(id))
 
 
 # ==============================================================================
