@@ -16,8 +16,8 @@ from chimerax.core.commands import run, Command
 from chimerax.core.tools import ToolInstance
 from chimerax.map.volume import volume_from_grid_data
 from chimerax.map_data import ArrayGridData, GridData
-from chimerax.map import Volume
-from chimerax.core.models import Surface
+from chimerax.map import Volume, open_map
+from chimerax.core.models import Surface, Model
 from chimerax.atomic.molobject import Atom
 from chimerax import atomic
 from chimerax.markers import MarkerSet, selected_markers
@@ -1327,6 +1327,7 @@ class ArtiaXDialog(ToolInstance):
         upper_value1 = self.options_window.group_select_upper_thresh_slider.value()
         lower_value2 = self.options_window.group_select_lower_thresh_slider2.value()
         upper_value2 = self.options_window.group_select_upper_thresh_slider2.value()
+        
         if self.motl_selected_instance.row1_position == 1:
             # Set value in edit
             self.options_window.group_select_lower_thresh_edit.setText(str(lower_value1/100))
@@ -1620,8 +1621,8 @@ class ArtiaXDialog(ToolInstance):
 
             # Update the other sliders
             ###self.options_window.threshold_execute(session, self.motl_selected_instance.lower_thresh1, self.motl_selected_instance.upper_thresh1, self.motl_selected_instance.lower_thresh2, self.motl_selected_instance.upper_thresh2, self.motl_selected_instance)
-            self.options_window.build_other_motl_sliders(session, self.motl_selected_instance.row1_position, self.motl_selected_instance)
-            self.options_window.build_other_motl_sliders2(session, self.motl_selected_instance.row2_position, self.motl_selected_instance)
+            ###self.options_window.build_other_motl_sliders(session, self.motl_selected_instance.row1_position, self.motl_selected_instance)
+            ###self.options_window.build_other_motl_sliders2(session, self.motl_selected_instance.row2_position, self.motl_selected_instance)
 
             # Update the tomo list with the updated selected tomo instance
             self.motl_list[self.motl_selected_instance.list_index] = self.motl_selected_instance
@@ -1666,21 +1667,15 @@ class ArtiaXDialog(ToolInstance):
         self.motl_selected_instance.row1_position = int(self.options_window.group_select_row1_slider.value())
         self.motl_selected_instance.row2_position = int(self.options_window.group_select_row2_slider.value())
 
-        ###self.motl_selected_instance.lower_thresh1 = self.options_window.group_select_lower_thresh_slider.value()
-        ###self.motl_selected_instance.lower_thresh2 = self.options_window.group_select_lower_thresh_slider2.value()
-        ###self.motl_selected_instance.upper_thresh1 = self.options_window.group_select_upper_thresh_slider.value()
-        ###self.motl_selected_instance.upper_thresh2 = self.options_window.group_select_upper_thresh_slider2.value()
-
         # Update the sliders
         self.options_window.row1_execute(session, self.motl_selected_instance.row1_position, self.motl_selected_instance)
         self.options_window.row2_execute(session, self.motl_selected_instance.row2_position, self.motl_selected_instance)
 
         # Update the other sliders 
         ###self.options_window.threshold_execute(session, self.motl_selected_instance.lower_thresh1, self.motl_selected_instance.upper_thresh1, self.motl_selected_instance.lower_thresh2, self.motl_selected_instance.upper_thresh2, self.motl_selected_instance)
-        self.options_window.build_other_motl_sliders(session, self.motl_selected_instance.row1_position, self.motl_selected_instance)
-        self.options_window.build_other_motl_sliders2(session, self.motl_selected_instance.row2_position, self.motl_selected_instance)
-        ###self.options_window.threshold_execute(session, self.motl_selected_instance.lower_thresh1, self.motl_selected_instance.upper_thresh1, self.motl_selected_instance.lower_thresh2, self.motl_selected_instance.upper_thresh2, self.motl_selected_instance)
-
+        ###self.options_window.build_other_motl_sliders(session, self.motl_selected_instance.row1_position, self.motl_selected_instance)
+        ###self.options_window.build_other_motl_sliders2(session, self.motl_selected_instance.row2_position, self.motl_selected_instance)
+        
         # Update the tomo list with the updated selected tomo instance
         self.motl_list[self.motl_selected_instance.list_index] = self.motl_selected_instance
 
@@ -1816,13 +1811,13 @@ class ArtiaXDialog(ToolInstance):
         index_list = []
         for i in range(len(self.motl_selected_instance.motivelist)):
             id = self.motl_selected_instance.motivelist[i][21]
-            print(id)
             object = self.motl_selected_instance.motivelist[i][20]
             if object.hide == False:
                 if not isinstance(object, Volume):
                     id_list.append(id[0])
                     index_list.append(i)
                     object.hide = True
+
 
         # Just a quick routine to get the surface level
         # It's a bad workaround, but it works
@@ -1859,11 +1854,22 @@ class ArtiaXDialog(ToolInstance):
             step = np.asarray([voxel_size.x, voxel_size.y, voxel_size.z])
 
             # Change data to a ChimeraX GridData
-            # mrc_grid = ArrayGridData(mrc_data, origin=origin, step=step, rotation=rot_mat, name=mrc_filename)
+            mrc_grid = ArrayGridData(mrc_data, origin=origin, step=step, rotation=rot_mat, name=mrc_filename)
             data_grid = ArrayGridData(vol_data, origin=origin, step=step, name=self.motl_selected_instance.obj_name)
 
+        # Turn GridData to a ChimeraX volume which automatically is also
+        # Added to the open models        
+        volume_from_grid_data(data_grid, session, 'surface')
+        current_volume = [v for v in session.models.list() if isinstance(v, Volume)][-1]
+        #current_volume.add_surface(1.0, rgba=(0, 1, 1, 1), display=True)
+        #surface_level = current_volume.surfaces[0].level
+        k=0
+        
+        
         # For each object apply the corresponding shift and rotation
         for i in index_list:
+            current_volume.add_surface(surface_level, rgba=(0, 1, 1, 1), display=True)
+            
             # Get position and rotation
             x_coord = self.motl_selected_instance.motivelist[i][7]
             y_coord = self.motl_selected_instance.motivelist[i][8]
@@ -1874,16 +1880,14 @@ class ArtiaXDialog(ToolInstance):
 
             # Turn GridData to a ChimeraX volume which automatically is also
             # Added to the open models
-            volume_from_grid_data(data_grid, session, 'surface')
+            #volume_from_grid_data(data_grid, session, 'surface')
             # Add new volume to the object list in the motl instance
-            current_volume = [v for v in session.models.list() if isinstance(v, Volume)][-1]
+            #current_volume = [v for v in session.models.list() if isinstance(v, Volume)][-1]
             # Add surface to the volume with default selected colors
-            current_volume.add_surface(surface_level, rgba=(0, 1, 1, 1), display=True)
+            #current_volume.add_surface(surface_level, rgba=(0, 1, 1, 1), display=True)
             # Add volume and ID to motivelist
-            self.motl_selected_instance.motivelist[i][20] = current_volume
-
-            self.motl_selected_instance.motivelist[i][21] = current_volume.id_string      #+'.'+str(int(self.motl_selected_instance.list_index)+1)
-            print(self.motl_selected_instance.motivelist[i][21])
+            #+'.'+str(int(self.motl_selected_instance.list_index)+1)
+            #print(self.motl_selected_instance.motivelist[i][21])
 
 
             # Use ChimeraX's view matrix method to rotate and translate
@@ -1894,19 +1898,37 @@ class ArtiaXDialog(ToolInstance):
             rot_mat[0].append(x_coord)
             rot_mat[1].append(y_coord)
             rot_mat[2].append(z_coord)
-
+            
             # Prepare the string for the command
-            command = "view matrix models #{}".format(current_volume.id_string)
+            command = "view matrix models #{}".format(current_volume.surfaces[-1].id_string)
             for i in range(3):
                 for j in range(4):
                     command += ",{}".format(rot_mat[i][j])
 
             run(session, command)
 
+            #Creating model for the surface only extracted from the volume model just loaded            
+            #standalone_surface = Model('OnlySurface_{}'.format(k),session)
+            #vertices = current_volume.surfaces[0]._vertices
+            #normals = current_volume.surfaces[0]._normals
+            #triangles = current_volume.surfaces[0]._triangles
+            #edge_mask = current_volume.surfaces[0]._edge_mask
+            #triangle_mask = current_volume.surfaces[0]._triangle_mask
+            #standalone_surface.set_geometry(vertices, normals, triangles) #edge_mask, triangle_mask
+            #k+=1
+            #self.session.models.add([standalone_surface])
             # Also fix the problem EM files being displayed the wrong way
             run(session, "volume #{} style surface capFaces false".format(current_volume.id_string))
 
+
+            self.motl_selected_instance.motivelist[i][20] = current_volume.child_models()[-1]
+            
+
+            self.motl_selected_instance.motivelist[i][21] = current_volume.surfaces[-1].id_string  
+             
+
         # Set minimum, maximum and current surface level in motl instance
+        surface_level = current_volume.surfaces[-1].level
         self.motl_selected_instance.set_surface_level(vol_data.min(), vol_data.max(), surface_level)
         # Also set the surface position (slider) here
         self.motl_selected_instance.surface_position = surface_level

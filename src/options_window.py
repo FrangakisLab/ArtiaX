@@ -569,7 +569,7 @@ class OptionsWindow(ToolInstance):
         # At first show all objects again
         for i in range(len(motl_instance.motivelist)):
             object = motl_instance.motivelist[i][20]
-            if isinstance(object, Volume):
+            if isinstance(object, S):
                 object.show(show=True)
             else:
                 object.hide = False
@@ -689,8 +689,6 @@ class OptionsWindow(ToolInstance):
     def build_motl_sliders(self, session, motl_instance):
         # Selection Label
         self.group_select_selection_NumObjLabel.setText("# obj. "+str(len(motl_instance.motivelist)))
-        #self.group_select_selection_slider.setMinimum(0)
-        #self.group_select_selection_slider.setValue(motl_instance.selection_position)
         self.group_select_selection_edit.setText(str(motl_instance.selection_position))
         # Row 1 Slider
         self.group_select_row1_slider.setMinimum(0)
