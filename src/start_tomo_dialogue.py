@@ -1818,128 +1818,35 @@ class ArtiaXDialog(ToolInstance):
                     index_list.append(i)
                     object.hide = True
 
+        # Open the object filepath (returns tuple of 
+        # Volume Object chimerax.map.volume.Volume, base class Model)
+        filepath = self.motl_selected_instance.obj_filepath
+        only_surface = open_map(session, filepath)
 
-        # Just a quick routine to get the surface level
-        # It's a bad workaround, but it works
-        run(session, "open {}".format(self.motl_selected_instance.obj_filepath))
-        volumes = [v for v in session.models.list() if isinstance(v, Volume)]
-        surface_level = volumes[-1].surfaces[0].level
-        id = volumes[-1].id_string
-        run(session, "close #{}".format(id))
+        # Add this model to the session (this causes it to be displayed and 
+        # the surface to be rendered)
+        session.models.add(only_surface[0])                                                                     # Cone erscheint 
 
-        # Initialize variables
-        current_volume = None
-        vol_data = []
+        # We can now create a new Model that will only contain the surface
+        # Notice that we haven't added it to the session yet, so it's invisible in the model panel)
+        standalone_surface = Model('Surface', session)                                                          # Hier wird vom geladenen Tomogram ein neues Surface erstellt mit einer neuen ID 
 
-        if ".em" in self.motl_selected_instance.obj_filepath:
-            # Get the shape of the data
-            vol_data = emread(self.motl_selected_instance.obj_filepath)
-            dimensions = np.asarray(vol_data.shape)
-            voxel_size = [1, 1, 1]  # Which is default by EM file
+        # We now get the geometry of the VolumeSurface and transfer it to the new Model instance 
+        # using the set_geometry method. We need the vertices, normals and triangles, as well as edge_mask and triangle_mask.
+        vertices = session.models[0].surfaces[0]._vertices
+        normals = session.models[0].surfaces[0]._normals
+        triangles = session.models[0].surfaces[0]._triangles
+        edge_mask = session.models[0].surfaces[0]._edge_mask
+        triangle_mask = session.models[0].surfaces[0]._triangle_mask
 
-            # Us the dimensions and the voxel size to determine the origin
-            origin = [-ma.floor(dimensions[0]*voxel_size[0]/2)+1,-ma.floor(dimensions[1]*voxel_size[1]/2)+1,-ma.floor(dimensions[2]*voxel_size[2]/2)+1]
+        standalone_surface.set_geometry(vertices, normals, triangles, edge_mask, triangle_mask)
 
-            # Change data to a ChimeraX GridData
-            data_grid = ArrayGridData(vol_data, origin=origin, step=voxel_size, name=self.motl_selected_instance.obj_name)
+        # We now hide the original Volume model and the VolumeSurface model
+        session.models[0].show(show=False)                                       
 
-        elif ".mrc" in self.motl_selected_instance.obj_filepath:
-            # Get the shape and the voxel size of the data and the data itself
-            with mrcfile.open(self.motl_selected_instance.obj_filepath) as mrc:
-                dimensions = np.asarray([mrc.header.nx, mrc.header.ny, mrc.header.nz])
-                voxel_size = mrc.voxel_size.copy()
-                vol_data = mrc.data
-            # with the dimensions determine the origin, which is the center of the object
-            origin = [-ma.floor(dimensions[0]*voxel_size.x/2)+1,-ma.floor(dimensions[1]*voxel_size.y/2)+1,-ma.floor(dimensions[2]*voxel_size.z/2)+1]
-            step = np.asarray([voxel_size.x, voxel_size.y, voxel_size.z])
-
-            # Change data to a ChimeraX GridData
-            mrc_grid = ArrayGridData(mrc_data, origin=origin, step=step, rotation=rot_mat, name=mrc_filename)
-            data_grid = ArrayGridData(vol_data, origin=origin, step=step, name=self.motl_selected_instance.obj_name)
-
-        # Turn GridData to a ChimeraX volume which automatically is also
-        # Added to the open models        
-        volume_from_grid_data(data_grid, session, 'surface')
-        current_volume = [v for v in session.models.list() if isinstance(v, Volume)][-1]
-        #current_volume.add_surface(1.0, rgba=(0, 1, 1, 1), display=True)
-        #surface_level = current_volume.surfaces[0].level
-        k=0
-        
-        
-        # For each object apply the corresponding shift and rotation
-        for i in index_list:
-            current_volume.add_surface(surface_level, rgba=(0, 1, 1, 1), display=True)
-            
-            # Get position and rotation
-            x_coord = self.motl_selected_instance.motivelist[i][7]
-            y_coord = self.motl_selected_instance.motivelist[i][8]
-            z_coord = self.motl_selected_instance.motivelist[i][9]
-            phi = self.motl_selected_instance.motivelist[i][16]
-            psi = self.motl_selected_instance.motivelist[i][17]
-            theta = self.motl_selected_instance.motivelist[i][18]
-
-            # Turn GridData to a ChimeraX volume which automatically is also
-            # Added to the open models
-            #volume_from_grid_data(data_grid, session, 'surface')
-            # Add new volume to the object list in the motl instance
-            #current_volume = [v for v in session.models.list() if isinstance(v, Volume)][-1]
-            # Add surface to the volume with default selected colors
-            #current_volume.add_surface(surface_level, rgba=(0, 1, 1, 1), display=True)
-            # Add volume and ID to motivelist
-            #+'.'+str(int(self.motl_selected_instance.list_index)+1)
-            #print(self.motl_selected_instance.motivelist[i][21])
-
-
-            # Use ChimeraX's view matrix method to rotate and translate
-            # For this we need the rotation matrix appended by the translation vector
-            rot_mat = []
-            rot_mat.extend(detRotMat(phi, psi, theta))
-            # Append the translation vector
-            rot_mat[0].append(x_coord)
-            rot_mat[1].append(y_coord)
-            rot_mat[2].append(z_coord)
-            
-            # Prepare the string for the command
-            command = "view matrix models #{}".format(current_volume.surfaces[-1].id_string)
-            for i in range(3):
-                for j in range(4):
-                    command += ",{}".format(rot_mat[i][j])
-
-            run(session, command)
-
-            #Creating model for the surface only extracted from the volume model just loaded            
-            #standalone_surface = Model('OnlySurface_{}'.format(k),session)
-            #vertices = current_volume.surfaces[0]._vertices
-            #normals = current_volume.surfaces[0]._normals
-            #triangles = current_volume.surfaces[0]._triangles
-            #edge_mask = current_volume.surfaces[0]._edge_mask
-            #triangle_mask = current_volume.surfaces[0]._triangle_mask
-            #standalone_surface.set_geometry(vertices, normals, triangles) #edge_mask, triangle_mask
-            #k+=1
-            #self.session.models.add([standalone_surface])
-            # Also fix the problem EM files being displayed the wrong way
-            run(session, "volume #{} style surface capFaces false".format(current_volume.id_string))
-
-
-            self.motl_selected_instance.motivelist[i][20] = current_volume.child_models()[-1]
-            
-
-            self.motl_selected_instance.motivelist[i][21] = current_volume.surfaces[-1].id_string  
-             
-
-        # Set minimum, maximum and current surface level in motl instance
-        surface_level = current_volume.surfaces[-1].level
-        self.motl_selected_instance.set_surface_level(vol_data.min(), vol_data.max(), surface_level)
-        # Also set the surface position (slider) here
-        self.motl_selected_instance.surface_position = surface_level
-
-        # Update the motl list with the updated selected motl instance
-        self.motl_list[self.motl_selected_instance.list_index] = self.motl_selected_instance
-
-        # And finally rebuild the sliders
-        self.options_window.row1_execute(session, int(self.options_window.group_select_row1_edit.text()), self.motl_selected_instance)
-        self.options_window.row2_execute(session, int(self.options_window.group_select_row2_edit.text()), self.motl_selected_instance)
-        self.options_window.build_motl_sliders(session, self.motl_selected_instance)
+        # We now add the new surface to the session. 
+        # The Surface is now visible on screen and in the model panel.
+        session.models.add([standalone_surface])                                                                # Das Surface des Tomograms wird hinzugefügtund im model panel angezeigt
 
 
 # ==============================================================================
