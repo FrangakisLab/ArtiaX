@@ -3,20 +3,18 @@ This script defines classes that either include the settings of
 a tomogram or a motivelist
 """
 
-import sys
 import numpy as np
-import mrcfile
 import math as ma
 
-from .emwrite import emwrite
 from .emread import emread
-from .euler_rotation import detRotMat, detInvRotMat, mulMatMat, mulVecMat, getEulerAngles, updateCoordinateSystem, rotateArray
+from .euler_rotation import detRotMat
 
-from chimerax.core.commands import run, Command
+from chimerax.core.commands import run
 from chimerax.map.volume import volume_from_grid_data
 from chimerax.map_data import ArrayGridData
 from chimerax.map import Volume
-from chimerax.markers import MarkerSet, selected_markers
+from chimerax.markers import MarkerSet
+
 
 class TomoInstance:
     def __init__(self, name, row, index, id):
@@ -236,10 +234,10 @@ class MotlInstance:
 
             elif ".mrc" in self.obj_filepath:
                 # Get the shape and the voxel size of the data and the data itself
-                with mrcfile.open(self.obj_filepath) as mrc:
-                    dimensions = np.asarray([mrc.header.nx, mrc.header.ny, mrc.header.nz])
-                    voxel_size = mrc.voxel_size.copy()
-                    vol_data = mrc.data
+                # with mrcfile.open(self.obj_filepath) as mrc:
+                #     dimensions = np.asarray([mrc.header.nx, mrc.header.ny, mrc.header.nz])
+                #     voxel_size = mrc.voxel_size.copy()
+                #     vol_data = mrc.data
                 # with the dimensions determine the origin, which is the center of the object
                 origin = [-ma.floor(dimensions[0]*voxel_size.x/2)+1,-ma.floor(dimensions[1]*voxel_size.y/2)+1,-ma.floor(dimensions[2]*voxel_size.z/2)+1]
                 step = np.asarray([voxel_size.x, voxel_size.y, voxel_size.z])

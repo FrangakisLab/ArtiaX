@@ -1,20 +1,18 @@
-'''
-Writes 3D-data-matrix "data" into .em formated file with name "em_name".
-'''
-
 import struct
 import numpy as np
 
 
-def emwrite(data,em_name):
+def emwrite(data, em_name):
+    '''
+    Writes 3D-data-matrix "data" into .em formated file with name "em_name".
+    '''
+
     xdim=len(data[0])
     ydim=len(data)
     try:
         zdim=len(data[0][0])
     except:
         zdim=1
-        
-    print(xdim, ydim, zdim)
 
     with open(em_name,"wb") as fout:
         fout.write(struct.pack("b",6))

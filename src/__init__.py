@@ -23,9 +23,9 @@ class _MyAPI(BundleAPI):
         # ones listed in bundle_info.xml (without leading and
         # trailing whitespace), and create and return an instance of the
         # appropiate class from the ''tool'' module.
-        if ti.name == "ArtiaX Dialog":
-            from . import start_tomo_dialogue
-            return start_tomo_dialogue.ArtiaXDialog(session, ti.name)
+        if ti.name == "ArtiaX":
+            from . import tool
+            return tool.ArtiaXUI(session, ti.name)
         raise ValueError("Trying to start unknown tool: %s" % ti.name)
 
     @staticmethod
@@ -41,7 +41,7 @@ class _MyAPI(BundleAPI):
     # ==========================================================================
 
     @staticmethod
-    def run_provider(session, name, mgr):
+    def run_provider(session, name, mgr, **kw):
         # 'run_provider' is called by a manager to invoke the functionality
         # of the provider. Since the "data formats" manager never calls
         # run_provider (all the info it needs is in the Provider tag), we know
@@ -53,17 +53,58 @@ class _MyAPI(BundleAPI):
 
         # For the "open command" manager, this method must return a
         # chimerax.open_command.OpenerInfo subclass instance.
-        from chimerax.open_command import OpenerInfo
-        class EmOpenerInfo(OpenerInfo):
-            def open(self, session, data, file_name, **kw):
-                # The 'open' method is called to open a file, and must return a
-                # (list of models created, status message) tuple
-                from .io import open_em
-                return open_em(session, data)
 
-        return EmOpenerInfo()
+        # Preset
+        if mgr == session.presets:#mgr.name == 'presets':
+            from .presets import run_preset
+            run_preset(session, name, mgr)
 
+        elif mgr == session.toolbar:#mgr.name == 'toolbar':
+            from .toolbar import run_provider
+            run_provider(session, name)
 
+        elif mgr == session.open_command:#mgr.name == 'open_command':
+            from chimerax.open_command import OpenerInfo
+            from .io import open_particle_list, get_fmt_aliases
+
+            # Artiatomi Particles
+            if name == "Artiatomi Motivelist":
+                class ArtiatomiMotivelistInfo(OpenerInfo):
+                    def open(self, session, data, file_name, **kw):
+                        return open_particle_list(session, data, file_name, format_name=name)
+
+                    @property
+                    def open_args(self):
+                        return {}
+
+                return ArtiatomiMotivelistInfo()
+
+        elif mgr == session.save_command:#mgr.name == 'save_command':
+            from chimerax.save_command import SaverInfo
+            from .io import save_particle_list
+
+            if name == "Artiatomi Motivelist":
+                class ArtiatomiMotivelistInfo(SaverInfo):
+                    def save(self, session, path, *, partlist=None):
+                        save_particle_list(session, path, partlist, format_name="Artiatomi Motivelist")
+
+                    @property
+                    def save_args(self):
+                        from chimerax.core.commands import ModelArg
+                        return {'partlist': ModelArg}
+
+                return ArtiatomiMotivelistInfo()
+
+    @staticmethod
+    def register_command(bi, ci, logger):
+        logger.status(ci.name)
+        # Register all ArtiaX commands
+        if 'artiax' in ci.name:
+            print('Registered')
+            from . import cmd
+            cmd.register_artiax(logger)
+
+        #raise ValueError('Test')
 
 # Create the ''bundle_api'' object that ChimeraX expects.
 bundle_api = _MyAPI()

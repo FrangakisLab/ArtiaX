@@ -1,96 +1,49 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-# === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
-# === UCSF ChimeraX Copyright ===
+import os as os
+import numpy as np
+
 
 from functools import partial
-from chimerax.core.commands import run, Command
+from chimerax.core.commands import run
 from chimerax.core.tools import ToolInstance
-from chimerax.map.volume import volume_from_grid_data
-from chimerax.map_data import ArrayGridData, GridData
 from chimerax.map import Volume, open_map
-from chimerax.core.models import Surface, Model
-from chimerax.atomic.molobject import Atom
-from chimerax import atomic
+from chimerax.core.models import Model
 from chimerax.markers import MarkerSet, selected_markers
-import os as os
-import math as ma
-import mrcfile
-import time
-# from cp import cp_motive
-# from convert import convert
-import numpy as np
-from .emwrite import emwrite
-from .emread import emread
-from .euler_rotation import detRotMat, detInvRotMat, mulMatMat, mulVecMat, getEulerAngles, updateCoordinateSystem, rotateArray
-from .options_window import OptionsWindow
-from .object_settings import TomoInstance
 from chimerax.ui import MainToolWindow
+
+
+#from src.io.Artiatomi.emwrite import emwrite
+from .emread import emread
+from .euler_rotation import detRotMat, getEulerAngles
+from .options_window import OptionsWindow
+
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont, QPalette, QKeySequence, QMouseEvent
+from PyQt5.QtGui import QFont, QKeySequence
+
+from .ArtiaX import ArtiaX
+from .io import get_partlist_formats
 
 # from PyQt5.QtGui import QAbstractItemView
 from PyQt5.QtWidgets import (
     QAction,
-    QCheckBox,
-    QComboBox,
-    QDesktopWidget,
     QFileDialog,
     QGroupBox,
     QHBoxLayout,
     QHeaderView,
-    QLabel,
-    QLineEdit,
-    QMainWindow,
     QMenu,
     QMenuBar,
     QPushButton,
     QShortcut,
     QTableWidget,
     QTableWidgetItem,
-    QTableView,
-    QTextEdit,
-    QToolButton,
     QVBoxLayout,
-    QWidget
+    QButtonGroup,
+    QAbstractItemView
 )
-def event(self, e):
-        if not isinstance(e, (
-                QtCore.QEvent,
-                QtCore.QChildEvent,
-                QtCore.QDynamicPropertyChangeEvent,
-                QtGui.QPaintEvent,
-                QtGui.QHoverEvent,
-                QtGui.QMoveEvent,
-                QtGui.QEnterEvent,
-                QtGui.QResizeEvent,
-                QtGui.QShowEvent,
-                QtGui.QPlatformSurfaceEvent,
-                QtGui.QWindowStateChangeEvent,
-                QtGui.QKeyEvent,
-                QtGui.QWheelEvent,
-                QtGui.QMouseEvent,
-                QtGui.QFocusEvent,
-                QtGui.QHelpEvent,
-                QtGui.QHideEvent,
-                QtGui.QCloseEvent,
-                QtGui.QInputMethodQueryEvent,
-                QtGui.QContextMenuEvent,
-                )):
-            log().warning("unknown event: %r %r", e.type(), e)
-        return super().event(e)
-
 
 # Define the tomo class which is a ChimeraX tool window
-class ArtiaXDialog(ToolInstance):
+class ArtiaXUI(ToolInstance):
 
     # Inheriting from ToolInstance makes us known to the ChimeraX tool manager,
     # so we can be notified and take appropiate action when sessions are closed,
@@ -99,11 +52,15 @@ class ArtiaXDialog(ToolInstance):
     # If cleaning up is needed on finish, override the 'delete' method
     # but be sure to call 'delete' from the superclass at the end
 
-    SESSION_ENDURING = False    # Does this instance persist when session closes
-    SESSION_SAVE = True         # We do save/restore in sessions
+    # Does this instance persist when session closes
+    SESSION_ENDURING = False
+    # We do save/restore in sessions
+    SESSION_SAVE = True
+    # Let ChimeraX know about our help page
     help = "help:user/tools/tutorial.html"
-                                # Let ChimeraX know about our help page
+
     #pixel_size_old = 1.0
+
 # ==============================================================================
 # Instance Initialization ======================================================
 # ==============================================================================
@@ -116,79 +73,72 @@ class ArtiaXDialog(ToolInstance):
         # Initialize base class
         super().__init__(session, tool_name)
 
-        # Set name displayed on title bar (defaults to tool_name)
-        # Must be after the superclass init, which would override it.
-        self.display_name = "GUI Tomo Bundle"
+        # Display Name
+        self.display_name = "ArtiaX"
 
         # Set the font
         self.font = QFont("Arial", 7)
 
-        # Create the main window for our tool. The window object will have
-        # a 'ui_area' where we place the widgets composing our interface.
-        # The window isn't shown until we call its 'manage' method.
-
-        # Note that by default, tool windows are only hidden rather than
-        # destroyed when the user clicks the window's close button. To change
-        # this behaviour, specify 'close_destroy=True' in the MainToolWindow
-        # constructor
-
+        # UI
         self.tool_window = MainToolWindow(self)
-
-        # We will be adding an item to the tool's context menu, so override
-        # the default MainToolWindow fill context menu method
         self.tool_window.fill_context_menu = self.fill_context_menu
-
-        # Our user interface is simple enough that we could probably inline
-        # the code right here, but for any kind of even moderately complex
-        # interface, it is probably better to put the code in a method so
-        # that this __init__ method remains readable.
-        self._build_ui(session, tool_name)
-
-        # Create the variable options window with default GUI
-        self._build_options_window(session, tool_name)
-
-
-        # Connect the option window functions
-        self.connect_tomo_functions(session)
-        self.connect_motl_functions(session)
+        self._build_ui()
 
         # Connect the shortcurts to functions in the options window
-        self.define_shortcuts(session)
+        #self.define_shortcuts(session)
 
+        if not hasattr(session, 'ArtiaX'):
+            session.ArtiaX = ArtiaX(self)
+
+        self._build_options_window(tool_name)
+        self._connect_ui()
 
 # ==============================================================================
 # Interface construction =======================================================
 # ==============================================================================
 
-    def _build_ui(self, session, tool_name):
+    def _build_ui(self):
 
-        # Create a file dialog to browse through in order to open tomogram/motl
-        self.file_dialog_open = QFileDialog()
-        self.file_dialog_open.setFileMode(QFileDialog.AnyFile)
-        self.file_dialog_open.setNameFilters(["Volume (*.em *.mrc *.mrcs *.pdb)"])
-        self.file_dialog_open.setAcceptMode(QFileDialog.AcceptOpen)
-        self.file_dialog_save = QFileDialog()
-        self.file_dialog_save.setFileMode(QFileDialog.AnyFile)
-        self.file_dialog_save.setNameFilters(["Motivelist (*.em)"])
-        self.file_dialog_save.setAcceptMode(QFileDialog.AcceptSave)
+        # Volume open dialog
+        caption = 'Choose a volume.'
+        self.volume_open_dialog = QFileDialog(caption=caption)
+        self.volume_open_dialog.setFileMode(QFileDialog.ExistingFiles)
+        self.volume_open_dialog.setNameFilters(["Volume (*.em *.mrc *.mrcs *.rec *.map *.hdf)"])
+        self.volume_open_dialog.setAcceptMode(QFileDialog.AcceptOpen)
 
-        # Set up some local variables
-        self.set_variables()
+        # Particle list open dialog
+        fmts = get_partlist_formats(self.session)
+        self.partlist_filters = {}
+        for fmt in fmts:
+            self.partlist_filters[self.session.data_formats.qt_file_filter(fmt)] = fmt.name
+
+        caption = 'Choose a particle list.'
+        self.particle_open_dialog = QFileDialog(caption=caption)
+        self.particle_open_dialog.setFileMode(QFileDialog.ExistingFiles)
+        self.particle_open_dialog.setNameFilters(list(self.partlist_filters.keys()))
+        self.particle_open_dialog.setAcceptMode(QFileDialog.AcceptOpen)
+
+        caption = 'Choose a name to save the particle list.'
+        self.particle_save_dialog = QFileDialog(caption=caption)
+        self.particle_save_dialog.setFileMode(QFileDialog.AnyFile)
+        self.particle_save_dialog.setNameFilters(list(self.partlist_filters.keys()))
+        self.particle_save_dialog.setAcceptMode(QFileDialog.AcceptSave)
 
         # Build the menu bar
-        self.build_menubar(session)
+        self._build_menubar()
 
         # Prepare some widgets that are used later
-        self.prepare_tables(session)
+        self._build_table_widgets()
 
         # Prepare main window widgets
-        self.build_main_ui(session)
+        self._build_main_ui()
 
         # Build the actual GUI
         layout = QVBoxLayout()
         layout.addLayout(self.menu_bar_widget)
+        #layout.addWidget(self.menu_bar_widget)
         layout.addWidget(self.group_tomo)
-        layout.addWidget(self.group_motl)
+        layout.addWidget(self.group_partlist)
 
         # Set the layout
         self.tool_window.ui_area.setLayout(layout)
@@ -199,43 +149,20 @@ class ArtiaXDialog(ToolInstance):
 
 
 # ==============================================================================
-# Set some variables and shortcuts =============================================
+# Set shortcuts =============================================
 # ==============================================================================
 
-
-    def set_variables(self):
-        self.tomo_list = []                 # Contains all tomogram instances
-        self.motl_list = []                 # Contains all motivelist instances
-        self.tomo_selected_instance = None  # Currently selected tomogram
-        self.motl_selected_instance = None  # Currently selected motivelist
-        # Also define a static base of unit vectors
-        self.unit_1 = [1, 0, 0]
-        self.unit_2 = [0, 1, 0]
-        self.unit_3 = [0, 0, 1]
-        # Selector which file Dialog opens
-        self.select = None
-        # Initialize some default file paths and names
-        self.tomo_filepath = None
-        self.motl_filepath = None
-        self.motl_name = None
-        # initialize the selected motivelist
-        self.motl_selected_instance = None
-        # Define a switch that indicates if a function is executed
-        self.execution_switch = True
-
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    def define_shortcuts(self, session):
+    def _define_shortcuts(self, session):
         # Define the shortcuts
         self.jump_1_forwards = QShortcut(QKeySequence(Qt.Key_F4), self.options_window.group_slices_next_1)
         self.jump_10_forwards = QShortcut(QKeySequence(Qt.Key_F8), self.options_window.group_slices_next_10)
         self.jump_1_backwards = QShortcut(QKeySequence(Qt.Key_F3), self.options_window.group_slices_previous_1)
         self.jump_10_backwards = QShortcut(QKeySequence(Qt.Key_F7), self.options_window.group_slices_previous_10)
         # Connect actions to functions
-        self.jump_1_forwards.activated.connect(partial(self.skip_planes, session, 1))
-        self.jump_10_forwards.activated.connect(partial(self.skip_planes, session, 10))
-        self.jump_1_backwards.activated.connect(partial(self.skip_planes, session, -1))
-        self.jump_10_backwards.activated.connect(partial(self.skip_planes, session, -10))
+        # self.jump_1_forwards.activated.connect(partial(self.skip_planes, session, 1))
+        # self.jump_10_forwards.activated.connect(partial(self.skip_planes, session, 10))
+        # self.jump_1_backwards.activated.connect(partial(self.skip_planes, session, -1))
+        # self.jump_10_backwards.activated.connect(partial(self.skip_planes, session, -10))
 
 
 # ==============================================================================
@@ -243,169 +170,215 @@ class ArtiaXDialog(ToolInstance):
 # ==============================================================================
 
 
-    def build_menubar(self, session):
+    def _build_menubar(self):
         # Use a QHBoxLayout for the menu bar
         self.menu_bar_widget = QHBoxLayout()
+
         # A dropdown menu for the menu bar
-        self.menu_bar = QToolButton()
-        self.menu_bar.setPopupMode(QToolButton.MenuButtonPopup)
+        #menu_bar = QToolButton()
+        #menu_bar.setPopupMode(QToolButton.MenuButtonPopup)
+
         # Define all the buttons and connect them to corresponding function
-        self.menu_bar_open_tomogram = QAction("Open Tomogram")
-        self.menu_bar_open_tomogram.triggered.connect(partial(self.open_tomogram_pressed, session))
-        self.menu_bar_load_motl = QAction("Load Motivelist")
-        self.menu_bar_load_motl.triggered.connect(partial(self.load_motl_pressed, session))
-        self.menu_bar_save_motl = QAction("Save Motivelist")
-        self.menu_bar_save_motl.triggered.connect(partial(self.save_motl_pressed, session))
-        self.menu_bar_load_pdb = QAction("Load PDB File")
-        self.menu_bar_load_pdb.triggered.connect(partial(self.load_pdb_pressed, session))
+        self.menu_open_tomogram = QAction("Open Tomogram")
+        self.menu_open_parts = QAction("Load Particle List")
+        self.menu_save_parts = QAction("Save Particle List")
+
         # Prepare the file menu
         self.menu = QMenu("&File")
-        self.menu.addAction(self.menu_bar_open_tomogram)
+        self.menu.addAction(self.menu_open_tomogram)
         self.menu.addSeparator()
-        self.menu.addAction(self.menu_bar_load_motl)
-        self.menu.addAction(self.menu_bar_save_motl)
-        self.menu.addSeparator()
-        self.menu.addAction(self.menu_bar_load_pdb)
+        self.menu.addAction(self.menu_open_parts)
+        self.menu.addAction(self.menu_save_parts)
+
         # Add to the actual menu
-        self.menuBar = QMenuBar()
-        self.menuBar.addMenu(self.menu)
+        self.menu_bar = QMenuBar()
+        self.menu_bar.addMenu(self.menu)
         # Add the menu bar to the widget
-        self.menu_bar_widget.addWidget(self.menuBar)
+        self.menu_bar_widget.addWidget(self.menu_bar)
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-    def prepare_tables(self, session):
-        # Prepare some initial widgets
+    def _build_table_widgets(self):
+        """Build the two table widgets."""
+
         # A display table for the tomograms
         self.table_tomo = QTableWidget()
         self.table_tomo.setFont(self.font)
         self.table_tomo.setRowCount(0)
         self.table_tomo.setColumnCount(3)
+        self.table_tomo.setSelectionBehavior(QAbstractItemView.SelectRows)
         header_1 = self.table_tomo.horizontalHeader()
         header_1.setSectionResizeMode(0, QHeaderView.Stretch)
         header_1.setSectionResizeMode(1, QHeaderView.ResizeToContents)
         header_1.setSectionResizeMode(2, QHeaderView.ResizeToContents)
         self.table_tomo.setHorizontalHeaderLabels(["Name", "Show", "Options"])
-        # Connect the table (and items) to a function
-        self.table_tomo.itemChanged.connect(partial(self.table_cell_clicked, session, 1))
 
         # A display table for the motivelists
-        self.table_motl = QTableWidget()
-        self.table_motl.setFont(self.font)
-        self.table_motl.setRowCount(0)
-        self.table_motl.setColumnCount(3) #4
-        header_2 = self.table_motl.horizontalHeader()
+        self.table_part = QTableWidget()
+        self.table_part.setFont(self.font)
+        self.table_part.setRowCount(0)
+        self.table_part.setColumnCount(3)
+        self.table_part.setSelectionBehavior(QAbstractItemView.SelectRows)
+        header_2 = self.table_part.horizontalHeader()
         header_2.setSectionResizeMode(0, QHeaderView.Stretch)
-        #header_2.setSectionResizeMode(1, QHeaderView.ResizeToContents)
         header_2.setSectionResizeMode(1, QHeaderView.ResizeToContents)
         header_2.setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        self.table_motl.setHorizontalHeaderLabels(["Name", "Show", "Options"])
-        # Connect the table (and items) to a function
-        self.table_motl.itemChanged.connect(partial(self.table_cell_clicked, session, 2))
+        self.table_part.setHorizontalHeaderLabels(["Name", "Show", "Options"])
+
+        # Groups for tomo check boxes
+        self.tomo_show_group = QButtonGroup()
+        self.tomo_show_group.setExclusive(False)
+        self.tomo_options_group = QButtonGroup()
+        self.tomo_options_group.setExclusive(True)
+
+        # Groups for particle list check boxes
+        self.part_show_group = QButtonGroup()
+        self.part_show_group.setExclusive(False)
+        self.part_options_group = QButtonGroup()
+        self.part_options_group.setExclusive(True)
+
+        # Group for options check boxes
+        self.tomo_options_widgets = []
+        self.motl_options_widgets = []
+
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-    def build_main_ui(self, session):
-        # Design the main window which consists of two groups - tomo instance
-        # And motl instance - which each use a QVBoxLayout
-
-        # Start with the tomo group
-        self.group_tomo = QGroupBox("Tomogram")
+    def _build_main_ui(self):
+        '''Add the table widgets and some buttons the the main layout.'''
+        
+        ##### Group Box "Tomograms" #####
+        self.group_tomo = QGroupBox("Tomograms")
         self.group_tomo.setFont(self.font)
-        # Set the layout
-        self.group_tomo_layout = QVBoxLayout()
-        # Add table_tomo and a close button to the layout
-        self.group_tomo_layout.addWidget(self.table_tomo)
+        # Group Box Layout
+        group_tomo_layout = QVBoxLayout()
+        
+        # Contents
         self.group_tomo_close_button = QPushButton("Close selected tomogram")
-        self.group_tomo_close_button.clicked.connect(partial(self.tomo_close_button_pressed, session))
-        self.group_tomo_layout.addWidget(self.group_tomo_close_button)
+        
+        group_tomo_layout.addWidget(self.table_tomo)
+        group_tomo_layout.addWidget(self.group_tomo_close_button)
+        
         # Add layout to the group
-        self.group_tomo.setLayout(self.group_tomo_layout)
+        self.group_tomo.setLayout(group_tomo_layout)
+        ##### Group Box "Tomograms" #####
 
-        # Now add the motl group
-        self.group_motl = QGroupBox("Motivelist")
-        self.group_motl.setFont(self.font)
-        # Set the layout
-        self.group_motl_layout = QVBoxLayout()
-        # Add table_motl and a close button to the layout
-        self.group_motl_layout.addWidget(self.table_motl)
-        # Set a new layout to have two buttons next to each other
-        self.group_motl_button_layout = QHBoxLayout()
-        self.group_motl_create_button = QPushButton("Create new motivelist")
-        self.group_motl_create_button.clicked.connect(partial(self.motl_create_button_pressed, session))
-        self.group_motl_button_layout.addWidget(self.group_motl_create_button)
-        self.group_motl_close_button = QPushButton("Close selected motivelist")
-        self.group_motl_close_button.clicked.connect(partial(self.motl_close_button_pressed, session))
-        self.group_motl_button_layout.addWidget(self.group_motl_close_button)
+        ##### Group Box "Particle Lists" #####
+        self.group_partlist = QGroupBox("Particle Lists")
+        self.group_partlist.setFont(self.font)
+        # Group Box Layout
+        group_partlist_layout = QVBoxLayout()
+        
+        # Contents
+        group_partlist_button_layout = QHBoxLayout()
+        self.group_partlist_create_button = QPushButton("Create new motivelist")
+        self.group_partlist_close_button = QPushButton("Close selected motivelist")
+        
+        group_partlist_button_layout.addWidget(self.group_partlist_create_button)
+        group_partlist_button_layout.addWidget(self.group_partlist_close_button)
+        
         # Add button layout to group layout
-        self.group_motl_layout.addLayout(self.group_motl_button_layout)
+        group_partlist_layout.addWidget(self.table_part)
+        group_partlist_layout.addLayout(group_partlist_button_layout)
         # Add layout to the group
-        self.group_motl.setLayout(self.group_motl_layout)
+        self.group_partlist.setLayout(group_partlist_layout)
+        ##### Group Box "Particle Lists" #####
 
 
-# ==============================================================================
+    def _connect_ui(self):
+        self._connect_tomo_ui()
+        self._connect_part_ui()
+
+    def _connect_tomo_ui(self):
+        ui = self
+        ow = self.ow
+        artia = self.session.ArtiaX
+
+        # Menu bar items
+        ui.menu_open_tomogram.triggered.connect(partial(self._open_volume))
+
+        # Tomo table
+        ui.table_tomo.itemClicked.connect(partial(self._tomo_table_selected))
+        ui.table_tomo.itemChanged.connect(partial(self._tomo_table_name_changed))
+        ui.group_tomo_close_button.clicked.connect(partial(self._close_volume))
+
+
+    def _connect_part_ui(self):
+        ui = self
+        ow = self.ow
+        artia = self.session.ArtiaX
+
+        # Menu bar items
+        ui.menu_open_parts.triggered.connect(partial(self._open_partlist))
+        ui.menu_save_parts.triggered.connect(partial(self._save_partlist))
+
+        # Partlist table
+        ui.table_part.itemClicked.connect(partial(self._partlist_table_selected))
+        ui.table_part.itemChanged.connect(partial(self._partlist_table_name_changed))
+        ui.group_partlist_create_button.clicked.connect(partial(self._create_partlist))
+        ui.group_partlist_close_button.clicked.connect(partial(self._close_partlist))
+
+    # ==============================================================================
 # Menu Bar Functions ===========================================================
 # ==============================================================================
 
-    def open_tomogram_pressed(self, session):
-        # When this button is clicked we need an empty filepath
-        self.tomo_filepath = None
+    def _open_volume(self):
+        artia = self.session.ArtiaX
 
-        # Activate the selector
-        self.select = self.file_dialog_open.exec()
-        # Get the clicked directory
-        if self.select:
-            self.tomo_filepath = self.file_dialog_open.selectedFiles()
+        file = self._choose_volume()
 
-        if self.tomo_filepath == None:  # If selecting is cancelled
-            print("No tomogram selected.")
-        else:
-            run(session, "open {}".format(self.tomo_filepath[0]))
+        if file is not None and len(file):
+            artia.open_tomogram(file[0])
 
-            # Unable the capFaces
-            # Get the volume ID
-            volumes = [v for v in session.models.list() if isinstance(v, Volume)]
-            run(session, "volume #{} capFaces false".format(volumes[-1].id_string))
-            # Also get the dimensions
-            current_volume = volumes[-1]
-            dimensions = current_volume.data.size
-            # And the minimal and maximal value of the raw data
-            data_matrix = current_volume.data.matrix( ijk_size = dimensions)
-            minimum = data_matrix.min()
-            maximum = data_matrix.max()
-            print(minimum, maximum, current_volume.data.step)
-            # print(ijk_to_xyz(data_matrix))
+    def _choose_volume(self):
+        if self.volume_open_dialog.exec():
+            return self.volume_open_dialog.selectedFiles()
 
-            # Get file name
-            tomo_filename = os.path.basename(self.tomo_filepath[0])
-            # Get the index of the row (before adding new row so it is the index)
-            row = self.table_tomo.rowCount()
+    def _open_partlist(self):
+        artia = self.session.ArtiaX
 
-            # Update Tomo table (table_tomo)
-            self.table_add_row(session=session, table_number=1, name=tomo_filename)
+        file, format = self._choose_partlist()
 
-            # Create a tomogram instance and add to the list of tomograms
-            tomo_instance = TomoInstance(tomo_filename, row, len(self.tomo_list), current_volume.id_string)
-            tomo_instance.set_filepath(self.tomo_filepath)
-            # Set the dimensions of the tomogram
-            tomo_instance.set_dimensions(dimensions)
-            # Set minimum and maximum of data
-            tomo_instance.set_min_max([minimum, maximum])
-            # Add ChimeraX tomogram to the tomo instance
-            tomo_instance.set_tomo(volumes[-1])
-            # Set default slider positions
-            center = np.median(data_matrix)    #current_volume.surfaces[0].level       # Use this as a default until I know a better value
-            width = data_matrix.mean()+12.5*data_matrix.std()             # Randomly use 15% of total width
-            slice = ma.ceil(0.5*(1+tomo_instance.z_dim))    # Select middle of the stack
-            tomo_instance.set_default_positions([center, width, slice])
+        if file is not None and len(file):
+            fmt_name = self.partlist_filters[format]
+            artia.open_partlist(file[0], fmt_name)
 
-            self.tomo_list.append(tomo_instance)
-            run(session, "set bgColor black")
-            run(session, "volume #{} plane z style image".format(volumes[-1].id_string + " imageMode " + '"full region"'))
+    def _choose_partlist(self):
+        if self.particle_open_dialog.exec():
+            return self.particle_open_dialog.selectedFiles(), self.particle_open_dialog.selectedNameFilter()
 
-            self.options_window.group_pixel_size_pixlabel.setText(str(current_volume.data.step[0]))
-        # Reset tomo filepath
-        self.tomo_filepath = None
+    def _create_partlist(self):
+        artia = self.session.ArtiaX
+        artia.create_partlist()
+
+    def _save_partlist(self):
+        artia = self.session.ArtiaX
+
+        file, format = self._choose_partlist_save()
+
+        if file is not None and len(file):
+            fmt_name = self.partlist_filters[format]
+            artia.save_partlist(artia.selected_partlist, file[0], fmt_name)
+
+    def _choose_partlist_save(self):
+        if self.particle_save_dialog.exec():
+            return self.particle_save_dialog.selectedFiles(), self.particle_save_dialog.selectedNameFilter()
+
+    def _close_volume(self):
+        artia = self.session.ArtiaX
+
+        if artia.selected_tomogram is None or artia.tomograms.count == 0:
+            return
+
+        artia.close_tomogram(artia.selected_tomogram)
+
+    def _close_partlist(self):
+        artia = self.session.ArtiaX
+
+        if artia.selected_partlist is None or artia.partlists.count == 0:
+            return
+
+        artia.close_partlist(artia.selected_partlist)
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -424,7 +397,7 @@ class ArtiaXDialog(ToolInstance):
             motl_data = emread(self.motl_filename[0])
             motl_data = np.ndarray.tolist(motl_data[0])
 
-            row = self.table_motl.rowCount()
+            row = self.table_part.rowCount()
             # Create a Motivelist instance and add to the list of Motivelists
             from .object_settings import MotlInstance
             motl_instance = MotlInstance(motl_name, row, len(self.motl_list))
@@ -478,7 +451,7 @@ class ArtiaXDialog(ToolInstance):
             motl_filename = os.path.basename(self.motl_filename[0])
             # Update the filename in motl instance and table
             self.motl_selected_instance.name = motl_filename
-            self.table_motl.setItem(self.motl_selected_instance.table_row, 0, QTableWidgetItem(motl_filename))
+            self.table_part.setItem(self.motl_selected_instance.table_row, 0, QTableWidgetItem(motl_filename))
 
             # Store data in a numpy array
             pixel_size = float(self.options_window.group_pixel_size_pixlabel.text())
@@ -491,73 +464,23 @@ class ArtiaXDialog(ToolInstance):
             # Save the data in the corresponding path
             emwrite(em_data, self.motl_filename[0])
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    def load_pdb_pressed(self, session):
-        self.pdb_filename = None
-
-        # Open file dialog to open the pdb file
-        self.select = self.file_dialog_open.exec()
-
-        if self.select:
-            self.pdb_filename = self.file_dialog_open.selectedFiles()
-
-        if self.pdb_filename == None:
-            print("No pdb file selected.")
-        else:
-            run(session, "open {}".format(self.pdb_filename[0]))
-
-        self.pdb_filename = None
-
 # ==============================================================================
 # Main Window Functions ========================================================
 # ==============================================================================
 
-
-    def tomo_close_button_pressed(self, session):
-        # This button only works if a tomo from the table is selected
-        if self.tomo_selected_instance == None:
-            print("Error: Please select a tomogram from the table")
-        else:
-            # Close the tomogram
-            self.tomo_selected_instance.volume.delete()
-
-            # Update the row/index in all tomo instances with larger row/index number
-            for instance in self.tomo_list:
-                if instance.table_row > self.tomo_selected_instance.table_row:
-                    instance.table_row -= 1
-                if instance.list_index > self.tomo_selected_instance.list_index:
-                    instance.list_index -= 1
-            # Delete the row
-            self.table_tomo.removeRow(self.tomo_selected_instance.table_row)
-            # Reconnect all the QCheckBoxes with the right variables
-
-            # Remove the motl from the motl_list
-            self.tomo_list.remove(self.tomo_selected_instance)
-
-            # It is also nice to have a message printed in the Log that
-            # The tomogram got closed
-            print("{} has been closed.".format(self.tomo_selected_instance.name))
-
-            # Since this function is only executed when a tomo instance is selected
-            # The options menu needs to be closed when the tomogram is closed
-            self.options_window.change_gui(session, "default")
-
-            # And finally set the selected tomo instance to default
-            self.tomo_selected_instance = None
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     def motl_create_button_pressed(self, session):
 
         # Create a new motl instance with a default name
-        number_rows = self.table_motl.rowCount()
+        number_rows = self.table_part.rowCount()
         name = "Motivelist {}".format(number_rows + 1)
         from .object_settings import MotlInstance
         motl_instance = MotlInstance(name, number_rows, len(self.motl_list))
 
         # Append motl instance in motl list
         self.motl_list.append(motl_instance)
-        # Update motl table (table_motl)
+        # Update motl table (table_part)
         self.table_add_row(session=session, table_number=2, name=name)
 
         run(session,"mousemode leftMode "+'"mark plane"')
@@ -583,7 +506,7 @@ class ArtiaXDialog(ToolInstance):
                 if instance.list_index > self.motl_selected_instance.list_index:
                     instance.list_index -= 1
             # Delete the row
-            self.table_motl.removeRow(self.motl_selected_instance.table_row)
+            self.table_part.removeRow(self.motl_selected_instance.table_row)
             # Reconnect all the QCheckBoxes with the right variables
 
 
@@ -595,7 +518,7 @@ class ArtiaXDialog(ToolInstance):
             print("{} has been closed.".format(self.motl_selected_instance.name))
 
             # Also update the options window
-            self.options_window.change_gui(session, "default")
+            self.options_window.change_gui("default")
             self.options_window.group_pixel_size_pixlabel.setText("1.0")
 
             # And finally set the selected tomo instance to default
@@ -606,179 +529,182 @@ class ArtiaXDialog(ToolInstance):
 # Table Functions ==============================================================
 # ==============================================================================
 
+    def _update_tomo_table(self):
+        ui = self
+        artia = self.session.ArtiaX
 
-    def table_add_row(self, session, table_number, name, obj_name=None):
-        if table_number == 1:
-            # Get the number of rows and expand table by one row
-            number_rows = self.table_tomo.rowCount()
-            self.table_tomo.setRowCount(number_rows + 1)
+        ui.table_tomo.setRowCount(artia.tomograms.count)
 
+        # Delete old Buttons
+        for b in ui.tomo_show_group.buttons():
+            ui.tomo_show_group.removeButton(b)
+            b.deleteLater()
+
+        for b in ui.tomo_options_group.buttons():
+            ui.tomo_options_group.removeButton(b)
+            b.deleteLater()
+
+        # Add new Buttons and connections
+        from PyQt5.QtWidgets import QCheckBox, QTableWidgetItem
+        from PyQt5.QtCore import Qt
+
+        for idx, t in enumerate(artia.tomograms.iter()):
             # Define Checkboxes for show and options
-            table_tomo_show_box = QCheckBox()
-            table_tomo_options_box = QCheckBox()
-            # Set the check stati
-            table_tomo_show_box.setCheckState(Qt.Checked)
-            table_tomo_options_box.setCheckState(Qt.Unchecked)
-            # Connect the Items to a function
-            table_tomo_show_box.stateChanged.connect(partial(self.table_box_clicked, session, 1, "show", number_rows))
-            table_tomo_options_box.stateChanged.connect(partial(self.table_box_clicked, session, 1, "options", number_rows))
-
-            # Print the entries of the table
-            self.table_tomo.setItem(number_rows, 0, QTableWidgetItem(name))
-            self.table_tomo.setCellWidget(number_rows, 1, table_tomo_show_box)
-            self.table_tomo.setCellWidget(number_rows, 2, table_tomo_options_box)
-
-        elif table_number == 2:
-            # Get the number of rows and expand table by one row
-            number_rows = self.table_motl.rowCount()
-            self.table_motl.setRowCount(number_rows + 1)
-
-            # Define Checkboxes for show and options
-            table_motl_show_box = QCheckBox()
-            table_motl_options_box = QCheckBox()
+            name_box = QTableWidgetItem(t.name)
+            show_box = QCheckBox()
+            options_box = QCheckBox()
 
             # Set the check state
-            table_motl_show_box.setCheckState(Qt.Checked)
-            table_motl_options_box.setCheckState(Qt.Unchecked)
+            if artia.tomograms.get(idx).display:
+                show_box.setCheckState(Qt.Checked)
+            else:
+                show_box.setCheckState(Qt.Unchecked)
+
+            if artia.tomograms.has_id(artia.options_tomogram) and artia.tomograms.get_id(idx) == artia.options_tomogram:
+                options_box.setCheckState(Qt.Checked)
+            else:
+                options_box.setCheckState(Qt.Unchecked)
 
             # Connect the Items to a function
-            table_motl_show_box.stateChanged.connect(partial(self.table_box_clicked, session, 2, "show", number_rows))
-            table_motl_options_box.stateChanged.connect(partial(self.table_box_clicked, session, 2, "options", number_rows))
+            show_box.stateChanged.connect(partial(ui._show_tomo, idx))
+            options_box.stateChanged.connect(partial(ui._show_tomo_options, idx))
 
-            # Print the entries of the table
-            self.table_motl.setItem(number_rows, 0, QTableWidgetItem(name))
-            #self.table_motl.setItem(number_rows, 1, QTableWidgetItem(obj_name))
-            self.table_motl.setCellWidget(number_rows, 1, table_motl_show_box)
-            self.table_motl.setCellWidget(number_rows, 2, table_motl_options_box)
+            ui.table_tomo.setItem(idx, 0, name_box)
+            ui.table_tomo.setCellWidget(idx, 1, show_box)
+            ui.table_tomo.setCellWidget(idx, 2, options_box)
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            # Add buttons to groups
+            ui.tomo_show_group.addButton(show_box)
+            #ui.tomo_options_widgets.append(options_box)
+            ui.tomo_options_group.addButton(options_box)
 
-    def table_box_clicked(self, session, table_number, option, row):
-        # Initialize the instance
-        instance = None
-        # This function needs a safety switch so that it is only executed when
-        # The checkbox is changed manually -> Disabled when setCheckState is used
-        if self.execution_switch:
-            if table_number == 1:
-                if option == "show":
-                    # Select the right tomo instance
-                    for i in range(len(self.tomo_list)):
-                        if self.tomo_list[i].table_row == row:
-                            instance = self.tomo_list[i]
-                    item = self.table_tomo.cellWidget(row, 1)
-                    # The function receives the updated state of the QCheckBox
-                    if item.isChecked():    # Show
-                        instance.shown = True
-                        instance.volume.show(show=True)
-                    else:                   # Hide
-                        instance.shown = False
-                        instance.volume.show(show=False)
-                elif option == "options":
-                    # Select the right tomo instance
-                    for i in range(len(self.tomo_list)):
-                        if self.tomo_list[i].table_row == row:
-                            instance = self.tomo_list[i]
+        ui.table_tomo.selectRow(0)
+        if artia.tomograms.count > 0:
+            artia.selected_tomogram = artia.tomograms.get_id(0)
+        else:
+            artia.selected_tomogram = None
 
-                    item = self.table_tomo.cellWidget(row, 2)
-                    state = item.isChecked()    # Save the current check state
-                    # The function receives the updated state of the QCheckBox
-                    if state:   # Open options menu in other window
-                        # Now uncheck every QCheckBox
-                        for i in range(self.table_tomo.rowCount()):
-                            options_item = self.table_tomo.cellWidget(i, 2)
-                            # Switch execution switch
-                            self.execution_switch = False
-                            options_item.setCheckState(Qt.Unchecked)
-                            self.execution_switch = True
-                        # And uncheck the options state in the tomo instances
-                        for i in range(len(self.tomo_list)):
-                            self.tomo_list[i].options = False
-                        # Check the originally selected Box again
-                        self.execution_switch = False
-                        item.setCheckState(Qt.Checked)
-                        self.execution_switch = True
-                        # Also update the corresponding tomo instance
-                        instance.options = True
-                        # Set the globally accessible tomo instance
-                        self.tomo_selected_instance = instance
-                        # Finally update the options window
-                        self.options_window.change_gui(session, "tomo", self.tomo_selected_instance)
-                    else:       # Set options window back to default
-                        # Close the options menu and update the options state in the tomo instance
-                        instance.options = False
-                        # Free the globally accessible tomo instance
-                        self.tomo_selected_instance = None
-                        # Update the options window
-                        self.options_window.change_gui(session, "default")
+        if not artia.tomograms.has_id(artia.options_tomogram):
+            artia.options_tomogram = None
 
-            elif table_number == 2:
-                if option == "show":
-                    # Select the right motl instance
-                    for i in range(len(self.motl_list)):
-                        if self.motl_list[i].table_row == row:
-                            instance = self.motl_list[i]
-                    item = self.table_motl.cellWidget(row, 1)
-                    obj_list = [particle[20] for particle in instance.motivelist]
-                    # The function receives the updated state of the QCheckBox
-                    if item.isChecked():    # Show
-                        instance.shown = True
-                        for object in obj_list:
-                            if isinstance(object, Volume):
-                                object.show(show=True)
-                            else:
-                                object.hide = False
-                    else:                   # Hide
-                        instance.shown = False
-                        for object in obj_list:
-                            if isinstance(object, Volume):
-                                object.show(show=False)
-                            else:
-                                object.hide = True
-                elif option == "options":
-                    # Select the right motl instance
-                    for i in range(len(self.motl_list)):
-                        if self.motl_list[i].table_row == row:
-                            instance = self.motl_list[i]
 
-                    # print(str(self.table_motl.row(self.table_motl.cellWidget(row, 2)).isChecked))
-                    item = self.table_motl.cellWidget(row, 2)
-                    state = item.isChecked()    # Save the current check state
+    def _update_partlist_table(self):
+        ui = self
+        artia = self.session.ArtiaX
 
-                    # The function receives the updated state of the QCheckBox
-                    if state:                   # Open options menu in other window
-                        # Now uncheck every QCheckBox
-                        for i in range(self.table_motl.rowCount()):
-                            options_item = self.table_motl.cellWidget(i, 2)
-                            self.execution_switch = False
-                            options_item.setCheckState(Qt.Unchecked)
-                            self.execution_switch = True
-                        # And uncheck the view state in the tomo instances
-                        for i in range(len(self.motl_list)):
-                            self.motl_list[i].options = False
-                        # Check the originally selected Box again
-                        self.execution_switch = False
-                        item.setCheckState(Qt.Checked)
-                        self.execution_switch = True
-                        # Also update the corresponding tomo instance
-                        instance.options = True
-                        # Set the globally accessible motl instance
-                        self.motl_selected_instance = instance
-                        # Finally update the options window and color the markers/objects
-                        self.options_window.change_gui(session, "motl", self.motl_selected_instance)
-                        self.options_window.motl_color(session, True, 0, self.motl_selected_instance)
-                    else:
-                        # Close the options menu and update the options state in the tomo instance
-                        instance.options = False
-                        # Update the options window to default settings
-                        self.options_window.change_gui(session, "default")
-                        # Color all objects/markers associated with this motivelist in default blue
-                        self.options_window.motl_color(session, False, 0, self.motl_selected_instance)
-                        # Free the globally accessible motl instance
-                        self.motl_selected_instance = None
-                        # Unselect everything
-                        run(session, "select clear")
+        ui.table_part.setRowCount(artia.partlists.count)
+
+        # Delete old Buttons
+        for b in ui.part_show_group.buttons():
+            ui.part_show_group.removeButton(b)
+            b.deleteLater()
+
+        for b in ui.part_options_group.buttons():
+            ui.part_options_group.removeButton(b)
+            b.deleteLater()
+
+        # Add new Buttons and connections
+        from PyQt5.QtWidgets import QCheckBox, QTableWidgetItem
+        from PyQt5.QtCore import Qt
+
+        for idx, p in enumerate(artia.partlists.iter()):
+            # Define Checkboxes for show and options
+            name_box = QTableWidgetItem(p.name)
+            show_box = QCheckBox()
+            options_box = QCheckBox()
+
+            # Set the check state
+            if artia.partlists.get(idx).display:
+                show_box.setCheckState(Qt.Checked)
+            else:
+                show_box.setCheckState(Qt.Unchecked)
+
+            if artia.partlists.has_id(artia.options_partlist) and artia.partlists.get_id(idx) == artia.options_partlist:
+                options_box.setCheckState(Qt.Checked)
+            else:
+                options_box.setCheckState(Qt.Unchecked)
+
+            # Connect the Items to a function
+            show_box.stateChanged.connect(partial(ui._show_partlist, idx))
+            options_box.stateChanged.connect(partial(ui._show_partlist_options, idx))
+
+            ui.table_part.setItem(idx, 0, name_box)
+            ui.table_part.setCellWidget(idx, 1, show_box)
+            ui.table_part.setCellWidget(idx, 2, options_box)
+
+            # Add buttons to groups
+            ui.part_show_group.addButton(show_box)
+            ui.part_options_group.addButton(options_box)
+
+        ui.table_part.selectRow(0)
+        if artia.partlists.count > 0:
+            artia.selected_partlist = artia.partlists.get_id(0)
+        else:
+            artia.selected_partlist = None
+
+        if not artia.partlists.has_id(artia.options_partlist):
+            artia.options_partlist = None
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    def _tomo_table_selected(self, item):
+        artia = self.session.ArtiaX
+
+        if item is not None:
+            artia.selected_tomogram = artia.tomograms.get_id(item.row())
+
+    def _tomo_table_name_changed(self, item):
+        artia = self.session.ArtiaX
+        if (item is not None) and (item.column() == 0):
+            name = item.text()
+            row = item.row()
+            #if not artia.tomograms.set_name(row, name):
+            #    item.setText(artia.tomograms.get(row).name)
+            artia.tomograms.set_name(row, name)
+
+    def _show_tomo(self, idx, state):
+        artia = self.session.ArtiaX
+        artia.selected_tomogram = artia.tomograms.get_id(idx)
+
+        if state == Qt.Checked:
+            artia.show_tomogram(idx)
+        elif state == Qt.Unchecked:
+            artia.hide_tomogram(idx)
+
+    def _show_tomo_options(self, idx, state):
+        artia = self.session.ArtiaX
+        artia.options_tomogram = artia.tomograms.get_id(idx)
+
+        if state == Qt.Checked:
+            self.ow._show_tab("tomogram")
+
+    def _partlist_table_selected(self, item):
+        artia = self.session.ArtiaX
+
+        if item is not None:
+            artia.selected_partlist = artia.partlists.get_id(item.row())
+
+    def _partlist_table_name_changed(self, item):
+        artia = self.session.ArtiaX
+        if (item is not None) and (item.column() == 0):
+            name = item.text()
+            row = item.row()
+            artia.partlists.set_name(row, name)
+
+    def _show_partlist(self, idx, state):
+        artia = self.session.ArtiaX
+        artia.selected_partlist = artia.partlists.get_id(idx)
+
+        if state == Qt.Checked:
+            artia.show_partlist(idx)
+        elif state == Qt.Unchecked:
+            artia.hide_partlist(idx)
+
+    def _show_partlist_options(self, idx, state):
+        artia = self.session.ArtiaX
+        artia.options_partlist = artia.partlists.get_id(idx)
+
+        if state == Qt.Checked:
+            self.ow._show_tab("partlist")
 
     def table_cell_clicked(self, session, table_number):
         if table_number == 1:
@@ -797,9 +723,9 @@ class ArtiaXDialog(ToolInstance):
                     tomo_instance.name = self.table_tomo.item(row, column).text()
 
         elif table_number == 2:
-            item = self.table_motl.selectedItems()
-            column = self.table_motl.currentColumn()
-            row = self.table_motl.currentRow()
+            item = self.table_part.selectedItems()
+            column = self.table_part.currentColumn()
+            row = self.table_part.currentRow()
             motl_instance = None
             # Depending on the row, find the corresponding motl instance
             for instance in self.motl_list:
@@ -809,9 +735,9 @@ class ArtiaXDialog(ToolInstance):
 
             if motl_instance != None:
                 if column == 0:     # Change the name
-                    motl_instance.name = self.table_motl.item(row, column).text()
+                    motl_instance.name = self.table_part.item(row, column).text()
                 # elif column == 1:   # Change the object name
-                #     motl_instance.obj_name = self.table_motl.item(row, column).text()
+                #     motl_instance.obj_name = self.table_part.item(row, column).text()
 
 
 # ==============================================================================
@@ -866,42 +792,45 @@ class ArtiaXDialog(ToolInstance):
 # Options Window ===============================================================
 # ==============================================================================
 
-
-    def _build_options_window(self, session, tool_name):
+    def _build_options_window(self, tool_name):
         # Creates an instance of the new window's class
-        self.options_window = OptionsWindow(session, tool_name)
+        self.ow = OptionsWindow(self.session, tool_name)
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Tomo Functions +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-    def connect_tomo_functions(self, session):
+
+
+    def connect_tomo_functions(self):
+
+        session = self.session
         #Physical Position
         self.options_window.group_pixelSize_button.clicked.connect(partial(self.ApplypixSize_execute, session))
         self.options_window.group_physPos_button.clicked.connect(partial(self.physPosition_execute, session))
         # Center
-        self.options_window.group_contrast_center_edit.returnPressed.connect(partial(self.center_edited, session))
-        self.options_window.group_contrast_center_slider.valueChanged.connect(partial(self.center_slider, session))
-        self.options_window.group_contrast_center_slider.sliderReleased.connect(partial(self.center_released))
+        #self.options_window.group_contrast_center_edit.returnPressed.connect(partial(self.center_edited, session))
+        #self.options_window.group_contrast_center_slider.valueChanged.connect(partial(self.center_slider, session))
+        #self.options_window.group_contrast_center_slider.sliderReleased.connect(partial(self.center_released))
         # Width
-        self.options_window.group_contrast_width_edit.returnPressed.connect(partial(self.width_edited, session))
-        self.options_window.group_contrast_width_slider.valueChanged.connect(partial(self.width_slider, session))
-        self.options_window.group_contrast_width_slider.sliderReleased.connect(partial(self.width_released))
+        #self.options_window.group_contrast_width_edit.returnPressed.connect(partial(self.width_edited, session))
+        #self.options_window.group_contrast_width_slider.valueChanged.connect(partial(self.width_slider, session))
+        #self.options_window.group_contrast_width_slider.sliderReleased.connect(partial(self.width_released))
         # Slice
-        self.options_window.group_slices_edit.returnPressed.connect(partial(self.slice_edited, session))
-        self.options_window.group_slices_slider.valueChanged.connect(partial(self.slice_slider, session))
-        self.options_window.group_slices_slider.sliderReleased.connect(partial(self.slice_released))
+        # self.options_window.group_slices_edit.returnPressed.connect(partial(self.slice_edited, session))
+        # self.options_window.group_slices_slider.valueChanged.connect(partial(self.slice_slider, session))
+        # self.options_window.group_slices_slider.sliderReleased.connect(partial(self.slice_released))
         # Slices buttons
-        self.options_window.group_slices_previous_10.clicked.connect(partial(self.skip_planes, session, -10))
-        self.options_window.group_slices_previous_1.clicked.connect(partial(self.skip_planes, session, -1))
-        self.options_window.group_slices_next_1.clicked.connect(partial(self.skip_planes, session, 1))
-        self.options_window.group_slices_next_10.clicked.connect(partial(self.skip_planes, session, 10))
+        # self.options_window.group_slices_previous_10.clicked.connect(partial(self.skip_planes, session, -10))
+        # self.options_window.group_slices_previous_1.clicked.connect(partial(self.skip_planes, session, -1))
+        # self.options_window.group_slices_next_1.clicked.connect(partial(self.skip_planes, session, 1))
+        # self.options_window.group_slices_next_10.clicked.connect(partial(self.skip_planes, session, 10))
         # Fourier transform
         self.options_window.group_fourier_transform_execute_button.clicked.connect(partial(self.fourier_transform, session))
         # Orthoplanes
-        self.options_window.group_orthoplanes_buttonxy.clicked.connect(partial(self.orthoplanes_buttonxy_execute, session))
-        self.options_window.group_orthoplanes_buttonxz.clicked.connect(partial(self.orthoplanes_buttonxz_execute, session))
-        self.options_window.group_orthoplanes_buttonyz.clicked.connect(partial(self.orthoplanes_buttonyz_execute, session))
-        self.options_window.group_orthoplanes_buttonxyz.clicked.connect(partial(self.orthoplanes_buttonxyz_execute, session))
+        # self.options_window.group_orthoplanes_buttonxy.clicked.connect(partial(self.orthoplanes_buttonxy_execute, session))
+        # self.options_window.group_orthoplanes_buttonxz.clicked.connect(partial(self.orthoplanes_buttonxz_execute, session))
+        # self.options_window.group_orthoplanes_buttonyz.clicked.connect(partial(self.orthoplanes_buttonyz_execute, session))
+        # self.options_window.group_orthoplanes_buttonxyz.clicked.connect(partial(self.orthoplanes_buttonxyz_execute, session))
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -995,138 +924,21 @@ class ArtiaXDialog(ToolInstance):
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-    def center_edited(self, session):
-        try:
-            # Get text from edit
-            value = float(self.options_window.group_contrast_center_edit.text())
-            # Set value in slider
-            self.options_window.group_contrast_center_slider.setValue(int(10000*value))
-            # Update the center position in the tomo instance
-            self.tomo_selected_instance.center_position = value
-            self.tomo_selected_instance.use_save_settings = True
-            # Update the tomo list with the updated selected tomo instance
-            self.tomo_list[self.tomo_selected_instance.list_index] = self.tomo_selected_instance
-            # Execute the center function
-            self.options_window.center_execute(session, value, self.tomo_selected_instance)
-        except:
-            print("Error: Please insert a number.")
-
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    def center_slider(self, session):
-        # Get the value from the slider
-        value = self.options_window.group_contrast_center_slider.value()
-        # Set value in edit
-        self.options_window.group_contrast_center_edit.setText(str(value/10000))
-        # Execute the center function
-        self.options_window.center_execute(session, value/10000, self.tomo_selected_instance)
-
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    def center_released(self):
-        # Get the value from the slider
-        value = self.options_window.group_contrast_center_slider.value()
-        # Update the center position in the tomo instance
-        self.tomo_selected_instance.center_position = value/10000
-        self.tomo_selected_instance.use_save_settings = True
-        # Update the tomo list with the updated selected tomo instance
-        self.tomo_list[self.tomo_selected_instance.list_index] = self.tomo_selected_instance
-
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    def width_edited(self, session):
-        try:
-            # Get text from edit
-            value = float(self.options_window.group_contrast_width_edit.text())
-            # Set value in slider
-            self.options_window.group_contrast_width_slider.setValue(int(10000*value))
-            # Update the width position in the tomo instance
-            self.tomo_selected_instance.width_position = value
-            self.tomo_selected_instance.use_save_settings = True
-            # Update the tomo list with the updated selected tomo instance
-            self.tomo_list[self.tomo_selected_instance.list_index] = self.tomo_selected_instance
-            # Execute the width function
-            self.options_window.width_execute(session, value, self.tomo_selected_instance)
-        except:
-            print("Error: Please insert a number")
-
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    def width_slider(self, session):
-        # Get the value from the slider
-        value = self.options_window.group_contrast_width_slider.value()
-        # Set value in edit
-        self.options_window.group_contrast_width_edit.setText(str(value/10000))
-        # Execute the width function
-        self.options_window.width_execute(session, value/10000, self.tomo_selected_instance)
-
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    def width_released(self):
-        # Get the value from the slider
-        value = self.options_window.group_contrast_width_slider.value()
-        # Update the width position in the tomo instance
-        self.tomo_selected_instance.width_position = value/10000
-        self.tomo_selected_instance.use_save_settings = True
-        # Update the tomo list with the updated selected tomo instance
-        self.tomo_list[self.tomo_selected_instance.list_index] = self.tomo_selected_instance
-
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    def slice_edited(self, session):
-        try:
-            # Get text from edit
-            value = float(self.options_window.group_slices_edit.text())
-            # Set value in slider
-            self.options_window.group_slices_slider.setValue(int(value))
-            # Update the slice position in the tomo instance
-            self.tomo_selected_instance.slice_position = value
-            self.tomo_selected_instance.use_save_settings = True
-            # Update the tomo list with the updated selected tomo instance
-            self.tomo_list[self.tomo_selected_instance.list_index] = self.tomo_selected_instance
-            # Execute the slice function
-            self.options_window.slice_execute(session, value, self.tomo_selected_instance)
-        except:
-            print("Error: Please insert a number.")
-
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    def slice_slider(self, session):
-        # Get the value from the slider
-        value = self.options_window.group_slices_slider.value()
-        # Set value in edit
-        self.options_window.group_slices_edit.setText(str(value))
-        # Execute the slice function
-        self.options_window.slice_execute(session, value, self.tomo_selected_instance)
-
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    def slice_released(self):
-        # Get the value from the slider
-        value = self.options_window.group_slices_slider.value()
-        # Update the slice position in the tomo instance
-        self.tomo_selected_instance.slice_position = value
-        self.tomo_selected_instance.use_save_settings = True
-        # Update the tomo list with the updated selected tomo instance
-        self.tomo_list[self.tomo_selected_instance.list_index] = self.tomo_selected_instance
-
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    def skip_planes(self, session, number):
-        # Update the slice position in the tomo instance
-        if self.tomo_selected_instance.slice_position + number > self.tomo_selected_instance.z_dim:
-            self.tomo_selected_instance.slice_position = self.tomo_selected_instance.z_dim
-        elif self.tomo_selected_instance.slice_position + number < 1:
-            self.tomo_selected_instance.slice_position = 1
-        else:
-            self.tomo_selected_instance.slice_position = self.tomo_selected_instance.slice_position + number
-        # Update the slider and edit value
-        self.options_window.group_slices_edit.setText(str(self.tomo_selected_instance.slice_position))
-        self.options_window.group_slices_slider.setValue(self.tomo_selected_instance.slice_position)
-        # Update the tomo list with the updated selected tomo instance
-        self.tomo_list[self.tomo_selected_instance.list_index] = self.tomo_selected_instance
-        # Execute the slice function
-        self.options_window.slice_execute(session, self.tomo_selected_instance.slice_position, self.tomo_selected_instance)
+    # def skip_planes(self, session, number):
+    #     # Update the slice position in the tomo instance
+    #     if self.tomo_selected_instance.slice_position + number > self.tomo_selected_instance.z_dim:
+    #         self.tomo_selected_instance.slice_position = self.tomo_selected_instance.z_dim
+    #     elif self.tomo_selected_instance.slice_position + number < 1:
+    #         self.tomo_selected_instance.slice_position = 1
+    #     else:
+    #         self.tomo_selected_instance.slice_position = self.tomo_selected_instance.slice_position + number
+    #     # Update the slider and edit value
+    #     self.options_window.group_slices_edit.setText(str(self.tomo_selected_instance.slice_position))
+    #     self.options_window.group_slices_slider.setValue(self.tomo_selected_instance.slice_position)
+    #     # Update the tomo list with the updated selected tomo instance
+    #     self.tomo_list[self.tomo_selected_instance.list_index] = self.tomo_selected_instance
+    #     # Execute the slice function
+    #     self.options_window.slice_execute(session, self.tomo_selected_instance.slice_position, self.tomo_selected_instance)
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

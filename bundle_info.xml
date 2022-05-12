@@ -5,8 +5,8 @@ When uploaded to the ChimeraX toolshed, the bundle
 will be displayed without the ChimeraX- prefix.
 -->
 
-<BundleInfo name="ArtiaX_Bundle"
-	    version="0.1" package="chimerax.test_bundle"
+<BundleInfo name="ArtiaX"
+	    version="0.1" package="chimerax.artiax"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -16,7 +16,7 @@ will be displayed without the ChimeraX- prefix.
 
   <!-- Synopsis is a one-line description
        Description is a full multi-line description -->
-  <Synopsis>Amira EM Plugin for ChimeraX</Synopsis>
+  <Synopsis>Cryo-ET Plugin for ChimeraX</Synopsis>
   <Description>ArtiaX is an open-source extension of the molecular visualisation program ChimeraX and is primarily aimed on processing data from electron microscopy.
   The plugin ties in with the possibility of ChimeraX to display and manipulate objects in virtual space.
   </Description>
@@ -30,26 +30,118 @@ will be displayed without the ChimeraX- prefix.
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.2"/>
     <Dependency name="ChimeraX-UI" version="~=1.0"/>
-    <Dependency name="mrcfile" version="~=1.3"/>
+    <Dependency name="superqt"/>
   </Dependencies>
 
   <!-- Non-Python files that are part of package -->
   <DataFiles>
     <DataFile>docs/user/tools/tutorial.html</DataFile>
+    <DataFile>icons/*.png</DataFile>
   </DataFiles>
 
   <!-- Register .em format as one of the supported input file formats -->
   <Providers manager="data formats">
-    <Provider name="EM" suffixes=".em"
-	    category="Volume data" />
+    <Provider name="Artiatomi Motivelist"
+              suffixes=".em"
+              category="particle list"
+              nicknames="motl,motivelist"
+              reference_url="https://github.com/uermel/Artiatomi/wiki/Motivelist"
+              synopsis="Artiatomi particle lists"/>
   </Providers>
 
   <Providers manager="open command">
-    <Provider name="EM" want_path="true"/>
+    <Provider name="Artiatomi Motivelist" want_path="true"/>
   </Providers>
 
   <Providers manager="save command">
-    <Provider name="EM" />
+    <Provider name="Artiatomi Motivelist" />
+  </Providers>
+
+   <Providers manager="presets">
+    <Provider category="ArtiaX" name="artiax default" />
+  </Providers>
+
+  <Providers manager="toolbar">
+
+    <!-- ArtiaX tab -->
+    <!-- ArtiaX tab, General -->
+    <Provider tab="ArtiaX" section="General"
+      name="Launch" icon="start.png" description="Start ArtiaX"/>
+
+    <!-- ArtiaX tab, Markers -->
+    <Provider tab="ArtiaX" section="Markers"
+      name="Show Markers" display_name="Show" icon="show_markers.png" description="Show particles as spheres."/>
+    <Provider tab="ArtiaX" section="Markers"
+      name="Hide Markers" display_name="Hide" icon="hide_markers.png" description="Hide spheres."/>
+    <Provider tab="ArtiaX" section="Markers" name="layout-markers" compact="true"/>
+
+    <!-- ArtiaX tab, Axes -->
+    <Provider tab="ArtiaX" section="Axes"
+      name="Show Axes" display_name="Show" icon="show_axes.png" description="Show principle axes of particles."/>
+    <Provider tab="ArtiaX" section="Axes"
+      name="Hide Axes" display_name="Hide" icon="hide_axes.png" description="Hide axes."/>
+    <Provider tab="ArtiaX" section="Axes" name="layout-axes" compact="true"/>
+
+    <!-- ArtiaX tab, Surfaces -->
+    <Provider tab="ArtiaX" section="Surfaces"
+      name="Show Surfaces" display_name="Show" icon="show_surfaces.png" description="Show particle surfaces."/>
+    <Provider tab="ArtiaX" section="Surfaces"
+      name="Hide Surfaces" display_name="Hide" icon="hide_surfaces.png" description="Hide surfaces."/>
+    <Provider tab="ArtiaX" section="Surfaces" name="layout-surfaces" compact="true"/>
+
+    <!-- ArtiaX tab, View -->
+    <Provider tab="ArtiaX" section="View"
+      name="XY" icon="view_xy.png" description="Set viewing direction to XY planes."/>
+    <Provider tab="ArtiaX" section="View"
+      name="XZ" icon="view_xz.png" description="Set viewing direction to XZ planes."/>
+    <Provider tab="ArtiaX" section="View"
+      name="YZ" icon="view_yz.png" description="Set viewing direction to YZ planes."/>
+
+    <!-- ArtiaX tab, Standard Mouse Modes -->
+    <Provider tab="ArtiaX" section="Movement" mouse_mode="select"
+       name="Select" display_name="Select" icon="select.png" description="Select models."/>
+    <Provider tab="ArtiaX" section="Movement" mouse_mode="rotate"
+      name="Rotate" display_name="Rotate" icon="rotate.png" description="Rotate models."/>
+    <Provider tab="ArtiaX" section="Movement" mouse_mode="translate"
+      name="Translate" display_name="Translate" icon="translate.png" description="Translate models."/>
+    <Provider tab="ArtiaX" section="Movement" mouse_mode="pivot"
+      name="Pivot" display_name="Center On" icon="crosshairs.png" description="Set center of rotation on particle."/>
+
+    <!-- ArtiaX tab, Place Markers mirrored -->
+    <Provider tab="ArtiaX" section="Place Particles" mouse_mode="mark maximum"
+      name="mark maximum" display_name="Maximum" icon="maximum.png" description="Mark maximum."/>
+    <Provider tab="ArtiaX" section="Place Particles" mouse_mode="mark plane"
+      name="mark plane" display_name="Plane" icon="plane.png" description="Mark volume plane."/>
+    <Provider tab="ArtiaX" section="Place Particles" mouse_mode="mark surface"
+      name="mark surface" display_name="Surface" icon="surface.png" description="Mark surface."/>
+    <Provider tab="ArtiaX" section="Place Particles" mouse_mode="mark center"
+      name="mark center" display_name="Center" icon="center.png" description="Mark center."/>
+    <Provider tab="ArtiaX" section="Place Particles" mouse_mode="mark point"
+      name="mark point" display_name="Point" icon="point.png" description="Mark point."/>
+
+    <!-- ArtiaX tab, Manipulate Particles-->
+    <Provider tab="ArtiaX" section="Move Particles" mouse_mode="translate selected particles"
+      name="Translate Selected Particles" display_name="Translate Selected" icon="translate_selected.png"
+      description="Shift selected particles (hold SHIFT to rotate)."/>
+    <Provider tab="ArtiaX" section="Move Particles" mouse_mode="rotate selected particles"
+      name="Rotate Selected Particles" display_name="Rotate Selected" icon="rotate_selected.png"
+      description="Rotate selected particles (hold SHIFT to translate)."/>
+    <Provider tab="ArtiaX" section="Move Particles" mouse_mode="translate picked particle"
+      name="Translate Picked Particle" display_name="Translate Picked" icon="translate_picked.png"
+      description="Shift picked particle (hold SHIFT to rotate)."/>
+    <Provider tab="ArtiaX" section="Move Particles" mouse_mode="rotate picked particle"
+      name="Rotate Picked Particle" display_name="Rotate Picked" icon="rotate_picked.png"
+      description="Rotate picked particle (hold SHIFT to translate)."/>
+
+    <!-- ArtiaX tab, Delete Particles-->
+    <Provider tab="ArtiaX" section="Delete Particles" mouse_mode="delete selected particles"
+      name="Delete Selected Particles" display_name="Delete Selected" icon="delete_selected.png"
+      description="Delete picked particle."/>
+    <Provider tab="ArtiaX" section="Delete Particles" mouse_mode="delete picked particle"
+      name="Delete Picked Particle" display_name="Delete Picked" icon="delete.png"
+      description="Delete picked particle."/>
+
+
   </Providers>
 
   <!-- Python and ChimeraX-specific classifiers
@@ -69,9 +161,45 @@ will be displayed without the ChimeraX- prefix.
     <PythonClassifier>Development Status :: 3 - Alpha</PythonClassifier>
     <PythonClassifier>License :: Freeware</PythonClassifier>
     <!-- ChimeraX classifiers describe supplied functionality -->
-    <ChimeraXClassifier>ChimeraX :: Tool :: ArtiaX Dialog :: 
-      ArtiaX Bundle ::  Opens Tomo Plugin GUI</ChimeraXClassifier>
-    
+    <ChimeraXClassifier>ChimeraX :: Tool :: ArtiaX :: General ::
+      Opens Tomo Plugin GUI</ChimeraXClassifier>
+
+    <!-- Commands -->
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax start :: General ::
+      Start and Initialize ArtiaX plugin.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax view :: General ::
+      Set standard viewing directions.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax open tomo :: General ::
+      Open a Tomogram in ArtiaX.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax add tomo :: General ::
+      Add a volume loaded by ChimeraX to ArtiaX.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax close tomo :: General ::
+      Close a tomogram currently loaded in ArtiaX.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax open particles :: General ::
+      Open a particle list in ArtiaX</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax close particles :: General ::
+      Close a particle list currently loaded in ArtiaX</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax particles attach :: General ::
+      Attach a model to an ArtiaX particle list.</ChimeraXClassifier>
+
+
+
+<!--    <ChimeraXClassifier>ChimeraX :: Command :: artiax open particles :: General ::-->
+<!--      Start and Initialize ArtiaX plugin</ChimeraXClassifier>-->
+
+<!--    <ChimeraXClassifier>ChimeraX :: Command :: artiax open tomo :: General ::-->
+<!--      Start and Initialize ArtiaX plugin</ChimeraXClassifier>-->
+
+<!--    <ChimeraXClassifier>ChimeraX :: Command :: artiax open tomo :: General ::-->
+<!--      Start and Initialize ArtiaX plugin</ChimeraXClassifier>-->
+
   </Classifiers>
 
 
