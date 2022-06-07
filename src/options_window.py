@@ -64,6 +64,14 @@ def value_to_slider(value, slider_max, min, max):
     step = dist / slider_max
     return round((value - min) / step)
 
+def is_float(s):
+    """Return true if text convertible to float."""
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
 class OptionsWindow(ToolInstance):
     DEBUG = False
 
@@ -161,21 +169,26 @@ class OptionsWindow(ToolInstance):
             self.tabs.setCurrentIndex(0)
             self.tabs.widget(0).setEnabled(True)
 
-            from .VolumePlus import RENDERING_OPTIONS_CHANGED
-            ct.triggers.add_handler(RENDERING_OPTIONS_CHANGED, self._models_changed)
-
             # Update the ui
             self._update_tomo_ui()
+
+            from .VolumePlus import RENDERING_OPTIONS_CHANGED
+            ct.triggers.add_handler(RENDERING_OPTIONS_CHANGED, self._models_changed)
 
             # Make sure we are on top
             run(self.session, 'ui tool show "ArtiaX Options"', log=False)
 
         elif type == "partlist":
-            self.current_tomo_label.setText(artia.partlists.get(artia.options_partlist).name)
+            cpl = artia.partlists.get(artia.options_partlist)
+            #self.current_tomo_label.setText(artia.partlists.get(artia.options_partlist).name)
             self.tabs.setCurrentIndex(1)
             self.tabs.widget(1).setEnabled(True)
 
+            # Update the ui
             self._update_partlist_ui()
+
+            from .ParticleList import PARTLIST_CHANGED
+            cpl.triggers.add_handler(PARTLIST_CHANGED, self._partlist_changed)
 
             # Make sure we are on top
             run(self.session, 'ui tool show "ArtiaX Options"', log=False)
@@ -739,6 +752,13 @@ class OptionsWindow(ToolInstance):
         else:
             self.browse_edit.setText('')
 
+    def _partlist_changed(self, name, model):
+        artia = self.session.ArtiaX
+        opl = artia.partlists.get(artia.options_partlist)
+
+        if model is opl:
+            self._update_partlist_ui()
+
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Motl Group Functions +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     #
@@ -766,7 +786,7 @@ class OptionsWindow(ToolInstance):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
 
-        if not self.pf_edit_ori.text().isnumeric():
+        if not is_float(self.pf_edit_ori.text()):
             self.pf_edit_ori.setText(str(pl.origin_pixelsize))
             raise UserError('Please enter a valid number for the pixelsize.')
 
@@ -778,7 +798,7 @@ class OptionsWindow(ToolInstance):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
 
-        if not self.pf_edit_tra.text().isnumeric():
+        if not is_float(self.pf_edit_tra.text()):
             self.pf_edit_tra.setText(str(pl.translation_pixelsize))
             raise UserError('Please enter a valid number for the pixelsize.')
 
@@ -814,6 +834,8 @@ class OptionsWindow(ToolInstance):
         pl = artia.partlists.get(artia.options_partlist)
         pl.reset_all_particles()
         self._update_partlist_ui()
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     def _attach_display_model(self, file):
         artia = self.session.ArtiaX

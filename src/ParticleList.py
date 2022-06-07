@@ -23,6 +23,8 @@ from .marker import (MarkerSetPlus,
                      MARKER_DISPLAY_CHANGED,
                      MARKERSET_DELETED)
 
+PARTLIST_CHANGED = 'partlist changed'
+
 
 class ParticleList(Model):
     '''A Particle list displays ParticleData using a MarkerSetPlus and a set of ParticleModels.'''
@@ -96,6 +98,9 @@ class ParticleList(Model):
 
         # Initial color
         self.color = get_unused_color(self.session)
+
+        # Change trigger for UI
+        self.triggers.add_trigger(PARTLIST_CHANGED)
 
     @property
     def size(self):
@@ -326,6 +331,7 @@ class ParticleList(Model):
             run(self.session, "volume #{} capFaces false".format(model.id_string), log=True)
 
         self._add_display_set()
+        self.triggers.activate_trigger(PARTLIST_CHANGED, self)
 
     def store_marker_information(self):
         self.session._marker_settings = {
@@ -400,6 +406,7 @@ class ParticleList(Model):
             self._attr_to_marker(marker, new_part)
 
         self.collection_model.set_places(reset_ids, places)
+        self.triggers.activate_trigger(PARTLIST_CHANGED)
 
     def reset_all_particles(self):
         self.markers.delete()
@@ -412,6 +419,7 @@ class ParticleList(Model):
         self._displayed_particles = None
 
         self._init_particles()
+        self.triggers.activate_trigger(PARTLIST_CHANGED)
 
     def _markerset_deleted(self, name, value):
         if value is self.markers and not self.deleted:

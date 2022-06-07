@@ -205,13 +205,14 @@ class ArtiaXUI(ToolInstance):
         self.table_tomo = QTableWidget()
         self.table_tomo.setFont(self.font)
         self.table_tomo.setRowCount(0)
-        self.table_tomo.setColumnCount(3)
+        self.table_tomo.setColumnCount(4)
         self.table_tomo.setSelectionBehavior(QAbstractItemView.SelectRows)
         header_1 = self.table_tomo.horizontalHeader()
-        header_1.setSectionResizeMode(0, QHeaderView.Stretch)
-        header_1.setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        header_1.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        header_1.setSectionResizeMode(1, QHeaderView.Stretch)
         header_1.setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        self.table_tomo.setHorizontalHeaderLabels(["Name", "Show", "Options"])
+        header_1.setSectionResizeMode(3, QHeaderView.ResizeToContents)
+        self.table_tomo.setHorizontalHeaderLabels(["ID", "Name", "Show", "Options"])
 
         # A display table for the motivelists
         self.table_part = QTableWidget()
@@ -545,14 +546,22 @@ class ArtiaXUI(ToolInstance):
             b.deleteLater()
 
         # Add new Buttons and connections
-        from PyQt5.QtWidgets import QCheckBox, QTableWidgetItem
+        from PyQt5.QtWidgets import QRadioButton, QCheckBox, QTableWidgetItem
         from PyQt5.QtCore import Qt
 
         for idx, t in enumerate(artia.tomograms.iter()):
-            # Define Checkboxes for show and options
+            # Define table items
+            # ID (not editable)
+            id_box = QTableWidgetItem('#{}'.format(t.id_string))
+            id_box.setFlags(id_box.flags() ^ Qt.ItemIsEditable)
+            # Name
             name_box = QTableWidgetItem(t.name)
-            show_box = QCheckBox()
-            options_box = QCheckBox()
+            # Show checkbox
+            show_widge = CenteredCheckBox()
+            show_box = show_widge.checkbox
+            #Options radio
+            options_widge = CenteredRadioButton()
+            options_box = options_widge.radiobutton
 
             # Set the check state
             if artia.tomograms.get(idx).display:
@@ -561,21 +570,23 @@ class ArtiaXUI(ToolInstance):
                 show_box.setCheckState(Qt.Unchecked)
 
             if artia.tomograms.has_id(artia.options_tomogram) and artia.tomograms.get_id(idx) == artia.options_tomogram:
-                options_box.setCheckState(Qt.Checked)
+                #options_box.setCheckState(Qt.Checked)
+                options_box.setChecked(Qt.Checked)
             else:
-                options_box.setCheckState(Qt.Unchecked)
+                #options_box.setCheckState(Qt.Unchecked)
+                options_box.setChecked(Qt.Unchecked)
 
             # Connect the Items to a function
             show_box.stateChanged.connect(partial(ui._show_tomo, idx))
-            options_box.stateChanged.connect(partial(ui._show_tomo_options, idx))
+            options_box.toggled.connect(partial(ui._show_tomo_options, idx))
 
-            ui.table_tomo.setItem(idx, 0, name_box)
-            ui.table_tomo.setCellWidget(idx, 1, show_box)
-            ui.table_tomo.setCellWidget(idx, 2, options_box)
+            ui.table_tomo.setItem(idx, 0, id_box)
+            ui.table_tomo.setItem(idx, 1, name_box)
+            ui.table_tomo.setCellWidget(idx, 2, show_widge)
+            ui.table_tomo.setCellWidget(idx, 3, options_widge)
 
             # Add buttons to groups
             ui.tomo_show_group.addButton(show_box)
-            #ui.tomo_options_widgets.append(options_box)
             ui.tomo_options_group.addButton(options_box)
 
         ui.table_tomo.selectRow(0)
@@ -654,7 +665,7 @@ class ArtiaXUI(ToolInstance):
 
     def _tomo_table_name_changed(self, item):
         artia = self.session.ArtiaX
-        if (item is not None) and (item.column() == 0):
+        if (item is not None) and (item.column() == 1):
             name = item.text()
             row = item.row()
             #if not artia.tomograms.set_name(row, name):
@@ -674,7 +685,7 @@ class ArtiaXUI(ToolInstance):
         artia = self.session.ArtiaX
         artia.options_tomogram = artia.tomograms.get_id(idx)
 
-        if state == Qt.Checked:
+        if state:
             self.ow._show_tab("tomogram")
 
     def _partlist_table_selected(self, item):
@@ -1693,3 +1704,29 @@ class ArtiaXUI(ToolInstance):
         inst = class_obj(session, "Tomo Bundle")
         inst.line_edit.setText(data['current text'])
         return inst
+
+from Qt.QtWidgets import QWidget, QCheckBox, QRadioButton
+
+class CenteredCheckBox(QWidget):
+
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
+
+        self.checkbox = QCheckBox()
+        self._layout = QHBoxLayout()
+        self._layout.addWidget(self.checkbox)
+        self._layout.setAlignment(Qt.AlignCenter)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(self._layout)
+
+class CenteredRadioButton(QWidget):
+
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
+
+        self.radiobutton = QRadioButton()
+        self._layout = QHBoxLayout()
+        self._layout.addWidget(self.radiobutton)
+        self._layout.setAlignment(Qt.AlignCenter)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(self._layout)
