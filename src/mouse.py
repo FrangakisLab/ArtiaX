@@ -1,7 +1,13 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# ChimeraX
 from chimerax.mouse_modes.mousemodes import MouseMode
 from chimerax.mouse_modes.std_modes import MoveMouseMode
 from chimerax.atomic.structure import PickedAtom
-from .SurfaceCollectionModel import PickedInstanceTriangle
+
+# This package
+from .particle import PickedInstanceTriangle
+
 
 class MoveParticlesMode(MoveMouseMode):
 
@@ -20,7 +26,7 @@ class MoveParticlesMode(MoveMouseMode):
         if self.action(event) == 'rotate':
             self._set_z_rotation(event)
 
-        from .ParticleList import selected_collections
+        from .particle.ParticleList import selected_collections
         self._collections, self._masks = selected_collections(self.session)
 
     def mouse_drag(self, event):
@@ -56,7 +62,7 @@ class MoveParticlesMode(MoveMouseMode):
         saxis = self.camera_position.transform_vector(axis)
         angle *= self.speed
 
-        from .SurfaceCollectionModel import rotate_instances
+        from .particle.SurfaceCollectionModel import rotate_instances
         rotate_instances(saxis, angle, self._collections, self._masks)
 
     def _translate(self, shift):
@@ -64,11 +70,11 @@ class MoveParticlesMode(MoveMouseMode):
         s = tuple(dx*psize*self.speed for dx in shift)     # Scene units
         step = self.camera_position.transform_vector(s)    # Scene coord system
 
-        from .SurfaceCollectionModel import translate_instances
+        from .particle.SurfaceCollectionModel import translate_instances
         translate_instances(step, self._collections, self._masks)
 
     def _move(self, tf):
-        from .SurfaceCollectionModel import move_instances
+        from .particle.SurfaceCollectionModel import move_instances
         move_instances(tf, self._collections, self._masks)
 
     def wheel(self, event):
@@ -84,7 +90,7 @@ class MoveParticlesMode(MoveMouseMode):
         pass
 
     def vr_press(self, event):
-        from .ParticleList import selected_collections
+        from .particle.ParticleList import selected_collections
         self._collections, self._masks = selected_collections(self.session)
         self._vr = True
 
@@ -131,7 +137,7 @@ class MovePickedParticleMode(MoveParticlesMode):
 
     def _pick_model(self, pick, action):
         if isinstance(pick, PickedAtom) and not (action == 'rotate'):
-            from .marker import MarkerSetPlus
+            from .particle import MarkerSetPlus
             par = pick.drawing()
             if isinstance(par, MarkerSetPlus):
                 self._collections = [par.parent.collection_model]
@@ -181,7 +187,7 @@ class DeletePickedParticleMode(MouseMode):
 
     def _pick_model(self, pick):
         if isinstance(pick, PickedAtom):
-            from .marker import MarkerSetPlus
+            from .particle import MarkerSetPlus
             par = pick.drawing()
             if isinstance(par, MarkerSetPlus):
                 return pick.atom.particle_id, par.parent
@@ -206,7 +212,7 @@ class DeleteSelectedParticlesMode(MouseMode):
         MouseMode.__init__(self, session)
 
     def mouse_down(self, event):
-        from .ParticleList import selected_collections
+        from .particle.ParticleList import selected_collections
         collections, masks = selected_collections(self.session)
 
         for col, ma in zip(collections, masks):
@@ -217,7 +223,7 @@ class DeleteSelectedParticlesMode(MouseMode):
             #     pl.delete_data(col.get_id(idx))
 
     def vr_press(self, event):
-        from .ParticleList import selected_collections
+        from .particle.ParticleList import selected_collections
         collections, masks = selected_collections(self.session)
 
         for col, ma in zip(collections, masks):

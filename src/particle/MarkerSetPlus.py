@@ -1,23 +1,26 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# General
 import numpy as np
+
+# ChimeraX
 from chimerax.markers import MarkerSet
-from chimerax.geometry import translation
-from chimerax.atomic import Structure, PickedAtom
-from chimerax.graphics import Drawing
+from chimerax.atomic import Structure
 
-from ..io.ParticleData import Particle
-
+# Triggers
 MARKER_CREATED = "marker created"
 MARKER_MOVED = "marker moved"
 MARKER_SELECTED = "marker selected"
 MARKER_COLOR_CHANGED = "marker color changed"
 MARKER_DISPLAY_CHANGED = "marker display changed"
-MARKER_DELETED = "marker deleted" #data should be indices of deleted markers
+MARKER_DELETED = "marker deleted"  # data should be indices of deleted markers
 MARKERSET_DELETED = "markerset deleted"
 
+
 class MarkerSetPlus(MarkerSet):
-    """ Extension of the MarkerSet class.
-    Survives deleting the last contained marker by creating an invisible marker at the origin.
-    Also implements some utility functions for manipulating the markers."""
+    """
+    Extension of the MarkerSet class.
+    """
 
     DEBUG = False
 
@@ -26,10 +29,6 @@ class MarkerSetPlus(MarkerSet):
 
         # State array
         self._markers = []
-
-        # Dummy marker that prevents deletion
-        #self.create_marker(translation((0, 0, 0)).translation(), (0, 0, 0, 0), 1, id=-1, trigger=False, dummy=True)
-        #self.atoms[0].display = False
 
         # Triggers
         self.triggers.add_trigger(MARKER_DELETED)
@@ -89,18 +88,12 @@ class MarkerSetPlus(MarkerSet):
         self.atoms.colors = rgba
 
     def create_marker(self, xyz, rgba, radius, id=None, trigger=True, dummy=False):
-        # if not dummy:
-        #     self.triggers.manual_block(MARKER_COLOR_CHANGED)
-        #     self.triggers.manual_block(MARKER_SELECTED)
         a = super().create_marker(xyz, rgba, radius, id)
 
         if not dummy:
-            # self.triggers.manual_release(MARKER_COLOR_CHANGED)
-            # self.triggers.manual_release(MARKER_SELECTED)
             self._markers.append(a)
 
         if trigger:
-            #self.triggers.profile_trigger(MARKER_CREATED, sort_by='cumulative', num_entries=100)
             self.triggers.activate_trigger(MARKER_CREATED, a)
 
         return a
@@ -111,7 +104,6 @@ class MarkerSetPlus(MarkerSet):
     def get_all_markers(self):
         # Return state array instead of creating instances again
         return self._markers
-        #return self.atoms.instances()[1:]
 
     def _markerset_set_position(self, pos):
         """MarkerSetPlus has static position at the origin."""
@@ -155,11 +147,8 @@ class MarkerSetPlus(MarkerSet):
         if 'coord changed' in changes.atom_reasons():
             self.triggers.activate_trigger(MARKER_MOVED, changes.modified_atoms().instances())
         if 'color changed' in changes.atom_reasons():
-            # TODO: 'color changed' doesn't supply modified atoms for some reason?
-            #self.triggers.profile_trigger(MARKER_COLOR_CHANGED, sort_by='cumulative', num_entries=100)
             self.triggers.activate_trigger(MARKER_COLOR_CHANGED, changes.modified_atoms().instances())
         if 'selected changed' in changes.atom_reasons():
-            #self.triggers.profile_trigger(MARKER_SELECTED, sort_by='cumulative', num_entries=100)
             self.triggers.activate_trigger(MARKER_SELECTED, changes.modified_atoms().instances())
         if 'display changed' in changes.atom_reasons():
             self.triggers.activate_trigger(MARKER_DISPLAY_CHANGED, changes.modified_atoms().instances())

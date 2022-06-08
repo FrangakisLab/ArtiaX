@@ -1,11 +1,15 @@
-import numpy as np
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# General
 from uuid import uuid4
 from collections import OrderedDict
 
+# ChimeraX
 from chimerax.core.errors import UserError
 from chimerax.geometry import translation, rotation, Place, Places
 from chimerax.atomic import Atom
 from chimerax.core.attributes import type_attrs
+
 
 class AxisAnglePair:
     """
@@ -18,7 +22,7 @@ class AxisAnglePair:
         self.axis = axis
 
     def set_from_matrix(self, matrix):
-        """Compute and set the angle from a given 3x4 Transformation matrix. SHould be overridden in particle list
+        """Compute and set the angle from a given 3x4 Transformation matrix. Should be overridden in particle list
         file format definition."""
         pass
 

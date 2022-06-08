@@ -1,32 +1,23 @@
-import sys
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# General
 import numpy as np
 import math as ma
-from copy import copy
 
+# ChimeraX
 from chimerax.core.commands import run
-from chimerax.core.models import Model
-from chimerax.map import Volume, open_map, VolumeImage
-from chimerax.map_data import GridData
-from chimerax.map_data.fileformats import open_file
 from chimerax.geometry import inner_product
 from chimerax.graphics import Drawing
 from chimerax.map_data.tom_em.em_grid import EMGrid
 
+# This package
 from .VolumePlus import VolumePlus
+
 
 class Tomogram(VolumePlus):
 
     def __init__(self, session, data, rendering_options=None):
         VolumePlus.__init__(self, session, data, rendering_options=rendering_options)
-
-        # # Stats
-        # self.min = 0
-        # self.max = 0
-        # self.mean = 0
-        # self.median = 0
-        # self.std = 1
-        # self.size = self.data.size
-        # self._compute_stats()
 
         # Image Levels
         self.default_levels = None
@@ -37,7 +28,6 @@ class Tomogram(VolumePlus):
         self.data.origin = np.array([0, 0, 0])
         if isinstance(self.data, EMGrid):
             self.pixelsize = 1
-        #self._cached_position_bounds = None
 
         # Update display
         self.update_drawings()
@@ -142,7 +132,6 @@ class Tomogram(VolumePlus):
         offset = slice * self.pixelsize[0] + self.min_offset
         self.slab_position = offset
 
-
     def _set_slab_offset(self, offset):
         if offset is None:
             offset = self.slab_position
@@ -155,7 +144,7 @@ class Tomogram(VolumePlus):
                 self.normal[1], self.normal[2], offset), log=False)
 
     def _get_min_offset(self):
-        corners = self.corners()#self.bounds().box_corners()
+        corners = self.corners()
 
         prods = []
         for i in range(8):
@@ -164,24 +153,13 @@ class Tomogram(VolumePlus):
         return min(prods)
 
     def _get_max_offset(self):
-        corners = self.corners()#self.bounds().box_corners()
+        corners = self.corners()
 
         prods = []
         for i in range(8):
             prods.append(inner_product(corners[i, :], self.normal))
 
         return max(prods)
-
-
-
-    # def _compute_stats(self):
-    #     arr = self.data.matrix(ijk_size=self.data.size)
-    #     self.min = np.min(arr)
-    #     self.max = np.max(arr)
-    #     self.mean = np.mean(arr)
-    #     self.median = np.median(arr)
-    #     self.std = np.std(arr)
-    #     self.range = self.max - self.min
 
     def _compute_default_levels(self):
         center = self.median
@@ -223,7 +201,7 @@ def orthoplane_cmd(tomogram, axes, offset=None):
     cmd = 'volume #{} region {},{},{},{},{},{} step 1 style image imageMode "tilted slab" tiltedSlabAxis {},{},{} tiltedSlabPlaneCount 1 tiltedSlabOffset {} tilted_slab_spacing {} colorMode l16'
 
     if offset is None:
-        offset = tomogram.center_offset#(size[2] / 2) * spacing
+        offset = tomogram.center_offset
         print(offset)
 
     if axes == 'xy':

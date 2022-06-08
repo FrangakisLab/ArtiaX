@@ -1,9 +1,11 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+# General
 from chimerax.core import errors
 from chimerax.map import Volume
-from ..view import *
 
+# This package
+from ..util.view import *
 
 def get_singleton(session, create=True):
     if not session.ui.is_gui:
@@ -93,8 +95,7 @@ def artiax_show(session, models=None, style=None):
         session.logger.warning("ArtiaX is not currently running, so nothing can be shown.")
         return
 
-    from ..view import show
-
+    from ..util.view import show
     show(session, models, style)
 
 
@@ -103,8 +104,7 @@ def artiax_hide(session, models=None, style=None):
         session.logger.warning("ArtiaX is not currently running, so nothing can be shown.")
         return
 
-    from ..view import show
-
+    from ..util.view import show
     show(session, models, style, do_show=False)
 
 

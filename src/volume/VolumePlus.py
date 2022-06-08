@@ -1,7 +1,12 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# General
 import numpy as np
 
+# ChimeraX
 from chimerax.map import Volume
 
+# Triggers
 SURFACE_LEVELS_CHANGED = "surface levels changed"
 SURFACE_COLORS_CHANGED = "surface colors changed"
 TRANSPARENCY_CHANGED = "transparency changed"
@@ -12,6 +17,7 @@ TRANSPARENCY_DEPTH_CHANGED = "transparencydepth changed"
 IMAGE_BRIGHTNESS_FACTOR_CHANGED = "image brightness factor changed"
 DEFAULT_RGBA_CHANGED = "default rgba changed"
 RENDERING_OPTIONS_CHANGED = "rendering options changed"
+
 
 class VolumePlus(Volume):
     """Volume Class, but notifies on appearance changes using triggers instead of undocumented callback system."""
@@ -52,15 +58,15 @@ class VolumePlus(Volume):
         self.triggers.add_trigger(RENDERING_OPTIONS_CHANGED)
 
     def set_parameters(self,
-                       surface_levels = None,
-                       surface_colors = None,
-                       transparency = None,
-                       brightness = None,
-                       image_levels = None,
-                       image_colors = None,
-                       transparency_depth = None,
-                       image_brightness_factor = None,
-                       default_rgba = None,
+                       surface_levels=None,
+                       surface_colors=None,
+                       transparency=None,
+                       brightness=None,
+                       image_levels=None,
+                       image_colors=None,
+                       transparency_depth=None,
+                       image_brightness_factor=None,
+                       default_rgba=None,
                        **rendering_options):
 
         if surface_levels:
@@ -83,7 +89,6 @@ class VolumePlus(Volume):
             self.triggers.activate_trigger(DEFAULT_RGBA_CHANGED, self)
         if rendering_options:
             self.triggers.activate_trigger(RENDERING_OPTIONS_CHANGED, self)
-
 
         super().set_parameters(surface_levels,
                                surface_colors,

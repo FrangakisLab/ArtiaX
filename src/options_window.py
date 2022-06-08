@@ -1,68 +1,48 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+# General
 from functools import partial
 
+# ChimeraX
 from chimerax.core.commands import run
 from chimerax.core.errors import UserError
 from chimerax.core.tools import ToolInstance
-from chimerax.map import Volume, open_map
-from chimerax.core.models import MODEL_DISPLAY_CHANGED
+from chimerax.map import open_map
 
-
-# from chimerax.atomic.molobject import Atom
-import os as os
-import math as ma
-import numpy as np
-from .Tomogram import Tomogram, orthoplane_cmd
-from .widgets import LabelEditSlider
-
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QFont, QColor, QPalette, QWheelEvent, QPaintEvent
+# Qt
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import (
-    QAction,
-    QCheckBox,
-    QComboBox,
-    QDesktopWidget,
     QFileDialog,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
-    QHeaderView,
     QLabel,
     QLineEdit,
-    QMainWindow,
-    QMenu,
-    QMenuBar,
     QPushButton,
-    QScrollBar,
     QSlider,
-    QStackedLayout,
-    QTableWidget,
-    QTableWidgetItem,
-    QTableView,
-    QTextEdit,
-    QToolButton,
     QVBoxLayout,
-    QWidget,
     QTabWidget,
-    QAbstractItemView,
-    QRadioButton,
-    QButtonGroup,
     QScrollArea,
     QSizePolicy
 )
 
-from superqt import QDoubleRangeSlider
+# This package
+from .volume.Tomogram import orthoplane_cmd
+from .widgets import LabelEditSlider, SelectionTableWidget, ColorRangeWidget
+
 
 def slider_to_value(slider_value, slider_max, min, max):
     dist = max - min
     step = dist / slider_max
     return slider_value * step + min
 
+
 def value_to_slider(value, slider_max, min, max):
     dist = max - min
     step = dist / slider_max
     return round((value - min) / step)
+
 
 def is_float(s):
     """Return true if text convertible to float."""
@@ -71,6 +51,7 @@ def is_float(s):
         return True
     except ValueError:
         return False
+
 
 class OptionsWindow(ToolInstance):
     DEBUG = False
@@ -95,18 +76,12 @@ class OptionsWindow(ToolInstance):
         # Set the font
         self.font = QFont("Arial", 7)
 
-        # We will be adding an item to the tool's context menu, so override
-        # the default MainToolWindow fill context menu method
-        self.tool_window.fill_context_menu = self.fill_context_menu
-
         # Build the user interfaces
         self._build_tomo_widget()
         self._build_particlelist_widget()
         # Build the final gui
         self._build_full_ui()
         self._connect_ui()
-        # By default show the default window
-        #self.change_gui("default")
 
         # Set the layout
         self.tool_window.ui_area.setLayout(self.main_layout)
@@ -172,7 +147,7 @@ class OptionsWindow(ToolInstance):
             # Update the ui
             self._update_tomo_ui()
 
-            from .VolumePlus import RENDERING_OPTIONS_CHANGED
+            from .volume.VolumePlus import RENDERING_OPTIONS_CHANGED
             ct.triggers.add_handler(RENDERING_OPTIONS_CHANGED, self._models_changed)
 
             # Make sure we are on top
@@ -180,14 +155,13 @@ class OptionsWindow(ToolInstance):
 
         elif type == "partlist":
             cpl = artia.partlists.get(artia.options_partlist)
-            #self.current_tomo_label.setText(artia.partlists.get(artia.options_partlist).name)
             self.tabs.setCurrentIndex(1)
             self.tabs.widget(1).setEnabled(True)
 
             # Update the ui
             self._update_partlist_ui()
 
-            from .ParticleList import PARTLIST_CHANGED
+            from .particle.ParticleList import PARTLIST_CHANGED
             cpl.triggers.add_handler(PARTLIST_CHANGED, self._partlist_changed)
 
             # Make sure we are on top
@@ -202,22 +176,24 @@ class OptionsWindow(ToolInstance):
         self.tomo_widget = QScrollArea()
         # Define the overall layout
         tomo_layout = QVBoxLayout()
+        tomo_layout.setAlignment(Qt.AlignTop)
 
         # Display current tomogram name
         group_current_tomo = QGroupBox("Current Tomogram")
         group_current_tomo.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
-                                                          QSizePolicy.Minimum))
+                                                     QSizePolicy.Maximum))
         group_current_tomo.setFont(self.font)
         current_tomo_layout = QHBoxLayout()
         self.current_tomo_label = QLabel("")
-        print(self.current_tomo_label.sizeHint())
         self.current_tomo_label.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
                                                           QSizePolicy.Minimum))
         current_tomo_layout.addWidget(self.current_tomo_label)
         group_current_tomo.setLayout(current_tomo_layout)
 
         # Set the layout of the Pixel Size LineEdit
-        group_pixelsize = QGroupBox("Physical Position")
+        group_pixelsize = QGroupBox("Physical Coordinates")
+        group_pixelsize.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+                                                  QSizePolicy.Maximum))
         group_pixelsize.setFont(self.font)
         group_pixelsize_layout = QGridLayout()
 
@@ -225,33 +201,18 @@ class OptionsWindow(ToolInstance):
         group_pixelsize_label.setFont(self.font)
         self.group_pixelsize_edit = QLineEdit("")
         self.group_pixelsize_button_apply = QPushButton("Apply")
-        self.group_pixelsize_button_physpos = QPushButton("Position (xyz):")
-        # self.group_pixel_size_labelx = QLabel("")
-        # self.group_pixel_size_labelx.setFont(self.font)
-        # self.group_pixel_size_labely = QLabel("")
-        # self.group_pixel_size_labely.setFont(self.font)
-        # self.group_pixel_size_labelz = QLabel("")
-        # self.group_pixel_size_labelz.setFont(self.font)
-
-        self.group_pixelsize_labelx = QLabel("")
-        self.group_pixelsize_labelx.setFont(self.font)
-        self.group_pixelsize_labely = QLabel("")
-        self.group_pixelsize_labely.setFont(self.font)
-        self.group_pixelsize_labelz = QLabel("")
-        self.group_pixelsize_labelz.setFont(self.font)
 
         group_pixelsize_layout.addWidget(group_pixelsize_label, 0, 0, 1, 1)
         group_pixelsize_layout.addWidget(self.group_pixelsize_edit, 0, 1, 1, 1)
         group_pixelsize_layout.addWidget(self.group_pixelsize_button_apply, 0, 2, 1, 1)
-        group_pixelsize_layout.addWidget(self.group_pixelsize_button_physpos, 1, 0, 1, 1)
-        group_pixelsize_layout.addWidget(self.group_pixelsize_labelx, 1, 1, 1, 1)
-        group_pixelsize_layout.addWidget(self.group_pixelsize_labely, 1, 2, 1, 1)
-        group_pixelsize_layout.addWidget(self.group_pixelsize_labelz, 1, 3, 1, 1)
+
         # Add grid to group
         group_pixelsize.setLayout(group_pixelsize_layout)
 
         # Define a group for the contrast sliders
         group_contrast = QGroupBox("Contrast Settings")
+        group_contrast.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+                                                  QSizePolicy.Maximum))
         group_contrast.setFont(self.font)
         group_contrast_layout = QGridLayout()
 
@@ -281,6 +242,8 @@ class OptionsWindow(ToolInstance):
 
         # Define a group for different orthoplanes of a tomogram
         group_orthoplanes = QGroupBox("Orthoplanes")
+        group_orthoplanes.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+                                                 QSizePolicy.Maximum))
         group_orthoplanes.setFont(self.font)
         # Set the layout of the group
         group_orthoplanes_layout = QGridLayout()
@@ -293,12 +256,14 @@ class OptionsWindow(ToolInstance):
         group_orthoplanes_layout.addWidget(self.group_orthoplanes_buttonxy, 0, 0)
         group_orthoplanes_layout.addWidget(self.group_orthoplanes_buttonxz, 0, 1)
         group_orthoplanes_layout.addWidget(self.group_orthoplanes_buttonyz, 0, 2)
-        group_orthoplanes_layout.addWidget(self.group_orthoplanes_buttonxyz, 0, 3)
+        # group_orthoplanes_layout.addWidget(self.group_orthoplanes_buttonxyz, 0, 3)
         # Add grid to group
         group_orthoplanes.setLayout(group_orthoplanes_layout)
 
         # Define a group for the fourier transform of a volume
         group_fourier_transform = QGroupBox("Fourier transformation")
+        group_fourier_transform.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+                                               QSizePolicy.Maximum))
         group_fourier_transform.setFont(self.font)
         group_fourier_transform_layout = QGridLayout()
         # Define Button to press for execute the transformation
@@ -313,6 +278,8 @@ class OptionsWindow(ToolInstance):
 
         # Define a group that jumps through the slices
         group_slices = QGroupBox("Jump Through Slices")
+        group_slices.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+                                               QSizePolicy.Maximum))
         group_slices.setFont(self.font)
         # Set the layout for the group
         group_slices_layout = QGridLayout()
@@ -628,21 +595,24 @@ class OptionsWindow(ToolInstance):
 # Options Menu for Motivelists =================================================
 # ==============================================================================
 
-
     def _build_particlelist_widget(self):
         # This widget is the particle lists tab
         self.motl_widget = QScrollArea()
 
         # Define the overall layout
         self.motl_layout = QVBoxLayout()
+        self.motl_layout.setAlignment(Qt.AlignTop)
 
         # Define a group for the visualization sliders
         self.group_select = QGroupBox("Visualization Options:")
+        self.group_select.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+                                                    QSizePolicy.MinimumExpanding))
         self.group_select.setFont(self.font)
         self.group_select.setCheckable(True)
 
         # Set the layout of the group
         self.group_select_layout = QGridLayout()
+
         # Define the input of the GridLayout which includes some sliders and LineEdits
         self.partlist_selection = SelectionTableWidget()
         self.color_selection = ColorRangeWidget(self.session)
@@ -650,17 +620,19 @@ class OptionsWindow(ToolInstance):
         self.surface_level_widget = LabelEditSlider((0, 1), 'Surface Level')
         self.axes_size_widget = LabelEditSlider((0.1, 200), 'Axes Size')
 
-        self.group_select_layout.addWidget(self.partlist_selection, 0, 0, 6, 6)
-        self.group_select_layout.addWidget(self.color_selection, 6, 0, 3, 6)
-        self.group_select_layout.addWidget(self.radius_widget, 9, 0, 1, 6)
-        self.group_select_layout.addWidget(self.axes_size_widget, 10, 0, 1, 6)
-        self.group_select_layout.addWidget(self.surface_level_widget, 11, 0, 1, 6)
+        self.group_select_layout.addWidget(self.partlist_selection, 0, 0, 9, 6)
+        self.group_select_layout.addWidget(self.color_selection, 9, 0, 3, 6)
+        self.group_select_layout.addWidget(self.radius_widget, 12, 0, 1, 6)
+        self.group_select_layout.addWidget(self.axes_size_widget, 13, 0, 1, 6)
+        self.group_select_layout.addWidget(self.surface_level_widget, 14, 0, 1, 6)
 
         # Set layout of group
         self.group_select.setLayout(self.group_select_layout)
 
         # Define a group for the maniulation buttons
         self.group_manipulation = QGroupBox("Manipulation Options:")
+        self.group_manipulation.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+                                                          QSizePolicy.Maximum))
         self.group_manipulation.setFont(self.font)
         self.group_manipulation.setCheckable(True)
         self.group_manipulation.setChecked(False)
@@ -873,22 +845,6 @@ class OptionsWindow(ToolInstance):
             return self.volume_open_dialog.selectedFiles()
 
 
-# ==============================================================================
-# Context Menu =================================================================
-# ==============================================================================
-
-    def fill_context_menu(self, menu, x, y):
-        # Add any tool-specific items to the given context menu (a QMenu
-        # instance). The menu will then be automatically filled out with generic
-        # tool-related actions (e.g. Hide Tool, Help, Dockable Tool, etc.)
-
-        # The x, y args are the x() and y() values of QContextMenuEvent, in the
-        # rare case where the items put in the menu depends on where in the
-        # tool interface the menu was raised
-        from Qt.QtWidgets import QAction
-        clear_action = QAction("Clear",menu)
-        clear_action.triggered.connect(lambda *args: self.line_edit.clear())
-        menu.addAction(clear_action)
 
     def take_snapshot(self, session, flags):
         return
@@ -906,932 +862,3 @@ class OptionsWindow(ToolInstance):
         inst = class_obj(session, "Tomo Bundle")
         inst.line_edit.setText(data['current text'])
         return inst
-
-
-class SelectionTableWidget(QWidget):
-    """
-    A SelectionTableWidget allows selecting from or hiding parts of a ParticleList based on a combination attribute ranges.
-
-    """
-    DEBUG = True
-
-    selectionChanged = pyqtSignal(tuple, list, list, list)
-    displayChanged = pyqtSignal(tuple, list, list, list)
-
-    def __init__(self, parent=None):
-        super().__init__(parent=parent)
-
-        self.partlist = None
-        self.attributes = None
-        self.minima = None
-        self.maxima = None
-
-        self._mode = "show"
-        self._selectors = []
-
-        # General layout
-        self._layout = QVBoxLayout()
-
-        # Radio buttons controlling task
-        self._mode_layout = QHBoxLayout()
-        self.sel_mode_switch = QRadioButton("Select")
-        self.dis_mode_switch = QRadioButton("Show")
-        self.mode_group = QButtonGroup()
-        self.mode_group.setExclusive(True)
-        self.mode_group.addButton(self.sel_mode_switch)
-        self.mode_group.addButton(self.dis_mode_switch)
-        self.dis_mode_switch.setChecked(True)
-
-        self._mode_layout.addWidget(self.sel_mode_switch, alignment=Qt.AlignCenter)
-        self._mode_layout.addWidget(self.dis_mode_switch, alignment=Qt.AlignCenter)
-
-        # Scroll area containing Selector widgets
-        self.selector_area = QScrollArea()
-        self.selectors = QWidget()
-        self.selectors_vbox = QVBoxLayout()
-        self.selectors.setLayout(self.selectors_vbox)
-
-        self.selector_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        self.selector_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.selector_area.setWidgetResizable(True)
-        self.selector_area.setWidget(self.selectors)
-
-        # Clear button
-        self._util_layout = QHBoxLayout()
-        self.add_button = QPushButton("Add Selector")
-        self.clear_button = QPushButton("Clear All Selectors")
-        self._util_layout.addWidget(self.add_button)
-        self._util_layout.addWidget(self.clear_button)
-
-        # Assemble
-        self._layout.addLayout(self._mode_layout)
-        self._layout.addWidget(self.selector_area)
-        self._layout.addLayout(self._util_layout)
-        self.setLayout(self._layout)
-
-        # Connect functions
-        self._connect()
-
-    def set_partlist(self, partlist):
-        """
-        Set associated ParticleList instance, read available attributes and determine ranges for attributes. If
-        ParticleList has attribute 'selection_settings' from a previous selection, then recreates the SelectorWidgets
-        using the old settings.
-
-        Parameters
-        ----------
-        partlist : ParticleList
-            ParticleList instance to read from and select on.
-        """
-        self.partlist = partlist
-        self.attributes = partlist.get_main_attributes()
-        self.minima = partlist.get_attribute_min(self.attributes)
-        self.maxima = partlist.get_attribute_max(self.attributes)
-        self.attribute_constant = [False]*len(self.attributes)
-
-        for idx, mini in enumerate(self.minima):
-            if mini == self.maxima[idx]:
-                self.attribute_constant[idx] = True
-
-        if hasattr(self.partlist, 'selection_settings'):
-            sel_mode = self.partlist.selection_settings['mode']
-            sel_names = self.partlist.selection_settings['names']
-            sel_minima = self.partlist.selection_settings['minima']
-            sel_maxima = self.partlist.selection_settings['maxima']
-
-            # Set mode
-            prev = self.sel_mode_switch.blockSignals(True)
-            prev1 = self.dis_mode_switch.blockSignals(True)
-            if sel_mode == 'select':
-                self.sel_mode_switch.setChecked(True)
-            elif sel_mode == 'show':
-                self.dis_mode_switch.setChecked(True)
-            self.sel_mode_switch.blockSignals(prev)
-            self.dis_mode_switch.blockSignals(prev1)
-
-            # Create old selectors
-            for name, mini, maxi in zip(sel_names, sel_minima, sel_maxima):
-                idx = self.attributes.index(name)
-
-                # Old selection could be out of date with respect to range (e.g. if particles were deleted/created)
-                if mini < self.minima[idx]:
-                    mini = self.minima[idx]
-
-                if maxi > self.maxima[idx]:
-                    maxi = self.maxima[idx]
-
-                # New selector with previous range
-                self._new_selector(idx, mini, maxi)
-
-            # Trigger update
-            self._selector_modified()
-
-    def clear(self, trigger_update=True):
-        """
-        Remove all SelectorWidget instances (i.e. clear applied selection).
-
-        Parameters
-        ----------
-        trigger_update : bool
-            If True, update the selection after deleting.
-        """
-        for widget in self._selectors:
-            self.selectors_vbox.removeWidget(widget)
-            widget.deleteLater()
-
-        self._selectors = []
-
-        # Could be that no partlist was assigned yet
-        if self.partlist is not None and trigger_update:
-            self._selector_modified()
-
-    @property
-    def selector_count(self):
-        """
-        Return the number of SelectorWidgets currently owned by this instance.
-        """
-        return len(self._selectors)
-
-    def _connect(self):
-        """
-        Connect the UI to respective callbacks.
-        """
-        # Radio buttons
-        self.sel_mode_switch.clicked.connect(self._mode_switched)
-        self.dis_mode_switch.clicked.connect(self._mode_switched)
-
-        # Util buttons
-        self.add_button.clicked.connect(partial(self._add_selector))
-        self.clear_button.clicked.connect(partial(self.clear))
-
-    def _add_selector(self):
-        """
-        Action upon clicking "Add Selector" button.
-        """
-        self._new_selector()
-        self._selector_modified()
-
-    def _new_selector(self, idx=0, mini=None, maxi=None):
-        """
-        Create a new SelectorWidget and add it to this instances _selectors-list.
-
-        Parameters
-        ----------
-        idx : int
-            Index of the attribute to pre-select in the new SelectorWidget upon creation.
-        mini : float
-            Value to pre-set as lower slider position on the newly created SelectorWidget
-        maxi : float
-            Value to pre-set as upper slider position on the newly created SelectorWidget
-        """
-        widget = SelectorWidget(self.attributes,
-                                self.minima,
-                                self.maxima,
-                                self.attribute_constant,
-                                idx=idx,
-                                mini=mini,
-                                maxi=maxi)
-
-        self._selectors.append(widget)
-        self.selectors_vbox.addWidget(widget)
-        widget.selectionChanged.connect(self._selector_modified)
-        widget.deleted.connect(self._selector_deleted)
-
-    def _mode_switched(self):
-        """
-        Action upon switching between 'Show' and 'Select' radio buttons
-        """
-        # Reset the selection
-        if self.selector_count > 0:
-            self._selector_modified(get_selection=False)
-
-        # Switch
-        if self.sel_mode_switch.isChecked():
-            self._mode = "select"
-        elif self.dis_mode_switch.isChecked():
-            self._mode = "show"
-
-        # Apply the selection
-        if self.selector_count > 0:
-            self._selector_modified()
-
-    def _selector_modified(self, get_selection=True):
-        """
-        Collect selection information from owned SelectorWidgets and emit appropriate signal depending on mode.
-
-        Parameters
-        ----------
-        get_selection : bool
-            If True, query the current values from the owned SelectorWidgets and emit them in the signal. If False, emit
-            empty lists. The latter is useful for resetting the selection.
-        """
-        sel_names = []
-        sel_minima = []
-        sel_maxima = []
-
-        if get_selection:
-            if self.DEBUG:
-                print(self._selectors)
-
-            for selector in self._selectors:
-                if self.DEBUG:
-                    print(selector.active)
-                if selector.active:
-                    sel_name, sel_minimum, sel_maximum = selector.get_selection()
-                    sel_names.append(sel_name)
-                    sel_minima.append(sel_minimum)
-                    sel_maxima.append(sel_maximum)
-
-            if self.DEBUG:
-                print("names: {} minima: {} maxima: {}".format(sel_names, sel_minima, sel_maxima))
-
-            self.partlist.selection_settings = {'mode': self._mode,
-                                                'names': sel_names,
-                                                'minima': sel_minima,
-                                                'maxima': sel_maxima}
-
-        if self._mode == "select":
-            self.selectionChanged.emit(self.partlist.id, sel_names, sel_minima, sel_maxima)
-        elif self._mode == "show":
-            self.displayChanged.emit(self.partlist.id, sel_names, sel_minima, sel_maxima)
-
-    def _selector_deleted(self, selector):
-        """
-        Action upon deletion of a selector (usually triggered by SelectorWidget.deleted signal)
-
-        Parameters
-        ----------
-        selector : SelectorWidget
-            The Widget to remove.
-        """
-        self._selectors.remove(selector)
-        self._selector_modified()
-
-
-class SelectorWidget(QWidget):
-    DEBUG = False
-
-    selectionChanged = pyqtSignal()
-    deleted = pyqtSignal(object)
-
-    def __init__(self, attributes, minima, maxima, constant, idx=0, mini=None, maxi=None, parent=None):
-        super().__init__(parent=parent)
-
-        self.attributes = attributes
-        self.minima = minima
-        self.maxima = maxima
-        self.attribute_constant = constant
-        self._idx = idx
-        self.active = True
-
-        # The contents
-        self._layout = QGridLayout()
-
-        # Enable/Disable toggle
-        self.toggle_switch = QCheckBox()
-        self.toggle_switch.setCheckState(Qt.Checked)
-
-        # Attributes
-        self.attribute_box = IgnorantComboBox()
-        self.attribute_box.setFocusPolicy(Qt.StrongFocus)
-        for a in self.attributes:
-            self.attribute_box.addItem(a)
-
-        self.attribute_box.setCurrentIndex(self._idx)
-
-        # Slider with edits and labels
-        self._slider_layout = QVBoxLayout()
-
-        # Slider values possibly preset
-        if mini is not None:
-            value_low = mini
-        else:
-            value_low = self.minimum
-
-        if maxi is not None:
-            value_high = maxi
-        else:
-            value_high = self.maximum
-
-        # Slider Line 1
-        self._slider_min_max_layout = QHBoxLayout()
-        self.min_label = QLabel("{:.4f}".format(self.minimum))
-        self.max_label = QLabel("{:.4f}".format(self.maximum))
-        self._slider_min_max_layout.addWidget(self.min_label, alignment=Qt.AlignLeft)
-        self._slider_min_max_layout.addWidget(self.max_label, alignment=Qt.AlignRight)
-
-        # Slider Line 2
-        self.slider = QDoubleRangeSlider()
-        self.slider._singleStep = 0.001
-        self.slider._pageStep = 0.01
-        self.slider.setOrientation(Qt.Horizontal)
-
-        # If current attribute is constant, disable slider
-        if self.constant:
-            self.slider.setMinimum(self.minimum)
-            self.slider.setMaximum(self.maximum+1)
-            self.slider.setValue((value_low, value_high+1))
-            self.slider.setEnabled(False)
-        else:
-            self.slider.setMinimum(self.minimum)
-            self.slider.setMaximum(self.maximum)
-            self.slider.setValue((value_low, value_high))
-
-        # Slider Line 3
-        self._slider_edit_layout = QHBoxLayout()
-        self.lower_edit = QLineEdit("{:.4f}".format(value_low))
-        self.upper_edit = QLineEdit("{:.4f}".format(value_high))
-        self._slider_edit_layout.addWidget(self.lower_edit, alignment=Qt.AlignCenter)
-        self._slider_edit_layout.addWidget(self.upper_edit, alignment=Qt.AlignCenter)
-
-        # If current attribute is constant, disable edits
-        if self.constant:
-            self.lower_edit.setEnabled(False)
-            self.upper_edit.setEnabled(False)
-
-        self._slider_layout.addLayout(self._slider_min_max_layout)
-        self._slider_layout.addWidget(self.slider)
-        self._slider_layout.addLayout(self._slider_edit_layout)
-
-        # Destroy self button
-        self.destroy_button = QPushButton()
-
-        self._layout.addWidget(self.toggle_switch, 0, 0, 1, 1)
-        self._layout.addWidget(self.attribute_box, 0, 1, 1, 5)
-        self._layout.addLayout(self._slider_layout, 0, 6, 1, 13)
-        self._layout.addWidget(self.destroy_button, 0, 19, 1, 1)
-
-        self._connect()
-
-        self.setLayout(self._layout)
-
-        self._to_enable = [self.attribute_box,
-                           self.slider,
-                           self.lower_edit,
-                           self.upper_edit]
-
-    def _connect(self):
-        # Turned on or off
-        self.toggle_switch.stateChanged.connect(partial(self._toggled))
-
-        # Destroy requested
-        self.destroy_button.clicked.connect(partial(self._destroy))
-
-        # Combo box
-        self.attribute_box.currentIndexChanged.connect(partial(self._set_idx))
-
-        # Slider
-        self.slider.valueChanged.connect(partial(self._slider_changed))
-
-        # Edits
-        self.lower_edit.returnPressed.connect(partial(self._edit_changed))
-        self.upper_edit.returnPressed.connect(partial(self._edit_changed))
-
-    @property
-    def minimum(self):
-        return self.minima[self._idx]
-
-    @property
-    def maximum(self):
-        return self.maxima[self._idx]
-
-    @property
-    def constant(self):
-        return self.attribute_constant[self._idx]
-
-    def get_selection(self):
-        name = self.attribute_box.currentText()
-        if self.DEBUG:
-            print("Slider Value: {}".format(self.slider.value()))
-
-        # If attribute is constant, ignore the slider.
-        if self.constant:
-            minimum = self.minimum
-            maximum = self.maximum
-        else:
-            minimum = self.slider.value()[0]
-            maximum = self.slider.value()[1]
-
-        return name, minimum, maximum
-
-    def _toggled(self, state):
-        if state == Qt.Checked:
-            self.active = True
-        elif state == Qt.Unchecked:
-            self.active = False
-
-        self._enable_widgets()
-        self._emit_selection_changed()
-
-    def _set_idx(self, idx):
-        self._idx = idx
-        self._enable_widgets()
-        self._set_min_max()
-        self._emit_selection_changed()
-
-    def _enable_widgets(self):
-        if self.active:
-            for w in self._to_enable:
-                w.setEnabled(True)
-            if self.constant:
-                self.slider.setEnabled(False)
-                self.upper_edit.setEnabled(False)
-                self.lower_edit.setEnabled(False)
-        else:
-            for w in self._to_enable:
-                w.setEnabled(False)
-
-    def _set_min_max(self):
-
-        prev = self.slider.blockSignals(True)
-        if self.constant:
-            self.slider.setMinimum(self.minimum)
-            self.slider.setMaximum(self.maximum+1)
-            self.slider.setValue((self.minimum, self.maximum+1))
-        else:
-            self.slider.setMinimum(self.minimum)
-            self.slider.setMaximum(self.maximum)
-            self.slider.setValue((self.minimum, self.maximum))
-        self.slider.blockSignals(prev)
-
-        self.min_label.setText("{:.4f}".format(self.minimum))
-        self.max_label.setText("{:.4f}".format(self.maximum))
-
-        prev = self.lower_edit.blockSignals(True)
-        prev1 = self.upper_edit.blockSignals(True)
-        self.lower_edit.setText("{:.4f}".format(self.minimum))
-        self.upper_edit.setText("{:.4f}".format(self.maximum))
-        self.lower_edit.blockSignals(prev)
-        self.upper_edit.blockSignals(prev1)
-
-
-    def _destroy(self):
-        self.deleted.emit(self)
-        self.deleteLater()
-
-    def _slider_changed(self, value):
-        prev = self.lower_edit.blockSignals(True)
-        prev1 = self.upper_edit.blockSignals(True)
-        self.lower_edit.setText("{:.4f}".format(value[0]))
-        self.upper_edit.setText("{:.4f}".format(value[1]))
-        self.lower_edit.blockSignals(prev)
-        self.upper_edit.blockSignals(prev1)
-
-        self._emit_selection_changed()
-
-    def _edit_changed(self):
-        lower = float(self.lower_edit.text())
-        upper = float(self.upper_edit.text())
-
-        if lower < self.minimum:
-            prev = self.lower_edit.blockSignals(True)
-            self.lower_edit.setText("{:.4f}".format(self.minimum))
-            self.lower_edit.blockSignals(prev)
-            lower = self.minimum
-
-        if upper > self.maximum:
-            prev = self.upper_edit.blockSignals(True)
-            self.upper_edit.setText("{:.4f}".format(self.maximum))
-            self.upper_edit.blockSignals(prev)
-            upper = self.maximum
-
-        prev = self.slider.blockSignals(True)
-        self.slider.setValue((lower, upper))
-        self.slider.blockSignals(prev)
-        self._emit_selection_changed()
-
-    def _emit_selection_changed(self):
-        self.selectionChanged.emit()
-
-class ColorRangeWidget(QWidget):
-
-    # from P. Green-Armytage (2010): A Colour Alphabet and the Limits of Colour Coding. // Colour: Design & Creativity (5) (2010): 10, 1-23
-    # https://eleanormaclure.files.wordpress.com/2011/03/colour-coding.pdf
-    # skipped ebony, yellow
-    green_armytage = [[(240, 163, 255, 255), (  0, 117, 220, 255), (153,  63,   0, 255)],
-                      [( 76,   0,  92, 255), (  0,  92,  49, 255), ( 43, 206,  72, 255)],
-                      [(255, 204, 153, 255), (128, 128, 128, 255), (148, 255, 181, 255)],
-                      [(143, 124,   0, 255), (157, 204,   0, 255), (194,   0, 136, 255)],
-                      [(  0,  51, 128, 255), (255, 164,   5, 255), (255, 168, 187, 255)],
-                      [( 66, 102,   0, 255), (255,   0,  16, 255), ( 94, 241, 242, 255)],
-                      [(  0, 153, 143, 255), (224, 255, 102, 255), (116,  10, 255, 255)],
-                      [(153,   0,   0, 255), (255, 255, 128, 255), (255,  80,   5, 255)]]
-
-    colorChanged = pyqtSignal(tuple, np.ndarray)
-    colormapChanged = pyqtSignal(tuple, str, str, float, float)
-
-    def __init__(self, session, parent=None):
-        super().__init__(parent=parent)
-
-        self.session = session
-        self.partlist = None
-        self.attributes = None
-        self._palettes = None
-        self._att_idx = None
-        self._pal_idx = 0
-        self._color = None
-
-        self._mode = "mono"
-
-        # The contents
-        self._layout = QHBoxLayout()
-
-        # Mono/Gradient buttons
-        _switch_layout = QVBoxLayout()
-        self.mono_mode_switch = QRadioButton("Single\nColor")
-        self.grad_mode_switch = QRadioButton("Colormap")
-        self.mode_group = QButtonGroup()
-        self.mode_group.setExclusive(True)
-        self.mode_group.addButton(self.mono_mode_switch)
-        self.mode_group.addButton(self.grad_mode_switch)
-        self.mono_mode_switch.setChecked(True)
-
-        # Mono Toolbuttons
-        self.mono_group = QWidget()
-        _mono_layout = QHBoxLayout()
-        _mono_button_layout = QGridLayout()
-        self.col_cols = 8
-        self.col_rows = 3
-        self.mono_buttons = [[QToolButton() for i in range(self.col_rows)] for j in range(self.col_cols)]
-        for col in range(self.col_cols):
-            for row in range(self.col_rows):
-                w = self.mono_buttons[col][row]
-                color = self.green_armytage[col][row]
-                w.setStyleSheet('background-color: rgba({},{},{},{});'.format(*color))
-                _mono_button_layout.addWidget(w, row, col, 1, 1)
-
-        _mono_display_layout = QVBoxLayout()
-        self.pick_color_button = QPushButton("Pick Custom")
-
-        self._mono_display_label = QLabel("Current Color")
-        self.current_color_label = QLabel()
-        self.current_color_label.setMinimumSize(50, 30)
-
-        _mono_display_layout.addStretch()
-        _mono_display_layout.addWidget(self._mono_display_label, alignment=Qt.AlignCenter)
-        _mono_display_layout.addWidget(self.current_color_label, alignment=Qt.AlignCenter)
-        _mono_display_layout.addWidget(self.pick_color_button, alignment=Qt.AlignCenter)
-        _mono_display_layout.addStretch()
-
-        _mono_layout.addLayout(_mono_button_layout)
-        _mono_layout.addLayout(_mono_display_layout)
-        self.mono_group.setLayout(_mono_layout)
-
-        # Assemble switch
-        _switch_layout.addWidget(self.mono_mode_switch)
-        _switch_layout.addWidget(self.grad_mode_switch)
-
-        # Attribute Selector
-        _attribute_layout = QVBoxLayout()
-        _attribute_label = QLabel("Attribute")
-        self.attribute_box = IgnorantComboBox()
-        self.attribute_box.setFocusPolicy(Qt.StrongFocus)
-        _attribute_layout.addStretch()
-        _attribute_layout.addWidget(_attribute_label, alignment=Qt.AlignCenter)
-        _attribute_layout.addWidget(self.attribute_box)
-        _attribute_layout.addStretch()
-
-        # Palette Selector
-        _palette_layout = QVBoxLayout()
-        _palette_label = QLabel("Palette")
-        self.palette_box = IgnorantComboBox()
-        self.palette_box.setFocusPolicy(Qt.StrongFocus)
-        _palette_layout.addStretch()
-        _palette_layout.addWidget(_palette_label, alignment=Qt.AlignCenter)
-        _palette_layout.addWidget(self.palette_box)
-        _palette_layout.addStretch()
-
-        # Slider with edits and labels
-        _slider_layout = QVBoxLayout()
-
-        # Slider Line 1
-        _slider_min_max_layout = QHBoxLayout()
-        self.min_label = QLabel("{:.4f}".format(0))
-        self.max_label = QLabel("{:.4f}".format(1))
-        _slider_min_max_layout.addWidget(self.min_label, alignment=Qt.AlignLeft)
-        _slider_min_max_layout.addWidget(self.max_label, alignment=Qt.AlignRight)
-
-        # Slider Line 2
-        self.slider = GradientRangeSlider()
-        self.slider._singleStep = 0.001
-        self.slider._pageStep = 0.01
-        self.slider.setOrientation(Qt.Horizontal)
-
-        self.slider.setMinimum(0)
-        self.slider.setMaximum(1)
-        self.slider.setValue((0, 1))
-        self.slider.setEnabled(False)
-
-        # Slider Line 3
-        _slider_edit_layout = QHBoxLayout()
-        self.lower_edit = QLineEdit("{:.4f}".format(0))
-        self.upper_edit = QLineEdit("{:.4f}".format(1))
-        _slider_edit_layout.addWidget(self.lower_edit, alignment=Qt.AlignCenter)
-        _slider_edit_layout.addWidget(self.upper_edit, alignment=Qt.AlignCenter)
-
-        # Assemble slider
-        _slider_layout.addLayout(_slider_min_max_layout)
-        _slider_layout.addWidget(self.slider)
-        _slider_layout.addLayout(_slider_edit_layout)
-
-        self.cmap_group = QWidget()
-        _cmap_group_layout = QHBoxLayout()
-        _cmap_group_layout.addLayout(_attribute_layout)
-        _cmap_group_layout.addLayout(_palette_layout)
-        _cmap_group_layout.addLayout(_slider_layout)
-        self.cmap_group.setLayout(_cmap_group_layout)
-
-        # Color settings box
-        self.color_group = QGroupBox("Color Settings")
-        self._color_group_layout = QStackedLayout()
-        self._color_group_layout.addWidget(self.mono_group)
-        self._color_group_layout.addWidget(self.cmap_group)
-        self.color_group.setLayout(self._color_group_layout)
-
-        # Assemble self
-        self._layout.addLayout(_switch_layout)
-        self._layout.addWidget(self.color_group)
-
-        self.setLayout(self._layout)
-
-        # Populate palettes
-        self._get_palettes()
-        if self._palettes is not None:
-            for p in self._palettes:
-                self.palette_box.addItem(p)
-
-            self.palette_box.setCurrentIndex(self._pal_idx)
-            self._set_cmap()
-
-        self._connect()
-
-    def set_partlist(self, partlist):
-
-        self._color = np.array(partlist.color, dtype=np.uint8)
-        self._set_color()
-
-        self.partlist = partlist
-        self.attributes = partlist.get_main_attributes()
-        self.minima = partlist.get_attribute_min(self.attributes)
-        self.maxima = partlist.get_attribute_max(self.attributes)
-        self.attribute_constant = [False] * len(self.attributes)
-
-        for idx, mini in enumerate(self.minima):
-            if mini == self.maxima[idx]:
-                self.attribute_constant[idx] = True
-
-        # Populate attributes
-        prev = self.attribute_box.blockSignals(True)
-        self.attribute_box.clear()
-        for a in self.attributes:
-            self.attribute_box.addItem(a)
-
-        self._att_idx = 0
-        self.attribute_box.setCurrentIndex(self._att_idx)
-        self.attribute_box.blockSignals(prev)
-
-        self._set_min_max()
-
-        self._color_changed()
-
-        # value_low = self.minimum
-        # value_high = self.maximum
-        #
-        # if self.constant:
-        #     self.slider.setMinimum(self.minimum)
-        #     self.slider.setMaximum(self.maximum+1)
-        #     self.slider.setValue((value_low, value_high+1))
-        #     self.slider.setEnabled(False)
-        # else:
-        #     self.slider.setMinimum(self.minimum)
-        #     self.slider.setMaximum(self.maximum)
-        #     self.slider.setValue((value_low, value_high))
-
-    @property
-    def minimum(self):
-        return self.minima[self._att_idx]
-
-    @property
-    def maximum(self):
-        return self.maxima[self._att_idx]
-
-    @property
-    def constant(self):
-        return self.attribute_constant[self._att_idx]
-
-    @property
-    def chimx_palette(self):
-        return self._palettes[self._pal_idx]
-
-    def _get_palettes(self):
-        self._palettes = list(self.session.user_colormaps.keys())
-
-        if len(self._palettes) > 0:
-            self._pal_idx = 0
-
-    def _connect(self):
-        # Mode switch
-        self.mono_mode_switch.clicked.connect(self._mode_switched)
-        self.grad_mode_switch.clicked.connect(self._mode_switched)
-
-        # Mono mode buttons
-        for col in range(self.col_cols):
-            for row in range(self.col_rows):
-                self.mono_buttons[col][row].clicked.connect(partial(self._col_clicked, self.green_armytage[col][row]))
-        self.pick_color_button.clicked.connect(self._pick_color)
-
-        # Palette combo box
-        self.palette_box.currentIndexChanged.connect(partial(self._set_pal_idx))
-        self.attribute_box.currentIndexChanged.connect(partial(self._set_att_idx))
-
-        # Slider
-        self.slider.valueChanged.connect(partial(self._slider_changed))
-
-        # Edits
-        self.lower_edit.returnPressed.connect(partial(self._edit_changed))
-        self.upper_edit.returnPressed.connect(partial(self._edit_changed))
-
-    def _mode_switched(self):
-        # Switch
-        if self.mono_mode_switch.isChecked():
-            self._mode = "mono"
-        elif self.grad_mode_switch.isChecked():
-            self._mode = "gradient"
-
-        self._show_layout()
-
-    def _show_layout(self):
-        if self._mode == "mono":
-            self._color_group_layout.setCurrentIndex(0)
-        elif self._mode == "gradient":
-            self._color_group_layout.setCurrentIndex(1)
-
-    def _col_clicked(self, color):
-        self._color = np.array(color, dtype=np.uint8)
-        self._set_color()
-
-        self._color_changed()
-
-    def _set_color(self):
-        self.current_color_label.setStyleSheet('background-color: rgba({},{},{},{});'.format(*tuple(self._color)))
-
-    def _pick_color(self):
-        from Qt.QtWidgets import QColorDialog
-        cd = QColorDialog(self.window())
-        cd.setOption(cd.NoButtons, True)
-        cd.currentColorChanged.connect(self._picker_cb)
-        cd.destroyed.connect(self._picker_destroyed_cb)
-        cd.setOption(cd.ShowAlphaChannel, False)
-        if self._color is not None:
-            cd.setCurrentColor(QColor(*tuple(self._color)))
-        cd.show()
-
-    def _picker_cb(self, color: QColor):
-        self._color = np.array([color.red(), color.green(), color.blue(), color.alpha()], dtype=np.uint8)
-        self._set_color()
-
-        self._color_changed()
-
-    def _picker_destroyed_cb(self):
-        pass
-
-    def _set_pal_idx(self, idx):
-        self._pal_idx = idx
-        self._set_cmap()
-
-    def _set_cmap(self):
-        cmap = self.session.user_colormaps[self.chimx_palette]
-        self.slider.set_gradient(cmap)
-
-    def _set_att_idx(self, idx):
-        self._att_idx = idx
-        self._enable_widgets()
-        self._set_min_max()
-        self._color_changed()
-
-    def _enable_widgets(self):
-        if self.constant:
-            self.slider.setEnabled(False)
-            self.upper_edit.setEnabled(False)
-            self.lower_edit.setEnabled(False)
-        else:
-            self.slider.setEnabled(True)
-            self.upper_edit.setEnabled(True)
-            self.lower_edit.setEnabled(True)
-
-    def _set_min_max(self):
-        prev = self.slider.blockSignals(True)
-        if self.constant:
-            self.slider.setMinimum(self.minimum)
-            self.slider.setMaximum(self.maximum+1)
-            self.slider.setValue((self.minimum, self.maximum+1))
-        else:
-            self.slider.setMinimum(self.minimum)
-            self.slider.setMaximum(self.maximum)
-            self.slider.setValue((self.minimum, self.maximum))
-        self.slider.blockSignals(prev)
-
-        self.min_label.setText("{:.4f}".format(self.minimum))
-        self.max_label.setText("{:.4f}".format(self.maximum))
-
-        prev = self.lower_edit.blockSignals(True)
-        prev1 = self.upper_edit.blockSignals(True)
-        self.lower_edit.setText("{:.4f}".format(self.minimum))
-        self.upper_edit.setText("{:.4f}".format(self.maximum))
-        self.lower_edit.blockSignals(prev)
-        self.upper_edit.blockSignals(prev1)
-
-    def _slider_changed(self, value):
-        prev = self.lower_edit.blockSignals(True)
-        prev1 = self.upper_edit.blockSignals(True)
-        self.lower_edit.setText("{:.4f}".format(value[0]))
-        self.upper_edit.setText("{:.4f}".format(value[1]))
-        self.lower_edit.blockSignals(prev)
-        self.upper_edit.blockSignals(prev1)
-
-        self._color_changed()
-
-    def _edit_changed(self):
-        lower = float(self.lower_edit.text())
-        upper = float(self.upper_edit.text())
-
-        if lower < self.minimum:
-            prev = self.lower_edit.blockSignals(True)
-            self.lower_edit.setText("{:.4f}".format(self.minimum))
-            self.lower_edit.blockSignals(prev)
-            lower = self.minimum
-
-        if upper > self.maximum:
-            prev = self.upper_edit.blockSignals(True)
-            self.upper_edit.setText("{:.4f}".format(self.maximum))
-            self.upper_edit.blockSignals(prev)
-            upper = self.maximum
-
-        prev = self.slider.blockSignals(True)
-        self.slider.setValue((lower, upper))
-        self.slider.blockSignals(prev)
-
-        self._color_changed()
-
-    def _get_selection(self):
-        palette = self.chimx_palette
-        attribute = self.attribute_box.currentText()
-
-        # If attribute is constant, ignore the slider.
-        if self.constant:
-            minimum = self.minimum
-            maximum = self.maximum
-        else:
-            minimum = self.slider.value()[0]
-            maximum = self.slider.value()[1]
-
-        return palette, attribute, minimum, maximum
-
-    def _color_changed(self):
-        if self._mode == "mono":
-            self.colorChanged.emit(self.partlist.id, self._color)
-        elif self._mode == "gradient":
-            palette, attribute, minimum, maximum = self._get_selection()
-            self.colormapChanged.emit(self.partlist.id,
-                                      palette,
-                                      attribute,
-                                      minimum,
-                                      maximum)
-
-
-class GradientRangeSlider(QDoubleRangeSlider):
-
-    QSS = """
-    GradientRangeSlider {{
-        qproperty-barColor: qlineargradient(x1:0, y1:0, x2:1, y2:0, {});
-    }}
-    """
-
-    def set_gradient(self, cmap):
-        if cmap.value_range() != (0, 1):
-            cmap = cmap.rescale_range(0, 1)
-
-        values = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
-        colors = cmap.interpolated_rgba8(values)
-
-        stops = []
-        for idx, v in enumerate(values):
-            stops.append("stop:{} rgb({}, {}, {})".format(v, colors[idx, 0], colors[idx, 1], colors[idx, 2]))
-
-        stopstring = ', '.join(stops)
-
-        qss = self.QSS.format(stopstring)
-        self.setStyleSheet(qss)
-
-
-class IgnorantComboBox(QComboBox):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.setFocusPolicy(Qt.StrongFocus)
-
-    def wheelEvent(self, e: QWheelEvent) -> None:
-        if not self.hasFocus():
-            e.ignore()
-        else:
-            super().wheelEvent(e)

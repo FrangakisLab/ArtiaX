@@ -1,21 +1,47 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# ChimeraX
 from chimerax.core.models import Model
 from chimerax.core.errors import UserError
 from chimerax.graphics import Drawing
 
-from .Tomogram import Tomogram
+# This package
+from ..volume import Tomogram
+
 
 class ManagerModel(Model):
+    """
+    A Manager model manages several child models and allows easy access via their id and position in the internal list.
 
+    Parameters
+    ----------
+    name : str
+        The name of the model.
+    session : chimerax.core.session.Session
+        The chimerax session object.
+
+    """
     def __init__(self, name, session):
         super().__init__(name, session)
 
     def get(self, identifier):
+        """
+        Get a child model instance by model id or position in the model list.
+
+        Parameters
+        ----------
+        identifier : int | tuple of int
+            The list position or model id.
+
+        Returns
+        -------
+        model : Model
+            The model instance.
+        """
         if identifier is None:
             return None
 
         func = None
-        #if isinstance(identifier, str):
-        #    func = self._get_by_name
         if isinstance(identifier, int):
             func = self._get_by_idx
         elif isinstance(identifier, tuple):
@@ -26,6 +52,19 @@ class ManagerModel(Model):
         return func(identifier)
 
     def has_name(self, name):
+        """
+        Checks if one of the child model has a particular name.
+
+        Parameters
+        ----------
+        name : str
+            The name to search for
+
+        Returns
+        -------
+        success : bool
+            Whether or not any child model has the name.
+        """
         models = [model for model in self.child_models() if model.name == name]
         if len(models) > 0:
             return True
@@ -33,6 +72,19 @@ class ManagerModel(Model):
             return False
 
     def has_id(self, id):
+        """
+        Checks if one of the child model has a particular model id.
+
+        Parameters
+        ----------
+        id : tuple of int
+            The model id.
+
+        Returns
+        -------
+        success : bool
+            Whether or not any child model has the model id.
+        """
         models = [model for model in self.child_models() if model.id == id]
         if len(models) > 0:
             return True
@@ -40,15 +92,26 @@ class ManagerModel(Model):
             return False
 
     def get_idx(self, identifier):
+        """
+        Get the list index of a child model by its model id or object reference.
+
+        Parameters
+        ----------
+        identifier : tuple of int | chimerax.core.models.Model
+            The model id or model instance to test.
+
+        Returns
+        -------
+        idx : int
+            The index in the list of child models.
+        """
         if identifier is None:
             return None
 
         func = None
-        #if isinstance(identifier, str):
-        #    func = self._get_by_name
         if isinstance(identifier, tuple):
             func = self._get_by_model_id
-        elif isinstance(identifier, Tomogram):
+        elif isinstance(identifier, Model):
             pass
         else:
             raise UserError("Unknown Model identifier type {}.".format(type(identifier)))
@@ -61,15 +124,26 @@ class ManagerModel(Model):
         return self.child_models().index(model)
 
     def get_id(self, identifier):
+        """
+        Get the model id of a child model by its list idx or object reference.
+
+        Parameters
+        ----------
+        identifier : int | chimerax.core.models.Model
+            The model index or model instance to test.
+
+        Returns
+        -------
+        id : tuple of int
+            The model id.
+        """
         if identifier is None:
             return None
 
         func = None
-        #if isinstance(identifier, str):
-        #    func = self._get_by_name
         if isinstance(identifier, int):
             func = self._get_by_idx
-        elif isinstance(identifier, Tomogram):
+        elif isinstance(identifier, Model):
             pass
         else:
             raise UserError("Unknown Model identifier type {}.".format(type(identifier)))
@@ -104,20 +178,15 @@ class ManagerModel(Model):
 
     def set_name(self, idx, name):
         model = self.get(idx)
-        #if self.has_name(name) and model.name == name:
-        #    return False
-        #elif self.has_name(name):
-        #    self.session.logger.warning("Name already used on other Model {} in {} ({})".format(self.get(name), self.name, self.id_string))
-        #    return False
-
         model.name = name
-        #return True
 
     @property
     def count(self):
+        """The number of child models."""
         return len(self.child_models())
 
     def iter(self):
+        """Returns an iterator over the child models"""
         return iter(self.child_models())
 
     def _get_by_idx(self, idx):

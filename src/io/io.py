@@ -1,9 +1,15 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# General
 import os
 
+# ChimeraX
 from chimerax.core.errors import UserError
 
-from ..ParticleList import ParticleList
+# This package
+from ..particle import ParticleList
 from .Artiatomi import ArtiatomiParticleData
+
 
 def open_particle_list(session, stream, file_name, format_name=None):
 

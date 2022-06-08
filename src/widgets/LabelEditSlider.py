@@ -1,11 +1,12 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+# General
 import math
+from superqt import QDoubleSlider
 
+# Qt
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QGridLayout, QLabel, QLineEdit, QWidget
-
-from superqt import QDoubleSlider
 
 
 class LabelEditSlider(QWidget):

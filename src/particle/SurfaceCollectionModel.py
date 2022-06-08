@@ -1,14 +1,18 @@
-from uuid import uuid4
-from collections import OrderedDict
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
+# General
+from collections import OrderedDict
 import numpy as np
-from chimerax.atomic import StructureData
+
+# ChimeraX
 from chimerax.core.models import Model
 from chimerax.geometry import Place, Places
-from chimerax.graphics.drawing import Drawing, Pick, PickedTriangle, PickedTriangles, PickedInstance
+from chimerax.graphics.drawing import Drawing, PickedTriangle
 
+# Triggers
 MODELS_MOVED = "models moved"
 MODELS_SELECTED = "models selected"
+
 
 class SurfaceCollectionModel(Model):
     """

@@ -1,3 +1,4 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 
 def run_preset(session, name, mgr):
@@ -7,6 +8,7 @@ def run_preset(session, name, mgr):
         raise ValueError("No preset named '%s'" % name)
 
     mgr.execute(cmd)
+
 
 def _default_preset_cmd():
     cmd = "set bgColor black; lighting depthCue false; camera ortho"

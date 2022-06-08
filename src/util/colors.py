@@ -1,6 +1,10 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# ChimeraX
 from chimerax.core.colors import Colormap
 
-# from P. Green-Armytage (2010): A Colour Alphabet and the Limits of Colour Coding. // Colour: Design & Creativity (5) (2010): 10, 1-23
+# from P. Green-Armytage (2010): A Colour Alphabet and the Limits of Colour Coding. //
+# Colour: Design & Creativity (5) (2010): 10, 1-23
 # https://eleanormaclure.files.wordpress.com/2011/03/colour-coding.pdf
 # skipped ebony, yellow
 ARTIAX_COLORS = [[240, 163, 255, 255],
@@ -31,6 +35,7 @@ ARTIAX_COLORS = [[240, 163, 255, 255],
 ARTIAX_COLORMAPS = {
     'redgreen': ((1, 0, 0, 1), (1, 1, 0, 1), (0, 1, 0, 1))
 }
+
 
 def add_colors(session):
     for name, colors in ARTIAX_COLORMAPS.items():

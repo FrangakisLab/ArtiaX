@@ -1,5 +1,11 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# General
 import numpy as np
+
+# ChimeraX
 from chimerax.core.commands import run
+
 
 def selection_cmd(session, list_id, attributes, minima, maxima):
     markerset = session.ArtiaX.partlists.get(list_id).markers
@@ -46,6 +52,7 @@ def display_cmd(session, list_id, attributes, minima, maxima):
         # mask[0] = False
         markerset.atoms.displays = mask
 
+
 def color_cmd(session, list_id, color):
     pl = session.ArtiaX.partlists.get(list_id)
 
@@ -60,6 +67,7 @@ def colormap_cmd(session, list_id, palette, attribute, minimum, maximum):
         'color byattribute a:{} #{} palette {} range {},{}'.format(attribute, markers.id_string, palette, minimum,
                                                                    maximum), log=False)
 
+
 def _full_spec(id_string, attributes, minima, maxima):
     neg = []
     pos = []
@@ -73,8 +81,10 @@ def _full_spec(id_string, attributes, minima, maxima):
 
     return neg_spec, pos_spec
 
+
 def _positive_selection(id_string, attribute, minimum, maximum):
     return "( #{}@@{}>={} & #{}@@{}<={} )".format(id_string, attribute, minimum, id_string, attribute, maximum)
+
 
 def _negative_selection(id_string, attribute, minimum, maximum):
     return "( #{}@@{}<{} | #{}@@{}>{} )".format(id_string, attribute, minimum, id_string, attribute, maximum)

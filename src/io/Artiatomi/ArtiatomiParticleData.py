@@ -1,16 +1,18 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# General
 import numpy as np
 
-from chimerax.open_command import OpenerInfo
+# Chimerax
 from chimerax.map import open_map
-from chimerax.map_data import ArrayGridData
-from chimerax.map_data.fileformats import save_grid_data
 from chimerax.core.errors import UserError
 
+# This package
 from ..ParticleData import ParticleData, AxisAnglePair
 from .emwrite import emwrite
 
-class ArtiaPhi(AxisAnglePair):
 
+class ArtiaPhi(AxisAnglePair):
     def __init__(self):
         super().__init__(axis=(0, 0, 1))
 
@@ -26,7 +28,6 @@ class ArtiaPhi(AxisAnglePair):
 
 
 class ArtiaPsi(AxisAnglePair):
-
     def __init__(self):
         super().__init__(axis=(0, 0, 1))
 
@@ -41,7 +42,6 @@ class ArtiaPsi(AxisAnglePair):
 
 
 class ArtiaThe(AxisAnglePair):
-
     def __init__(self):
         super().__init__(axis=(1, 0, 0))
 

@@ -23,6 +23,7 @@ _providers = {
     "Hide Surfaces": "artiax hide surfaces",
 }
 
+
 def run_provider(session, name):
     what = _providers[name]
 

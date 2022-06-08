@@ -1,12 +1,22 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# General
 import struct
 import numpy as np
 
 
 def emwrite(data, em_name):
-    '''
+    """
+    Writes data to files in TOM EM format.
     Writes 3D-data-matrix "data" into .em formated file with name "em_name".
-    '''
 
+    Parameters
+    ----------
+    data : numpy array
+        The data to write.
+    em_name : str
+        Path to output file.
+    """
     xdim=len(data[0])
     ydim=len(data)
     try:
@@ -33,4 +43,4 @@ def emwrite(data, em_name):
         else:
             fout.write(struct.pack("=%sf" % data.size,*data.flatten("C")))
         fout.close()
-    return
+

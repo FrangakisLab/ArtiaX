@@ -1,28 +1,18 @@
-import sys
-import numpy as np
-import math as ma
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
-from functools import partial
+# ChimeraX
 from chimerax.core import errors
 from chimerax.core.commands import run
-from chimerax.core.models import Model, ADD_MODELS, REMOVE_MODELS
-from chimerax.map import Volume, open_map, VolumeImage
-from chimerax.geometry.vector import inner_product
-from chimerax.markers.mouse import (MarkMaximumMouseMode,
-                                    MarkPlaneMouseMode,
-                                    MarkSurfaceMouseMode,
-                                    MarkPointMouseMode,
-                                    MarkCenterMouseMode,
-                                    DeleteMarkersPointMouseMode)
+from chimerax.core.models import Model
+from chimerax.map import Volume, open_map
 from pprint import pprint
 
-from .Tomogram import Tomogram, orthoplane_cmd
-from .ManagerModel import ManagerModel
-from .io import open_particle_list, save_particle_list, get_fmt_aliases
-from .colors import add_colors, ARTIAX_COLORS
-from .io import ArtiatomiParticleData
-from .ParticleList import ParticleList
-
+# This package
+from .volume.Tomogram import Tomogram, orthoplane_cmd
+from .util import ManagerModel
+from .util.colors import add_colors, ARTIAX_COLORS
+from .io import ArtiatomiParticleData, open_particle_list, save_particle_list, get_fmt_aliases
+from .particle import ParticleList
 
 # Triggers
 TOMOGRAM_ADD = 'tomo added'
@@ -31,12 +21,14 @@ TOMOGRAM_DEL = 'tomo removed'
 PARTICLES_ADD = 'parts added'
 PARTICLES_DEL = 'parts removed'
 
+
 def print_trigger(trigger, trigger_data):
     print(trigger)
     print(trigger_data)
     print(type(trigger_data))
     pprint(vars(trigger_data))
     print(trigger_data.drawing)
+
 
 class ArtiaX(Model):
 
@@ -74,25 +66,14 @@ class ArtiaX(Model):
         self.triggers.add_handler(PARTICLES_ADD, self._partlist_added)
         self.triggers.add_handler(PARTICLES_DEL, self._partlist_deleted)
 
-        # Trigger handlers
-        # Hacky way of getting around the extremely slow update of the model panel when many models are present:
-        # When mouse mode is set to adding a marker, and then switched to another mode, we activate the ADD_MODELS trigger
-        # This allows picking and creating models for each particle without updating the model panel each time, only once
-        # when you're done clicking.
-        #self._mouse_state = None
-        #self.session.triggers.add_handler("set mouse mode", self._mouse_mode_changed)
-
         # Graphical preset
         run(self.session, "preset artiax default")
 
         # Selection
         self.selected_tomogram = None
         self._options_tomogram = None
-        #self.options_tomogram
         self._selected_partlist = None
-        #self.selected_partlist = None
         self._options_partlist = None
-        #self.options_partlist = None
 
         # Mouse modes
         from .mouse import (TranslateSelectedParticlesMode,
@@ -279,22 +260,22 @@ class ArtiaX(Model):
 
     def show_particles(self, identifier, attributes, minima, maxima):
         id = self.partlists.get(identifier).id
-        from .select import display_cmd
+        from .util.select import display_cmd
         display_cmd(self.session, id, attributes, minima, maxima)
 
     def select_particles(self, identifier, attributes, minima, maxima):
         id = self.partlists.get(identifier).id
-        from .select import selection_cmd
+        from .util.select import selection_cmd
         selection_cmd(self.session, id, attributes, minima, maxima)
 
     def color_particles(self, identifier, color):
         id = self.partlists.get(identifier).id
-        from .select import color_cmd
+        from .util.select import color_cmd
         color_cmd(self.session, id, color)
 
     def color_particles_byattribute(self, identifier, palette, attribute, minimum, maximum):
         id = self.partlists.get(identifier).id
-        from .select import colormap_cmd
+        from .util.select import colormap_cmd
         colormap_cmd(self.session, id, palette, attribute, minimum, maximum)
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Callbacks
@@ -319,8 +300,4 @@ class ArtiaX(Model):
     def _partlists_changed(self, name, data):
         ui = self.ui
         ui._update_partlist_table()
-
-
-
-
 

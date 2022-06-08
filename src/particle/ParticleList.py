@@ -1,33 +1,38 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+# General imports
 import numpy as np
 
+# ChimeraX imports
 from chimerax.core.commands import run
 from chimerax.core.errors import UserError
-from chimerax.core.models import Model, MODEL_ID_CHANGED, ADD_MODELS
+from chimerax.core.models import Model
 from chimerax.map import Volume
-from chimerax.atomic import Atom, Structure
+from chimerax.atomic import Atom
 from chimerax.graphics import Drawing
 
-from .VolumePlus import VolumePlus
-from .ManagerModel import ManagerModel
-from .io.ParticleData import ParticleData, AxisAnglePair
-from .ParticleModel import ParticleModel, MODEL_MOVED
+# This package
+from ..volume import VolumePlus
+from ..util import ManagerModel
+from ..io.ParticleData import ParticleData, AxisAnglePair
 from .SurfaceCollectionModel import SurfaceCollectionModel, MODELS_MOVED, MODELS_SELECTED
-from .marker import (MarkerSetPlus,
-                     MARKER_CREATED,
-                     MARKER_DELETED,
-                     MARKER_MOVED,
-                     MARKER_COLOR_CHANGED,
-                     MARKER_SELECTED,
-                     MARKER_DISPLAY_CHANGED,
-                     MARKERSET_DELETED)
+from .MarkerSetPlus import (
+    MarkerSetPlus,
+    MARKER_CREATED,
+    MARKER_DELETED,
+    MARKER_MOVED,
+    MARKER_COLOR_CHANGED,
+    MARKER_SELECTED,
+    MARKER_DISPLAY_CHANGED,
+    MARKERSET_DELETED
+)
 
+# Triggers
 PARTLIST_CHANGED = 'partlist changed'
 
 
 class ParticleList(Model):
-    '''A Particle list displays ParticleData using a MarkerSetPlus and a set of ParticleModels.'''
+    '''A ParticleList displays ParticleData using a MarkerSetPlus and a SurfaceCollectionModel.'''
 
     DEBUG = False
 

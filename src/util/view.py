@@ -1,13 +1,19 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# ChimeraX
 from chimerax.core.commands import run
+
 
 #TODO: are these as in Amira?
 def view_xy(session):
     run(session, 'view matrix camera 1,0,0,0,0,1,0,0,0,0,1,0', log=False)
     run(session, 'view', log=False)
 
+
 def view_xz(session):
     run(session, 'view matrix camera 1,0,0,0,0,0,-1,0,0,1,0,0', log=False)
     run(session, 'view', log=False)
+
 
 def view_yz(session):
     run(session, 'view matrix camera 0,0,1,0,1,0,0,0,0,1,0,0', log=False)
@@ -43,9 +49,3 @@ def show(session, models, style, do_show=True):
 
         if style.lower() in ['ax', 'axis', 'axes']:
             pl.show_axes(do_show)
-
-
-
-
-
-
