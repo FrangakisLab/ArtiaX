@@ -105,7 +105,7 @@ class ArtiaXUI(ToolInstance):
         self.particle_save_dialog.setAcceptMode(QFileDialog.AcceptSave)
 
         # Build the menu bar
-        self._build_menubar()
+        #self._build_menubar()
 
         # Prepare some widgets that are used later
         self._build_table_widgets()
@@ -115,7 +115,7 @@ class ArtiaXUI(ToolInstance):
 
         # Build the actual GUI
         layout = QVBoxLayout()
-        layout.addLayout(self.menu_bar_widget)
+        #layout.addLayout(self.menu_bar_widget)
         #layout.addWidget(self.menu_bar_widget)
         layout.addWidget(self.group_tomo)
         layout.addWidget(self.group_partlist)
@@ -195,19 +195,21 @@ class ArtiaXUI(ToolInstance):
 
     def _build_main_ui(self):
         '''Add the table widgets and some buttons the the main layout.'''
-        
+
         ##### Group Box "Tomograms" #####
         self.group_tomo = QGroupBox("Tomograms")
         self.group_tomo.setFont(self.font)
         # Group Box Layout
         group_tomo_layout = QVBoxLayout()
-        
+
         # Contents
+        self.group_tomo_open_button = QPushButton("Open tomogram ...")
         self.group_tomo_close_button = QPushButton("Close selected tomogram")
-        
+
+        group_tomo_layout.addWidget(self.group_tomo_open_button)
         group_tomo_layout.addWidget(self.table_tomo)
         group_tomo_layout.addWidget(self.group_tomo_close_button)
-        
+
         # Add layout to the group
         self.group_tomo.setLayout(group_tomo_layout)
         ##### Group Box "Tomograms" #####
@@ -217,16 +219,24 @@ class ArtiaXUI(ToolInstance):
         self.group_partlist.setFont(self.font)
         # Group Box Layout
         group_partlist_layout = QVBoxLayout()
-        
+
         # Contents
+        group_partlist_button2_layout = QHBoxLayout()
+        self.group_partlist_open_button = QPushButton("Open List ...")
+        self.group_partlist_save_button = QPushButton("Save List ...")
+
+        group_partlist_button2_layout.addWidget(self.group_partlist_open_button)
+        group_partlist_button2_layout.addWidget(self.group_partlist_save_button)
+
         group_partlist_button_layout = QHBoxLayout()
         self.group_partlist_create_button = QPushButton("Create new particle list")
         self.group_partlist_close_button = QPushButton("Close selected particle list")
-        
+
         group_partlist_button_layout.addWidget(self.group_partlist_create_button)
         group_partlist_button_layout.addWidget(self.group_partlist_close_button)
-        
+
         # Add button layout to group layout
+        group_partlist_layout.addLayout(group_partlist_button2_layout)
         group_partlist_layout.addWidget(self.table_part)
         group_partlist_layout.addLayout(group_partlist_button_layout)
         # Add layout to the group
@@ -244,12 +254,14 @@ class ArtiaXUI(ToolInstance):
         artia = self.session.ArtiaX
 
         # Menu bar items
-        ui.menu_open_tomogram.triggered.connect(partial(self._open_volume))
+        #ui.menu_open_tomogram.triggered.connect(partial(self._open_volume))
 
         # Tomo table
-        ui.table_tomo.itemClicked.connect(partial(self._tomo_table_selected))
-        ui.table_tomo.itemChanged.connect(partial(self._tomo_table_name_changed))
-        ui.group_tomo_close_button.clicked.connect(partial(self._close_volume))
+        ui.table_tomo.itemClicked.connect(self._tomo_table_selected)
+        ui.table_tomo.itemChanged.connect(self._tomo_table_name_changed)
+
+        ui.group_tomo_open_button.clicked.connect(self._open_volume)
+        ui.group_tomo_close_button.clicked.connect(self._close_volume)
 
 
     def _connect_part_ui(self):
@@ -258,14 +270,18 @@ class ArtiaXUI(ToolInstance):
         artia = self.session.ArtiaX
 
         # Menu bar items
-        ui.menu_open_parts.triggered.connect(partial(self._open_partlist))
-        ui.menu_save_parts.triggered.connect(partial(self._save_partlist))
+        #ui.menu_open_parts.triggered.connect(partial(self._open_partlist))
+        #ui.menu_save_parts.triggered.connect(partial(self._save_partlist))
 
         # Partlist table
-        ui.table_part.itemClicked.connect(partial(self._partlist_table_selected))
-        ui.table_part.itemChanged.connect(partial(self._partlist_table_name_changed))
-        ui.group_partlist_create_button.clicked.connect(partial(self._create_partlist))
-        ui.group_partlist_close_button.clicked.connect(partial(self._close_partlist))
+        ui.table_part.itemClicked.connect(self._partlist_table_selected)
+        ui.table_part.itemChanged.connect(self._partlist_table_name_changed)
+
+        ui.group_partlist_open_button.clicked.connect(self._open_partlist)
+        ui.group_partlist_save_button.clicked.connect(self._save_partlist)
+
+        ui.group_partlist_create_button.clicked.connect(self._create_partlist)
+        ui.group_partlist_close_button.clicked.connect(self._close_partlist)
 
 # ==============================================================================
 # Menu Bar Functions ===========================================================
