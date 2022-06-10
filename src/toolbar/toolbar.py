@@ -3,7 +3,7 @@
 _providers = {
     "Launch": "artiax start",
     "XY": "artiax view xy",
-    "XZ": "artiax view xz",
+    "ZX": "artiax view zx",
     "YZ": "artiax view yz",
     "Select": 'ui mousemode right select',
     "Rotate": 'ui mousemode right rotate',

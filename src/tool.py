@@ -12,6 +12,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QKeySequence
 from PyQt5.QtWidgets import (
     QAction,
+    QAction,
     QFileDialog,
     QGroupBox,
     QHBoxLayout,
@@ -54,7 +55,7 @@ class ArtiaXUI(ToolInstance):
         self.font = QFont("Arial", 7)
 
         # UI
-        self.tool_window = MainToolWindow(self)
+        self.tool_window = MainToolWindow(self, close_destroys=False)
 
 
         # Connect the shortcurts to functions in the options window
@@ -215,8 +216,8 @@ class ArtiaXUI(ToolInstance):
         
         # Contents
         group_partlist_button_layout = QHBoxLayout()
-        self.group_partlist_create_button = QPushButton("Create new motivelist")
-        self.group_partlist_close_button = QPushButton("Close selected motivelist")
+        self.group_partlist_create_button = QPushButton("Create new particle list")
+        self.group_partlist_close_button = QPushButton("Close selected particle list")
         
         group_partlist_button_layout.addWidget(self.group_partlist_create_button)
         group_partlist_button_layout.addWidget(self.group_partlist_close_button)

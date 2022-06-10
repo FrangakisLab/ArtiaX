@@ -10,8 +10,8 @@ def view_xy(session):
     run(session, 'view', log=False)
 
 
-def view_xz(session):
-    run(session, 'view matrix camera 1,0,0,0,0,0,-1,0,0,1,0,0', log=False)
+def view_zx(session):
+    run(session, 'view matrix camera 0,1,0,0,0,0,1,0,1,0,0,0', log=False)
     run(session, 'view', log=False)
 
 

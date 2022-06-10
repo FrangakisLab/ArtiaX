@@ -93,7 +93,7 @@ will be displayed without the ChimeraX- prefix.
     <Provider tab="ArtiaX" section="View"
       name="XY" icon="view_xy.png" description="Set viewing direction to XY planes."/>
     <Provider tab="ArtiaX" section="View"
-      name="XZ" icon="view_xz.png" description="Set viewing direction to XZ planes."/>
+      name="ZX" icon="view_xz.png" description="Set viewing direction to ZX planes."/>
     <Provider tab="ArtiaX" section="View"
       name="YZ" icon="view_yz.png" description="Set viewing direction to YZ planes."/>
 

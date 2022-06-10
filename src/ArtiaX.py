@@ -50,8 +50,10 @@ class ArtiaX(Model):
         # Model Managers
         self.tomograms = ManagerModel('Tomograms', self.session)
         self.partlists = ManagerModel('Particle Lists', self.session)
+
         self.add([self.tomograms])
         self.add([self.partlists])
+
         #self.session.models.add([self.tomograms], parent=self)
         #self.session.models.add([self.partlists], parent=self)
 
