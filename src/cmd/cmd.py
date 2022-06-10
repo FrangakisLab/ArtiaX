@@ -114,35 +114,40 @@ def register_artiax(logger):
 
     def register_artiax_start():
         desc = CmdDesc(
-            synopsis= 'Start the ArtiaX GUI.'
+            synopsis= 'Start the ArtiaX GUI.',
+            url='help:user/commands/artiax_start.html'
         )
         register('artiax start', desc, artiax_start)
 
     def register_artiax_open_tomo():
         desc = CmdDesc(
             required=[("path", StringArg)],
-            synopsis='Open a tomogram in ArtiaX.'
+            synopsis='Open a tomogram in ArtiaX.',
+            url='help:user/commands/artiax_open_tomo.html'
         )
         register('artiax open tomo', desc, artiax_open_tomo)
 
     def register_artiax_add_tomo():
         desc = CmdDesc(
             required=[("model", ModelArg)],
-            synopsis='Add a volume loaded by ChimeraX to ArtiaX.'
+            synopsis='Add a volume loaded by ChimeraX to ArtiaX.',
+            url='help:user/commands/artiax_add_tomo.html'
         )
         register('artiax add tomo', desc, artiax_add_tomo)
 
     def register_artiax_close_tomo():
         desc = CmdDesc(
             required=[("index", IntArg)],
-            synopsis='Close a tomogram currently loaded in ArtiaX.'
+            synopsis='Close a tomogram currently loaded in ArtiaX.',
+            url='help:user/commands/artiax_close_tomo.html'
         )
         register('artiax close tomo', desc, artiax_close_tomo)
 
     def register_artiax_view():
         desc = CmdDesc(
             required=[("direction", StringArg)],
-            synopsis='Set standard viewing directions.'
+            synopsis='Set standard viewing directions.',
+            url='help:user/commands/artiax_view.html'
         )
         register('artiax view', desc, artiax_view)
 
@@ -150,7 +155,8 @@ def register_artiax(logger):
         desc = CmdDesc(
             required=[("path", StringArg),
                       ("format", StringArg)],
-            synopsis='Open a particle list in ArtiaX.'
+            synopsis='Open a particle list in ArtiaX.',
+            url='help:user/commands/artiax_open_particles.html'
         )
         register('artiax open particles', desc, artiax_open_particlelist)
 
@@ -159,7 +165,8 @@ def register_artiax(logger):
             required=[("index", IntArg),
                       ("path", StringArg),
                       ("format", StringArg)],
-            synopsis='Open a particle list in ArtiaX.'
+            synopsis='Open a particle list in ArtiaX.',
+            url='help:user/commands/artiax_save_particles.html'
         )
         register('artiax save particles', desc, artiax_save_particlelist)
 
@@ -167,7 +174,8 @@ def register_artiax(logger):
         desc = CmdDesc(
             required=[("index", IntArg),
                       ("model", ModelArg)],
-            synopsis='Open a particle list in ArtiaX.'
+            synopsis='Open a particle list in ArtiaX.',
+            url='help:user/commands/artiax_particles_attach.html'
         )
         register('artiax particles attach', desc, artiax_particles_attach)
 
@@ -175,7 +183,8 @@ def register_artiax(logger):
         desc = CmdDesc(
             optional=[("models", Or(ModelsArg, EmptyArg)),
                       ("style", StringArg)],
-            synopsis='Show particles with this style.'
+            synopsis='Show particles with this style.',
+            url='help:user/commands/artiax_show.html'
         )
         register('artiax show', desc, artiax_show)
 
@@ -183,7 +192,8 @@ def register_artiax(logger):
         desc = CmdDesc(
             optional=[("models", Or(ModelsArg, EmptyArg)),
                       ("style", StringArg)],
-            synopsis='Hide this style.'
+            synopsis='Hide this style.',
+            url='help:user/commands/artiax_hide.html'
         )
         register('artiax hide', desc, artiax_hide)
 

@@ -24,7 +24,7 @@ from PyQt5.QtWidgets import (
 )
 
 # This package
-from .ArtiaX import ArtiaX
+from .ArtiaX import ArtiaX, TOMOGRAM_ADD, TOMOGRAM_DEL, PARTICLES_ADD, PARTICLES_DEL
 from .options_window import OptionsWindow
 from .io import get_partlist_formats
 
@@ -64,6 +64,11 @@ class ArtiaXUI(ToolInstance):
         # Base Model if it doesn't exist yet
         if not hasattr(session, 'ArtiaX'):
             session.ArtiaX = ArtiaX(self)
+
+        session.ArtiaX.triggers.add_handler(TOMOGRAM_ADD, self._update_tomo_table)
+        session.ArtiaX.triggers.add_handler(TOMOGRAM_DEL, self._update_tomo_table)
+        session.ArtiaX.triggers.add_handler(PARTICLES_ADD, self._update_partlist_table)
+        session.ArtiaX.triggers.add_handler(PARTICLES_DEL, self._update_partlist_table)
 
         self._build_ui()
         self._build_options_window(tool_name)
@@ -329,13 +334,13 @@ class ArtiaXUI(ToolInstance):
 # Table Functions ==============================================================
 # ==============================================================================
 
-    def _update_tomo_table(self):
+    def _update_tomo_table(self, name=None, data=None):
         artia = self.session.ArtiaX
         sel_id, opt_id = self.table_tomo.update_table(artia.options_tomogram)
         artia.selected_tomogram = sel_id
         artia.options_tomogram = opt_id
 
-    def _update_partlist_table(self):
+    def _update_partlist_table(self, name=None, data=None):
         artia = self.session.ArtiaX
         sel_id, opt_id = self.table_part.update_table(self.session.ArtiaX.options_partlist)
         artia.selected_partlist = sel_id
