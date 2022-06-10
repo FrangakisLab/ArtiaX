@@ -58,13 +58,13 @@ class ArtiaX(Model):
         # Triggers
         self.triggers.add_trigger(TOMOGRAM_ADD)
         self.triggers.add_trigger(TOMOGRAM_DEL)
-        self.triggers.add_handler(TOMOGRAM_ADD, self._tomo_added)
-        self.triggers.add_handler(TOMOGRAM_DEL, self._tomo_deleted)
+        #self.triggers.add_handler(TOMOGRAM_ADD, self._tomo_added)
+        #self.triggers.add_handler(TOMOGRAM_DEL, self._tomo_deleted)
 
         self.triggers.add_trigger(PARTICLES_ADD)
         self.triggers.add_trigger(PARTICLES_DEL)
-        self.triggers.add_handler(PARTICLES_ADD, self._partlist_added)
-        self.triggers.add_handler(PARTICLES_DEL, self._partlist_deleted)
+        #self.triggers.add_handler(PARTICLES_ADD, self._partlist_added)
+        #self.triggers.add_handler(PARTICLES_DEL, self._partlist_deleted)
 
         # Graphical preset
         run(self.session, "preset artiax default")
@@ -281,23 +281,23 @@ class ArtiaX(Model):
 # Callbacks
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-    def _tomo_added(self, name, data):
-        self._tomos_changed(name, data)
-
-    def _tomo_deleted(self, name, data):
-        self._tomos_changed(name, data)
-
-    def _tomos_changed(self, name, data):
-        ui = self.ui
-        ui._update_tomo_table()
-
-    def _partlist_added(self, name, data):
-        self._partlists_changed(name, data)
-
-    def _partlist_deleted(self, name, data):
-        self._partlists_changed(name, data)
-
-    def _partlists_changed(self, name, data):
-        ui = self.ui
-        ui._update_partlist_table()
+    # def _tomo_added(self, name, data):
+    #     self._tomos_changed(name, data)
+    #
+    # def _tomo_deleted(self, name, data):
+    #     self._tomos_changed(name, data)
+    #
+    # def _tomos_changed(self, name, data):
+    #     ui = self.ui
+    #     ui._update_tomo_table()
+    #
+    # def _partlist_added(self, name, data):
+    #     self._partlists_changed(name, data)
+    #
+    # def _partlist_deleted(self, name, data):
+    #     self._partlists_changed(name, data)
+    #
+    # def _partlists_changed(self, name, data):
+    #     ui = self.ui
+    #     ui._update_partlist_table()
 
