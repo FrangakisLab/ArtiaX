@@ -21,6 +21,9 @@ TOMOGRAM_DEL = 'tomo removed'
 PARTICLES_ADD = 'parts added'
 PARTICLES_DEL = 'parts removed'
 
+GEOMODEL_ADD = 'geomodel added'
+GEOMODEL_DEL = 'geomodel removed'
+
 
 def print_trigger(trigger, trigger_data):
     print(trigger)
@@ -50,9 +53,11 @@ class ArtiaX(Model):
         # Model Managers
         self.tomograms = ManagerModel('Tomograms', self.session)
         self.partlists = ManagerModel('Particle Lists', self.session)
+        self.geomodels = ManagerModel('Geometric Models', self.session)
 
         self.add([self.tomograms])
         self.add([self.partlists])
+        self.add([self.geomodels])
 
         #self.session.models.add([self.tomograms], parent=self)
         #self.session.models.add([self.partlists], parent=self)
@@ -67,6 +72,11 @@ class ArtiaX(Model):
         self.triggers.add_trigger(PARTICLES_DEL)
         self.triggers.add_handler(PARTICLES_ADD, self._partlist_added)
         self.triggers.add_handler(PARTICLES_DEL, self._partlist_deleted)
+
+        self.triggers.add_trigger(GEOMODEL_ADD)
+        self.triggers.add_trigger(GEOMODEL_DEL)
+        self.triggers.add_handler(GEOMODEL_ADD, self._geomodel_added)
+        self.triggers.add_handler(GEOMODEL_DEL, self._geomodel_deleted)
 
         # Graphical preset
         run(self.session, "preset artiax default")
