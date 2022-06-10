@@ -35,7 +35,19 @@ will be displayed without the ChimeraX- prefix.
 
   <!-- Non-Python files that are part of package -->
   <DataFiles>
+    <DataFile>docs/user/ArtiaX-docs-icon.svg</DataFile>
+    <DataFile>docs/user/artiax_index.html</DataFile>
     <DataFile>docs/user/tools/tutorial.html</DataFile>
+    <DataFile>docs/user/commands/artiax_add_tomo.html</DataFile>
+    <DataFile>docs/user/commands/artiax_close_tomo.html</DataFile>
+    <DataFile>docs/user/commands/artiax_hide.html</DataFile>
+    <DataFile>docs/user/commands/artiax_open_particles.html</DataFile>
+    <DataFile>docs/user/commands/artiax_open_tomo.html</DataFile>
+    <DataFile>docs/user/commands/artiax_particles_attach.html</DataFile>
+    <DataFile>docs/user/commands/artiax_save_particles.html</DataFile>
+    <DataFile>docs/user/commands/artiax_show.html</DataFile>
+    <DataFile>docs/user/commands/artiax_start.html</DataFile>
+    <DataFile>docs/user/commands/artiax_view.html</DataFile>
     <DataFile>icons/*.png</DataFile>
   </DataFiles>
 
