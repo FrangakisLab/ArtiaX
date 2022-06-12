@@ -71,7 +71,10 @@ class _MyAPI(BundleAPI):
             if name == "Artiatomi Motivelist":
                 class ArtiatomiMotivelistInfo(OpenerInfo):
                     def open(self, session, data, file_name, **kw):
-                        return open_particle_list(session, data, file_name, format_name=name)
+                        from .cmd import get_singleton
+                        # Make sure plugin runs
+                        get_singleton(session)
+                        return open_particle_list(session, data, file_name, format_name=name, from_chimx=True)
 
                     @property
                     def open_args(self):
