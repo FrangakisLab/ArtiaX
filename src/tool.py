@@ -67,7 +67,6 @@ class ArtiaXUI(ToolInstance):
         # UI
         self.tool_window = MainToolWindow(self, close_destroys=False)
 
-
         # Connect the shortcurts to functions in the options window
         #self.define_shortcuts(session)
 

@@ -143,12 +143,14 @@ class SelectionTableWidget(QWidget):
             # Trigger update
             self._selector_modified()
 
-    def clear(self, trigger_update=True):
+    def clear(self, state=None, trigger_update=True):
         """
         Remove all SelectorWidget instances (i.e. clear applied selection).
 
         Parameters
         ----------
+        state : bool
+            Dummy argument for pushbutton signal.
         trigger_update : bool
             If True, update the selection after deleting.
         """
@@ -178,8 +180,8 @@ class SelectionTableWidget(QWidget):
         self.dis_mode_switch.clicked.connect(self._mode_switched)
 
         # Util buttons
-        self.add_button.clicked.connect(partial(self._add_selector))
-        self.clear_button.clicked.connect(partial(self.clear))
+        self.add_button.clicked.connect(self._add_selector)
+        self.clear_button.clicked.connect(self.clear)
 
     def _add_selector(self):
         """

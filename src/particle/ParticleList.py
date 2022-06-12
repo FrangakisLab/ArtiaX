@@ -28,8 +28,8 @@ from .MarkerSetPlus import (
 )
 
 # Triggers
-PARTLIST_CHANGED = 'partlist changed'
-
+PARTLIST_CHANGED = 'partlist changed'  # Data is the modified particle list.
+PARTLIST_DISPLAY_CHANGED = 'partlist '
 
 class ParticleList(Model):
     '''A ParticleList displays ParticleData using a MarkerSetPlus and a SurfaceCollectionModel.'''
@@ -273,6 +273,7 @@ class ParticleList(Model):
         from numpy import copy
         self._displayed_particles = copy(value)
 
+        #print("{} : State property".format(value))
         self.markers.displayed_markers = copy(value)
         self.collection_model.displayed_child_positions = copy(value)
 
@@ -415,7 +416,7 @@ class ParticleList(Model):
             self._attr_to_marker(marker, new_part)
 
         self.collection_model.set_places(reset_ids, places)
-        self.triggers.activate_trigger(PARTLIST_CHANGED)
+        self.triggers.activate_trigger(PARTLIST_CHANGED, self)
 
     def reset_all_particles(self):
         self.markers.delete()
@@ -428,7 +429,7 @@ class ParticleList(Model):
         self._displayed_particles = None
 
         self._init_particles()
-        self.triggers.activate_trigger(PARTLIST_CHANGED)
+        self.triggers.activate_trigger(PARTLIST_CHANGED, self)
 
     def _markerset_deleted(self, name, value):
         if value is self.markers and not self.deleted:
@@ -525,12 +526,6 @@ class ParticleList(Model):
         scm.set_surface('surfaces', base_model.surfaces[0].vertices, base_model.surfaces[0].normals,
                         base_model.surfaces[0].triangles)
 
-        #scm.colors = self.markers.marker_colors
-        # scm.selected_child_positions = self.selected_positions
-        # scm.displayed_child_positions = self.d
-        # scm.set_child_highlighted(self.markers.selected_markers)
-        # scm.set_child_displayed(self.markers.displayed_markers)
-
         base_model.display = False
 
     def _model_deleted(self, name, data):
@@ -579,7 +574,7 @@ class ParticleList(Model):
                 mask = logical_or(prev_ids == pid, mask)
                 particle, marker = self._map.pop(pid)
             else:
-                return
+                continue
 
             # Need to check because deletion can be triggered by different actions, and one or more might already be deleted
             if particle in self._data:
@@ -593,8 +588,9 @@ class ParticleList(Model):
 
         # Now update colors and display to keep consistent
         mask = logical_not(mask)
-        print("Selection Mask: {}".format(mask))
-        print("State before: {}".format(self.displayed_particles))
+        #print("{} : Selection Mask:".format(mask))
+        #print("{} : State before".format(self.displayed_particles))
+        #print("{} : State set".format(self.displayed_particles[mask]))
         # print("Selected: {}".format(self.particle_colors[mask, :]))
 
         self.selected_particles = zeros((self.size,), dtype=bool)
@@ -602,6 +598,8 @@ class ParticleList(Model):
 
         self.particle_colors = self.particle_colors[mask, :]    #self.markers.marker_colors
         # print("State after: {}".format(self.particle_colors))
+
+        #self.triggers.activate_trigger(PARTLIST_CHANGED, self)
 
     def _marker_created(self, name, data):
         """Create Particle instances and add position to SurfaceCollection when new Marker was placed.
@@ -641,6 +639,8 @@ class ParticleList(Model):
             pc = self.particle_colors
             self.particle_colors = append(pc, reshape(pc[-1, :], (1, 4)), axis=0)
 
+        #self.triggers.activate_trigger(PARTLIST_CHANGED, self)
+
     def _marker_moved(self, name, data):
         # Data sent by trigger should be marker instances
         markers = data
@@ -667,6 +667,7 @@ class ParticleList(Model):
             places.append(particle.full_transform())
 
         self.collection_model.set_places(place_ids, places)
+        #self.triggers.activate_trigger(PARTLIST_CHANGED, self)
 
     def _model_moved(self, name, data):
         # Data sent by trigger should be particle ids
@@ -697,6 +698,8 @@ class ParticleList(Model):
 
                 # Update attributes
                 self._attr_to_marker(marker, particle)
+
+        #self.triggers.activate_trigger(PARTLIST_CHANGED, self)
 
     def _marker_selected(self, name, data):
         sm = self.markers.selected_markers
