@@ -103,12 +103,10 @@ class _MyAPI(BundleAPI):
         logger.status(ci.name)
         # Register all ArtiaX commands
         if 'artiax' in ci.name:
-            print('Registered')
             from . import cmd
             cmd.register_artiax(logger)
 
         #raise ValueError('Test')
-
 
 # Create the ''bundle_api'' object that ChimeraX expects.
 bundle_api = _MyAPI()

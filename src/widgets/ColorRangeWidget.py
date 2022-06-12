@@ -215,6 +215,7 @@ class ColorRangeWidget(QWidget):
         self.attribute_box.setCurrentIndex(self._att_idx)
         self.attribute_box.blockSignals(prev)
 
+        self._enable_widgets()
         self._set_min_max()
 
         self._color_changed()
@@ -284,6 +285,7 @@ class ColorRangeWidget(QWidget):
             self._mode = "gradient"
 
         self._show_layout()
+        self._color_changed()
 
     def _show_layout(self):
         if self._mode == "mono":

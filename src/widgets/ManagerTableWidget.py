@@ -50,6 +50,68 @@ class ManagerTableWidget(QTableWidget):
         self.options_group = QButtonGroup()
         self.options_group.setExclusive(True)
 
+    def update_selection(self, selected_model_id, send_signal=False):
+
+        # None selected
+        if selected_model_id is None:
+            # Block signals if necessary
+            prev = False
+            if not send_signal:
+                prev = self.blockSignals(True)
+
+            # What to do
+            self.clearSelection()
+
+            # Unblock signals if necessary
+            if not send_signal:
+                self.blockSignals(prev)
+
+        # Model selected
+        else:
+            # Get idx in children
+            idx = self.model.get_idx(selected_model_id)
+
+            # Block signals if necessary
+            prev = False
+            if not send_signal:
+                prev = self.blockSignals(True)
+
+            # What to do
+            self.selectRow(idx)
+
+            # Unblock signals if necessary
+            if not send_signal:
+                self.blockSignals(prev)
+
+    def update_options(self, options_model_id, send_signal=False):
+
+        # None selected
+        if options_model_id is None:
+            # Set all unchecked
+            for btn in self.options_group.buttons():
+                prev = False
+                if not send_signal:
+                    prev = btn.blockSignals(True)
+
+                btn.setChecked(False)
+
+                if not send_signal:
+                    btn.blockSignals(prev)
+
+        # Model selected
+        else:
+            idx = self.model.get_idx(options_model_id)
+            btn = self.options_group.buttons()[idx]
+
+            prev = False
+            if not send_signal:
+                prev = btn.blockSignals(True)
+
+            btn.setChecked(True)
+
+            if not send_signal:
+                btn.blockSignals(prev)
+
     def update_table(self, options_model_id):
         """
         Updates the table contents
@@ -66,6 +128,8 @@ class ManagerTableWidget(QTableWidget):
         options_id : tuple of int
             Model id of the toggled "options" child.
         """
+
+        self.clearContents()
         self.setRowCount(self.model.count)
 
         # Delete old Buttons
@@ -109,6 +173,7 @@ class ManagerTableWidget(QTableWidget):
             # Connect the Items to a function
             show_box.stateChanged.connect(partial(self.show_cb, idx))
             options_box.toggled.connect(partial(self.options_cb, idx))
+            options_box.clicked.connect(partial(self.options_cb, idx))
 
             self.setItem(idx, 0, id_box)
             self.setItem(idx, 1, name_box)
@@ -119,15 +184,15 @@ class ManagerTableWidget(QTableWidget):
             self.show_group.addButton(show_box)
             self.options_group.addButton(options_box)
 
-        self.selectRow(0)
+        #self.selectRow(0)
 
-        if self.model.count > 0:
-            selected_id = self.model.get_id(0)
-        else:
-            selected_id = None
+        #if self.model.count > 0:
+        #    selected_id = self.model.get_id(0)
+        #else:
+        #    selected_id = None
 
-        options_id = options_model_id
-        if not self.model.has_id(options_model_id):
-            options_id = None
+        #options_id = options_model_id
+        #if not self.model.has_id(options_model_id):
+        #    options_id = None
 
-        return (selected_id, options_id)
+        #return (selected_id, options_id)

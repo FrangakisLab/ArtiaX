@@ -23,7 +23,18 @@ from PyQt5.QtWidgets import (
 )
 
 # This package
-from .ArtiaX import ArtiaX, TOMOGRAM_ADD, TOMOGRAM_DEL, PARTICLES_ADD, PARTICLES_DEL
+from .ArtiaX import (
+    ArtiaX,
+    TOMOGRAM_ADD,
+    TOMOGRAM_DEL,
+    PARTICLES_ADD,
+    PARTICLES_DEL,
+    SEL_PARTLIST_CHANGED,
+    SEL_TOMO_CHANGED,
+    OPTIONS_TOMO_CHANGED,
+    OPTIONS_PARTLIST_CHANGED
+)
+
 from .options_window import OptionsWindow
 from .io import get_partlist_formats
 
@@ -64,10 +75,18 @@ class ArtiaXUI(ToolInstance):
         if not hasattr(session, 'ArtiaX'):
             session.ArtiaX = ArtiaX(self)
 
-        session.ArtiaX.triggers.add_handler(TOMOGRAM_ADD, self._update_tomo_table)
-        session.ArtiaX.triggers.add_handler(TOMOGRAM_DEL, self._update_tomo_table)
-        session.ArtiaX.triggers.add_handler(PARTICLES_ADD, self._update_partlist_table)
-        session.ArtiaX.triggers.add_handler(PARTICLES_DEL, self._update_partlist_table)
+        artia = session.ArtiaX
+
+        # Trigger callbacks
+        artia.triggers.add_handler(TOMOGRAM_ADD, self._update_tomo_table)
+        artia.triggers.add_handler(TOMOGRAM_DEL, self._update_tomo_table)
+        artia.triggers.add_handler(PARTICLES_ADD, self._update_partlist_table)
+        artia.triggers.add_handler(PARTICLES_DEL, self._update_partlist_table)
+
+        artia.triggers.add_handler(OPTIONS_TOMO_CHANGED, self._update_tomo_options)
+        artia.triggers.add_handler(OPTIONS_PARTLIST_CHANGED, self._update_partlist_options)
+        artia.triggers.add_handler(SEL_TOMO_CHANGED, self._update_tomo_selection)
+        artia.triggers.add_handler(SEL_PARTLIST_CHANGED, self._update_partlist_selection)
 
         self._build_ui()
         self._build_options_window(tool_name)
@@ -197,7 +216,7 @@ class ArtiaXUI(ToolInstance):
         '''Add the table widgets and some buttons the the main layout.'''
 
         ##### Group Box "Tomograms" #####
-        self.group_tomo = QGroupBox("Tomograms")
+        self.group_tomo = QGroupBox("Tomograms -- Selected: ")
         self.group_tomo.setFont(self.font)
         # Group Box Layout
         group_tomo_layout = QVBoxLayout()
@@ -215,7 +234,7 @@ class ArtiaXUI(ToolInstance):
         ##### Group Box "Tomograms" #####
 
         ##### Group Box "Particle Lists" #####
-        self.group_partlist = QGroupBox("Particle Lists")
+        self.group_partlist = QGroupBox("Particle Lists -- Selected: ")
         self.group_partlist.setFont(self.font)
         # Group Box Layout
         group_partlist_layout = QVBoxLayout()
@@ -253,9 +272,6 @@ class ArtiaXUI(ToolInstance):
         ow = self.ow
         artia = self.session.ArtiaX
 
-        # Menu bar items
-        #ui.menu_open_tomogram.triggered.connect(partial(self._open_volume))
-
         # Tomo table
         ui.table_tomo.itemClicked.connect(self._tomo_table_selected)
         ui.table_tomo.itemChanged.connect(self._tomo_table_name_changed)
@@ -268,10 +284,6 @@ class ArtiaXUI(ToolInstance):
         ui = self
         ow = self.ow
         artia = self.session.ArtiaX
-
-        # Menu bar items
-        #ui.menu_open_parts.triggered.connect(partial(self._open_partlist))
-        #ui.menu_save_parts.triggered.connect(partial(self._save_partlist))
 
         # Partlist table
         ui.table_part.itemClicked.connect(self._partlist_table_selected)
@@ -330,6 +342,8 @@ class ArtiaXUI(ToolInstance):
     def _choose_partlist_save(self):
         if self.particle_save_dialog.exec():
             return self.particle_save_dialog.selectedFiles(), self.particle_save_dialog.selectedNameFilter()
+        else:
+            return None, None
 
     def _close_volume(self):
         artia = self.session.ArtiaX
@@ -351,17 +365,51 @@ class ArtiaXUI(ToolInstance):
 # Table Functions ==============================================================
 # ==============================================================================
 
+    # Callback for triggers TOMOGRAM_ADD, TOMOGRAM_DEL
     def _update_tomo_table(self, name=None, data=None):
         artia = self.session.ArtiaX
-        sel_id, opt_id = self.table_tomo.update_table(artia.options_tomogram)
-        artia.selected_tomogram = sel_id
-        artia.options_tomogram = opt_id
+        self.table_tomo.update_table(artia.options_tomogram)
+        self.table_tomo.update_selection(artia.selected_tomogram)
+        self.table_tomo.update_options(artia.options_tomogram)
 
+    # Callback for triggers PARTICLES_ADD, PARTICLES_DEL
     def _update_partlist_table(self, name=None, data=None):
         artia = self.session.ArtiaX
-        sel_id, opt_id = self.table_part.update_table(self.session.ArtiaX.options_partlist)
-        artia.selected_partlist = sel_id
-        artia.options_partlist = opt_id
+        self.table_part.update_table(self.session.ArtiaX.options_partlist)
+        self.table_part.update_selection(artia.selected_partlist)
+        self.table_part.update_options(artia.options_partlist)
+
+    # Callback for trigger SEL_TOMO_CHANGED
+    def _update_tomo_selection(self, name=None, data=None):
+        self.table_tomo.update_selection(data)
+
+        artia = self.session.ArtiaX
+        if data is None:
+            text = "Tomograms -- Selected: "
+            self.group_tomo.setTitle(text)
+        else:
+            text = "Tomograms -- Selected: #{}".format(artia.tomograms.get(data).id_string)
+            self.group_tomo.setTitle(text)
+
+    # Callback for trigger SEL_PARTLIST_CHANGED
+    def _update_partlist_selection(self, name=None, data=None):
+        self.table_part.update_selection(data)
+
+        artia = self.session.ArtiaX
+        if data is None:
+            text = "Particle Lists -- Selected: "
+            self.group_partlist.setTitle(text)
+        else:
+            text = "Particle Lists -- Selected: #{}".format(artia.partlists.get(data).id_string)
+            self.group_partlist.setTitle(text)
+
+    # Callback for trigger OPTIONS_TOMO_CHANGED
+    def _update_tomo_options(self, name=None, data=None):
+        self.table_tomo.update_options(data)
+
+    # Callback for trigger OPTIONS_PARTLIST_CHANGED
+    def _update_partlist_options(self, name=None, data=None):
+        self.table_part.update_options(data)
 
     def _tomo_table_selected(self, item):
         artia = self.session.ArtiaX
@@ -387,10 +435,12 @@ class ArtiaXUI(ToolInstance):
 
     def _show_tomo_options(self, idx, state):
         artia = self.session.ArtiaX
-        artia.options_tomogram = artia.tomograms.get_id(idx)
 
         if state:
-            self.ow._show_tab("tomogram")
+            artia.options_tomogram = artia.tomograms.get_id(idx)
+
+        #if state:
+        #    self.ow._show_tab("tomogram")
 
     def _partlist_table_selected(self, item):
         artia = self.session.ArtiaX
@@ -416,10 +466,12 @@ class ArtiaXUI(ToolInstance):
 
     def _show_partlist_options(self, idx, state):
         artia = self.session.ArtiaX
-        artia.options_partlist = artia.partlists.get_id(idx)
 
         if state:
-            self.ow._show_tab("partlist")
+            artia.options_partlist = artia.partlists.get_id(idx)
+
+        #if state:
+        #    self.ow._show_tab("partlist")
 
 # ==============================================================================
 # Shortcut Functions ===========================================================
@@ -449,8 +501,6 @@ class ArtiaXUI(ToolInstance):
     def _build_options_window(self, tool_name):
         # Creates an instance of the new window's class
         self.ow = OptionsWindow(self.session, tool_name)
-
-
 
     def take_snapshot(self, session, flags):
         return

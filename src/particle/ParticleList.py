@@ -330,7 +330,11 @@ class ParticleList(Model):
             # later on apparently. Maybe blocked during command execution?
             model.update_drawings()
 
-        self.session.models.add([model], parent=self.display_model)
+        #TODO: delete the old one now, maybe add support for multiple models?
+        if self.display_model.count > 0:
+            self.display_model.get(0).delete()
+
+        self.display_model.add([model])
 
         if isinstance(model, Volume):
             run(self.session, "volume #{} capFaces false".format(model.id_string), log=True)

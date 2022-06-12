@@ -30,6 +30,10 @@ from PyQt5.QtWidgets import (
 # This package
 from .volume.Tomogram import orthoplane_cmd
 from .widgets import LabelEditSlider, SelectionTableWidget, ColorRangeWidget
+from .ArtiaX import (
+    OPTIONS_TOMO_CHANGED,
+    OPTIONS_PARTLIST_CHANGED
+)
 
 
 def slider_to_value(slider_value, slider_max, min, max):
@@ -71,7 +75,7 @@ class OptionsWindow(ToolInstance):
         self.display_name = "ArtiaX Options"
 
         from chimerax.ui import MainToolWindow
-        self.tool_window = MainToolWindow(self)
+        self.tool_window = MainToolWindow(self, close_destroys=False)
 
         # Set the font
         self.font = QFont("Arial", 7)
@@ -108,6 +112,10 @@ class OptionsWindow(ToolInstance):
             vol_viewer = self.session.tools.find_by_class(VolumeViewer)[0].tool_window
             vol_viewer.manage(self.tool_window)
 
+        artia = self.session.ArtiaX
+        artia.triggers.add_handler(OPTIONS_TOMO_CHANGED, self._update_tomo_options)
+        artia.triggers.add_handler(OPTIONS_PARTLIST_CHANGED, self._update_partlist_options)
+
 
 # ==============================================================================
 # Show selected GUI ============================================================
@@ -135,18 +143,36 @@ class OptionsWindow(ToolInstance):
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+    # Callback for trigger OPTIONS_TOMO_CHANGED
+    def _update_tomo_options(self, name, data):
+        if data is None:
+            self.tabs.widget(0).setEnabled(False)
+            self.current_tomo_label.setText('')
+        else:
+            self._show_tab("tomogram")
+
+    # Callback for trigger OPTIONS_PARTLIST_CHANGED
+    def _update_partlist_options(self, name, data):
+        if data is None:
+            self.tabs.widget(0).setEnabled(False)
+            self.current_plist_label.setText('')
+        else:
+            self._show_tab("partlist")
+
     def _show_tab(self, type):
         artia = self.session.ArtiaX
 
         if type == "tomogram":
             ct = artia.tomograms.get(artia.options_tomogram)
-            self.current_tomo_label.setText(ct.name)
+            text = '#{} -- {}'.format(ct.id_string, ct.name)
+            self.current_tomo_label.setText(text)
             self.tabs.setCurrentIndex(0)
             self.tabs.widget(0).setEnabled(True)
 
             # Update the ui
             self._update_tomo_ui()
 
+            # Connect triggers
             from .volume.VolumePlus import RENDERING_OPTIONS_CHANGED
             ct.triggers.add_handler(RENDERING_OPTIONS_CHANGED, self._models_changed)
 
@@ -155,6 +181,8 @@ class OptionsWindow(ToolInstance):
 
         elif type == "partlist":
             cpl = artia.partlists.get(artia.options_partlist)
+            text = '#{} -- {}'.format(cpl.id_string, cpl.name)
+            self.current_plist_label.setText(text)
             self.tabs.setCurrentIndex(1)
             self.tabs.widget(1).setEnabled(True)
 
@@ -603,6 +631,18 @@ class OptionsWindow(ToolInstance):
         self.motl_layout = QVBoxLayout()
         self.motl_layout.setAlignment(Qt.AlignTop)
 
+        # Display current particle list name and id
+        self.group_current_plist = QGroupBox("Current Particle List")
+        self.group_current_plist.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+                                                           QSizePolicy.Maximum))
+        self.group_current_plist.setFont(self.font)
+        current_plist_layout = QHBoxLayout()
+        self.current_plist_label = QLabel("")
+        self.current_plist_label.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+                                                           QSizePolicy.Minimum))
+        current_plist_layout.addWidget(self.current_plist_label)
+        self.group_current_plist.setLayout(current_plist_layout)
+
         # Define a group for the visualization sliders
         self.group_select = QGroupBox("Visualization Options:")
         self.group_select.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
@@ -685,6 +725,7 @@ class OptionsWindow(ToolInstance):
         self.group_manipulation.setLayout(self.group_manipulation_layout)
 
         # Add groups to layout
+        self.motl_layout.addWidget(self.group_current_plist)
         self.motl_layout.addWidget(self.group_manipulation)
         self.motl_layout.addWidget(self.group_select)
 

@@ -3,7 +3,7 @@
 # ChimeraX
 from chimerax.core import errors
 from chimerax.core.commands import run
-from chimerax.core.models import Model
+from chimerax.core.models import Model, ADD_MODELS, REMOVE_MODELS
 from chimerax.map import Volume, open_map
 from pprint import pprint
 
@@ -20,6 +20,12 @@ TOMOGRAM_DEL = 'tomo removed'
 
 PARTICLES_ADD = 'parts added'
 PARTICLES_DEL = 'parts removed'
+
+OPTIONS_TOMO_CHANGED = 'options tomo changed'
+OPTIONS_PARTLIST_CHANGED = 'options partlist changed'
+
+SEL_TOMO_CHANGED = 'selected tomo changed'
+SEL_PARTLIST_CHANGED = 'selected partlist changed'
 
 
 def print_trigger(trigger, trigger_data):
@@ -52,25 +58,29 @@ class ArtiaX(Model):
         self.partlists = ManagerModel('Particle Lists', self.session)
         self.add([self.tomograms])
         self.add([self.partlists])
-        #self.session.models.add([self.tomograms], parent=self)
-        #self.session.models.add([self.partlists], parent=self)
 
         # Triggers
         self.triggers.add_trigger(TOMOGRAM_ADD)
         self.triggers.add_trigger(TOMOGRAM_DEL)
-        #self.triggers.add_handler(TOMOGRAM_ADD, self._tomo_added)
-        #self.triggers.add_handler(TOMOGRAM_DEL, self._tomo_deleted)
 
         self.triggers.add_trigger(PARTICLES_ADD)
         self.triggers.add_trigger(PARTICLES_DEL)
-        #self.triggers.add_handler(PARTICLES_ADD, self._partlist_added)
-        #self.triggers.add_handler(PARTICLES_DEL, self._partlist_deleted)
+
+        self.triggers.add_trigger(OPTIONS_TOMO_CHANGED)
+        self.triggers.add_trigger(OPTIONS_PARTLIST_CHANGED)
+        self.triggers.add_trigger(SEL_TOMO_CHANGED)
+        self.triggers.add_trigger(SEL_PARTLIST_CHANGED)
+
+        # When a particle list is added to the session, move it to the particle list manager
+        self.session.triggers.add_handler(ADD_MODELS, self._model_added)
+        self.session.triggers.add_handler(REMOVE_MODELS, self._model_removed)
 
         # Graphical preset
         run(self.session, "preset artiax default")
 
         # Selection
-        self.selected_tomogram = None
+        #self.selected_tomogram = None
+        self._selected_tomogram = None
         self._options_tomogram = None
         self._selected_partlist = None
         self._options_partlist = None
@@ -103,12 +113,22 @@ class ArtiaX(Model):
         super().redraw_needed(**kw)
 
     @property
+    def selected_tomogram(self):
+        return self._selected_tomogram
+
+    @selected_tomogram.setter
+    def selected_tomogram(self, value):
+        self._selected_tomogram = value
+        self.triggers.activate_trigger(SEL_TOMO_CHANGED, self._selected_tomogram)
+
+    @property
     def selected_partlist(self):
         return self._selected_partlist
 
     @selected_partlist.setter
     def selected_partlist(self, value):
         self._selected_partlist = value
+        self.triggers.activate_trigger(SEL_PARTLIST_CHANGED, self._selected_partlist)
 
         if value is not None:
             self.partlists.get(value).store_marker_information()
@@ -120,6 +140,7 @@ class ArtiaX(Model):
     @options_partlist.setter
     def options_partlist(self, value):
         self._options_partlist = value
+        self.triggers.activate_trigger(OPTIONS_PARTLIST_CHANGED, self._options_partlist)
 
         if value is None:
             self.ui.ow.motl_widget.setEnabled(False)
@@ -131,6 +152,7 @@ class ArtiaX(Model):
     @options_tomogram.setter
     def options_tomogram(self, value):
         self._options_tomogram = value
+        self.triggers.activate_trigger(OPTIONS_TOMO_CHANGED, self._options_tomogram)
 
         if value is None:
             self.ui.ow.tomo_widget.setEnabled(False)
@@ -169,11 +191,15 @@ class ArtiaX(Model):
         """Add a tomogram model."""
         self.tomograms.add([model])
         self.triggers.activate_trigger(TOMOGRAM_ADD, model)
+        self.selected_tomogram = model.id
+        self.options_tomogram = model.id
 
     def add_particlelist(self, model):
         """Add a particle list model."""
         self.partlists.add([model])
         self.triggers.activate_trigger(PARTICLES_ADD, model)
+        self.selected_partlist = model.id
+        self.options_partlist = model.id
 
     @property
     def tomo_count(self):
@@ -204,7 +230,6 @@ class ArtiaX(Model):
             raise errors.UserError("Cannot import data of type {} to ArtiaX as a tomogram.".format(type(model)))
 
         tomo = Tomogram.from_volume(self.session, model)
-        #tomo.triggers.add_handler('deleted', self._tomogram_deleted)
         self.add_tomogram(tomo)
 
         # TODO: Do this in pure python?
@@ -214,6 +239,14 @@ class ArtiaX(Model):
 
     def close_tomogram(self, identifier):
         """Close a tomogram by ArtiaX identifier."""
+        id = self.tomograms.get(identifier).id
+
+        if id == self.selected_tomogram:
+            self.selected_tomogram = None
+
+        if id == self.options_tomogram:
+            self.options_tomogram = None
+
         self.tomograms.get(identifier).delete()
         self.triggers.activate_trigger(TOMOGRAM_DEL, '')
 
@@ -232,6 +265,13 @@ class ArtiaX(Model):
             self.add_particlelist(partlist)
 
     def close_partlist(self, identifier):
+        cid = self.partlists.get(identifier).id
+        if cid == self.selected_partlist:
+            self.selected_partlist = None
+
+        if cid == self.options_partlist:
+            self.options_partlist = None
+
         self.partlists.get(identifier).delete()
         self.triggers.activate_trigger(PARTICLES_DEL, '')
 
@@ -281,23 +321,45 @@ class ArtiaX(Model):
 # Callbacks
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-    # def _tomo_added(self, name, data):
-    #     self._tomos_changed(name, data)
-    #
-    # def _tomo_deleted(self, name, data):
-    #     self._tomos_changed(name, data)
-    #
-    # def _tomos_changed(self, name, data):
-    #     ui = self.ui
-    #     ui._update_tomo_table()
-    #
-    # def _partlist_added(self, name, data):
-    #     self._partlists_changed(name, data)
-    #
-    # def _partlist_deleted(self, name, data):
-    #     self._partlists_changed(name, data)
-    #
-    # def _partlists_changed(self, name, data):
-    #     ui = self.ui
-    #     ui._update_partlist_table()
+    def _model_added(self, name, data):
+        """
+        Checks if a model that was added to the session is a ParticleList and adds it to ArtiaX.
+
+        Needed to handle lists being opened with the built-in open command.
+
+        Parameters
+        ----------
+        name: str
+            The trigger name.
+        data: list of chimerax.core.models.Model
+            The models being added.
+        """
+        for m in data:
+            if isinstance(m, ParticleList) and not (m in self.partlists.child_models()):
+                self.add_particlelist(m)
+
+    def _model_removed(self, name, data):
+        """
+        Checks if a model that was deleted from the session was a Tomogram or ParticleList and removes it from ArtiaX.
+
+        Needed to handle models being closed with the built-in tools
+
+        Parameters
+        ----------
+        name: str
+            The trigger name.
+        data: list of chimerax.core.models.Model
+            The models that were closed.
+        """
+        for m in data:
+            if isinstance(m, ParticleList):
+                # Since ID is unknown at this point, we need to cancel any selection
+                self.selected_partlist = None
+                self.options_partlist = None
+                self.triggers.activate_trigger(PARTICLES_DEL, '')
+            elif isinstance(m, Tomogram):
+                # Since ID is unknown at this point, we need to cancel any selection
+                self.selected_tomogram = None
+                self.options_tomogram = None
+                self.triggers.activate_trigger(TOMOGRAM_DEL, '')
 
