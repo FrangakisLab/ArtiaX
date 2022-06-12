@@ -311,6 +311,8 @@ class ArtiaXUI(ToolInstance):
     def _choose_partlist(self):
         if self.particle_open_dialog.exec():
             return self.particle_open_dialog.selectedFiles(), self.particle_open_dialog.selectedNameFilter()
+        else:
+            return None, None
 
     def _create_partlist(self):
         artia = self.session.ArtiaX
