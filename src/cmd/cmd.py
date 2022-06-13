@@ -107,6 +107,23 @@ def artiax_hide(session, models=None, style=None):
     from ..util.view import show
     show(session, models, style, do_show=False)
 
+def artiax_fit_sphere(session, particlelist_id):
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running, so no sphere can be fitted.")
+        return
+
+    #find selected particles
+    selected_particles = []
+    for particlelist in session.ArtiaX.partlists.child_models():
+        selected_particles.append(particlelist.particle_ids[particlelist.selected_particles])
+        #TODO this is where you left off, try it to see that it works, ergo, if you end up with a list containing all the currently selected particles
+
+
+
+
+    selected_particles_bools = session.ArtiaX.partlists.get(particlelist_id).selected_particles
+
+
 
 def register_artiax(logger):
     from chimerax.core.commands import (

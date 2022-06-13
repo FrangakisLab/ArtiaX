@@ -75,8 +75,8 @@ class ArtiaX(Model):
 
         self.triggers.add_trigger(GEOMODEL_ADD)
         self.triggers.add_trigger(GEOMODEL_DEL)
-        self.triggers.add_handler(GEOMODEL_ADD, self._geomodel_added)
-        self.triggers.add_handler(GEOMODEL_DEL, self._geomodel_deleted)
+        #self.triggers.add_handler(GEOMODEL_ADD, self._geomodel_added)
+        #self.triggers.add_handler(GEOMODEL_DEL, self._geomodel_deleted)
 
         # Graphical preset
         run(self.session, "preset artiax default")
@@ -86,6 +86,8 @@ class ArtiaX(Model):
         self._options_tomogram = None
         self._selected_partlist = None
         self._options_partlist = None
+        self._selected_geomodel = None
+        self._options_geomodel = None
 
         # Mouse modes
         from .mouse import (TranslateSelectedParticlesMode,
@@ -107,6 +109,7 @@ class ArtiaX(Model):
         self.session.ui.mouse_modes.add_mode(self.rotate_picked)
         self.session.ui.mouse_modes.add_mode(self.delete_selected)
         self.session.ui.mouse_modes.add_mode(self.delete_picked)
+        #TODO: Add a bunch of commands here
 
     def redraw_needed(self, **kw):
         if self.DEBUG:

@@ -24,7 +24,7 @@ from PyQt5.QtWidgets import (
 )
 
 # This package
-from .ArtiaX import ArtiaX, TOMOGRAM_ADD, TOMOGRAM_DEL, PARTICLES_ADD, PARTICLES_DEL
+from .ArtiaX import ArtiaX, TOMOGRAM_ADD, TOMOGRAM_DEL, PARTICLES_ADD, PARTICLES_DEL, GEOMODEL_ADD, GEOMODEL_DEL
 from .options_window import OptionsWindow
 from .io import get_partlist_formats
 
@@ -69,6 +69,8 @@ class ArtiaXUI(ToolInstance):
         session.ArtiaX.triggers.add_handler(TOMOGRAM_DEL, self._update_tomo_table)
         session.ArtiaX.triggers.add_handler(PARTICLES_ADD, self._update_partlist_table)
         session.ArtiaX.triggers.add_handler(PARTICLES_DEL, self._update_partlist_table)
+        session.ArtiaX.triggers.add_handler(GEOMODEL_ADD, self._update_geomodel_table)
+        session.ArtiaX.triggers.add_handler(GEOMODEL_DEL, self._update_geomodel_table)
 
         self._build_ui()
         self._build_options_window(tool_name)
@@ -345,6 +347,10 @@ class ArtiaXUI(ToolInstance):
         sel_id, opt_id = self.table_part.update_table(self.session.ArtiaX.options_partlist)
         artia.selected_partlist = sel_id
         artia.options_partlist = opt_id
+
+    def _update_geomodel_table(self, name=None, data=None):
+        #TODO fix this once the table exists
+        pass
 
     def _tomo_table_selected(self, item):
         artia = self.session.ArtiaX
