@@ -265,12 +265,19 @@ class SurfaceCollectionModel(Model):
     def displayed_child_positions(self, value):
         from numpy import all
 
-        if all(self._displayed_child_positions == value):
-            return
+        #print("{} : state _dcp".format(self._displayed_child_positions))
+        #print("{} : state dcp1".format(value))
+
+        #if all(self._displayed_child_positions == value):
+        #    return
+
+        #print("{} : state dcp2".format(value))
 
         if value is None:
             from numpy import zeros
             value = zeros((len(self),), dtype=bool)
+
+        #print("{} : state dcp3".format(value))
 
         from numpy import copy
         self._displayed_child_positions = copy(value)
@@ -278,6 +285,7 @@ class SurfaceCollectionModel(Model):
 
         for name, col in self.collections.items():
             if col.active:
+                #print("{} : state {}".format(value, col.name))
                 col.display_positions = copy(value)
 
 

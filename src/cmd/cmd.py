@@ -127,7 +127,7 @@ def artiax_fit_sphere(session, particlelist_id):
 
 def register_artiax(logger):
     from chimerax.core.commands import (
-        register, CmdDesc, StringArg, ModelsArg, ModelArg, IntArg, Or, EmptyArg)
+        register, CmdDesc, StringArg, ModelsArg, ModelArg, IntArg, Or, EmptyArg, FileNameArg)
 
     def register_artiax_start():
         desc = CmdDesc(
@@ -138,7 +138,7 @@ def register_artiax(logger):
 
     def register_artiax_open_tomo():
         desc = CmdDesc(
-            required=[("path", StringArg)],
+            required=[("path", FileNameArg)],
             synopsis='Open a tomogram in ArtiaX.',
             url='help:user/commands/artiax_open_tomo.html'
         )
@@ -170,7 +170,7 @@ def register_artiax(logger):
 
     def register_artiax_open_particlelist():
         desc = CmdDesc(
-            required=[("path", StringArg),
+            required=[("path", FileNameArg),
                       ("format", StringArg)],
             synopsis='Open a particle list in ArtiaX.',
             url='help:user/commands/artiax_open_particles.html'
@@ -180,7 +180,7 @@ def register_artiax(logger):
     def register_artiax_save_particlelist():
         desc = CmdDesc(
             required=[("index", IntArg),
-                      ("path", StringArg),
+                      ("path", FileNameArg),
                       ("format", StringArg)],
             synopsis='Open a particle list in ArtiaX.',
             url='help:user/commands/artiax_save_particles.html'

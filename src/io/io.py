@@ -11,13 +11,16 @@ from ..particle import ParticleList
 from .Artiatomi import ArtiatomiParticleData
 
 
-def open_particle_list(session, stream, file_name, format_name=None):
+def open_particle_list(session, stream, file_name, format_name=None, from_chimx=False):
 
     if format_name is None:
         raise UserError("open_particle_list: Format name must be set.")
 
     if format_name not in get_partlist_fmt_names(session):
         raise UserError("open_particle_list: {} is not a known particle list format.".format(format_name))
+
+    if from_chimx:
+        file_name = stream
 
     model = None
     modelname = ''
