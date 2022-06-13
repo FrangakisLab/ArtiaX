@@ -41,6 +41,10 @@ class MoveParticlesMode(MoveMouseMode):
     def mouse_up(self, event):
         MouseMode.mouse_up(self, event)
 
+        # Workaround for slow GUI update: only do it when released
+        for c in self._collections:
+            c.parent.update_position_selectors()
+
     def wheel(self, event):
         return
 
@@ -96,18 +100,16 @@ class MoveParticlesMode(MoveMouseMode):
 
     def vr_motion(self, event):
         if self.action(event) == 'rotate':
-            #axis, angle = event.motion.rotation_axis_and_angle()
-            #self._rotate(axis, angle)
             self._move(event.motion)
         else:
-            from chimerax.geometry import translation
             self._move(event.motion)
-            #shift = event.motion.translation()
-            #self._translate(shift)
+
         self._moved = True
 
     def vr_release(self, event):
-        pass
+        # Workaround for slow GUI update: only do it when released
+        for c in self._collections:
+            c.parent.update_position_selectors()
 
 
 class TranslateSelectedParticlesMode(MoveParticlesMode):

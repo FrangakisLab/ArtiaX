@@ -489,6 +489,21 @@ class ParticleData:
         """Returns a list of the main attributes of a particle in this list."""
         return list(self._data_keys.keys())
 
+    def get_position_attributes(self):
+        """Returns a list of all attributes related to position of a particle."""
+
+        dat = self._data_keys
+        defs = self._default_params
+
+        pattr = []
+
+        for key, val in defs.items():
+            pattr.append(key)
+            pattr.append(val)
+            pattr += dat[val]
+
+        return pattr
+
     def __getitem__(self, _id):
         """Get the particle corresponding to an ID.
 

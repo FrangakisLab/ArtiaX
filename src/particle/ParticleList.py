@@ -67,6 +67,13 @@ class ParticleList(Model):
         self.collection_model = SurfaceCollectionModel('Particles', session)
         """SurfaceCollectionModel for displaying and manipulating particles."""
 
+        # Initial selection settings (for selection table)
+        self.selection_settings = {'mode': 'show',
+                                   'names': [],
+                                   'minima': [],
+                                   'maxima': []}
+
+
         # Add the child models
         self.add([self.display_model])
         self.add([self.collection_model])
@@ -510,9 +517,18 @@ class ParticleList(Model):
     def _attr_to_marker(self, marker, particle):
         for attr in particle.attributes():
             if isinstance(particle[attr], AxisAnglePair):
-                setattr(marker, attr, particle[attr].angle)
+                val = particle[attr].angle
             else:
-                setattr(marker, attr, particle[attr])
+                val = particle[attr]
+
+            setattr(marker, attr, val)
+            if attr in self.selection_settings["names"]:
+                idx = self.selection_settings["names"].index(attr)
+                if val < self.selection_settings["minima"][idx]:
+                    self.selection_settings["minima"][idx] = particle[attr]
+
+                if val > self.selection_settings["maxima"][idx]:
+                    self.selection_settings["maxima"][idx] = particle[attr]
 
         marker.particle_id = particle.id
 
@@ -632,7 +648,7 @@ class ParticleList(Model):
             pc = self.particle_colors
             self.particle_colors = append(pc, reshape(pc[-1, :], (1, 4)), axis=0)
 
-        #self.triggers.activate_trigger(PARTLIST_CHANGED, self)
+        self.update_position_selectors()
 
     def _marker_moved(self, name, data):
         # Data sent by trigger should be marker instances
@@ -647,11 +663,16 @@ class ParticleList(Model):
             new_coord = m.coord
 
             # Set as additional translation for now
-            ori = particle.origin.translation()
-            dx = new_coord[0] - ori[0]
-            dy = new_coord[1] - ori[1]
-            dz = new_coord[2] - ori[2]
-            particle.translation = (dx, dy, dz)
+            #ori = particle.origin.translation()
+            #dx = new_coord[0] - ori[0]
+            #dy = new_coord[1] - ori[1]
+            #dz = new_coord[2] - ori[2]
+            #particle.translation = (dx, dy, dz)
+
+            # Set particle translation to 0
+            if not particle.translation.is_identity():
+                particle.translation = (0, 0, 0)
+            particle.origin = (new_coord[0], new_coord[1], new_coord[2])
 
             # Update attributes
             self._attr_to_marker(marker, particle)
@@ -660,7 +681,6 @@ class ParticleList(Model):
             places.append(particle.full_transform())
 
         self.collection_model.set_places(place_ids, places)
-        #self.triggers.activate_trigger(PARTLIST_CHANGED, self)
 
     def _model_moved(self, name, data):
         # Data sent by trigger should be particle ids
@@ -679,11 +699,16 @@ class ParticleList(Model):
                 new_rot = place
 
                 # Set as additional translation for now
-                ori = particle.origin_coord
-                dx = new_coord[0] - ori[0]
-                dy = new_coord[1] - ori[1]
-                dz = new_coord[2] - ori[2]
-                particle.translation = (dx, dy, dz)
+                #ori = particle.origin_coord
+                #dx = new_coord[0] - ori[0]
+                #dy = new_coord[1] - ori[1]
+                #dz = new_coord[2] - ori[2]
+                #particle.translation = (dx, dy, dz)
+
+                # Set particle translation to 0
+                if not particle.translation.is_identity():
+                    particle.translation = (0, 0, 0)
+                particle.origin = (new_coord[0], new_coord[1], new_coord[2])
                 particle.rotation = new_rot
 
                 a = particle.coord
@@ -692,7 +717,26 @@ class ParticleList(Model):
                 # Update attributes
                 self._attr_to_marker(marker, particle)
 
-        #self.triggers.activate_trigger(PARTLIST_CHANGED, self)
+
+    def update_position_selectors(self):
+        # names = self.selection_settings['names']
+        # mini = self.selection_settings['minima']
+        # maxi = self.selection_settings['maxima']
+        #
+        #
+        # pattr = self._data.get_position_attributes()
+        #
+        # for idx, n in enumerate(names):
+        #     if n in pattr:
+        #         # Update ranges if new values are below old range
+        #         mini[idx] = min(mini[idx], self.get_attribute_min([n])[0])
+        #         maxi[idx] = max(maxi[idx], self.get_attribute_max([n])[0])
+        #
+        # self.selection_settings['names'] = names
+        # self.selection_settings['minima'] = mini
+        # self.selection_settings['maxima'] = maxi
+
+        self.triggers.activate_trigger(PARTLIST_CHANGED, self)
 
     def _marker_selected(self, name, data):
         sm = self.markers.selected_markers

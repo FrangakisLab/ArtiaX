@@ -4,7 +4,6 @@
 from functools import partial
 
 # ChimeraX
-from chimerax.core.models import MODEL_DISPLAY_CHANGED
 from chimerax.core.tools import ToolInstance
 from chimerax.ui import MainToolWindow
 
