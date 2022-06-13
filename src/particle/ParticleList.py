@@ -75,7 +75,7 @@ class ParticleList(Model):
         # Contains mapping Particle.id -> (Particle, Atom)
         self._map = {}
         # Register particle id tuple as attribute of atoms
-        Atom.register_attr(self.session, 'particle_id', 'artiax', attr_type=tuple)
+        Atom.register_attr(self.session, 'particle_id', 'artiax', attr_type=str)
 
         # MarkerSet changes connections
         self._connect_markers()
@@ -273,7 +273,6 @@ class ParticleList(Model):
         from numpy import copy
         self._displayed_particles = copy(value)
 
-        #print("{} : State property".format(value))
         self.markers.displayed_markers = copy(value)
         self.collection_model.displayed_child_positions = copy(value)
 
@@ -588,18 +587,12 @@ class ParticleList(Model):
 
         # Now update colors and display to keep consistent
         mask = logical_not(mask)
-        #print("{} : Selection Mask:".format(mask))
-        #print("{} : State before".format(self.displayed_particles))
-        #print("{} : State set".format(self.displayed_particles[mask]))
-        # print("Selected: {}".format(self.particle_colors[mask, :]))
 
         self.selected_particles = zeros((self.size,), dtype=bool)
         self.displayed_particles = self.displayed_particles[mask]
 
-        self.particle_colors = self.particle_colors[mask, :]    #self.markers.marker_colors
-        # print("State after: {}".format(self.particle_colors))
-
-        #self.triggers.activate_trigger(PARTLIST_CHANGED, self)
+        self.particle_colors = self.particle_colors[mask, :]
+        self.triggers.activate_trigger(PARTLIST_CHANGED, self)
 
     def _marker_created(self, name, data):
         """Create Particle instances and add position to SurfaceCollection when new Marker was placed.
@@ -710,7 +703,6 @@ class ParticleList(Model):
 
         from numpy import copy
         self.selected_particles = copy(sm)
-        #self.collection_model.set_child_highlighted(self.markers.selected_markers)
 
     def _model_selected(self, name, data):
         sc = self.collection_model.selected_child_positions
@@ -721,7 +713,6 @@ class ParticleList(Model):
 
         from numpy import copy
         self.selected_particles = copy(sc)
-        #self.markers.selected_markers = data
 
     def _marker_color_changed(self, name, data):
         cm = self.markers.marker_colors

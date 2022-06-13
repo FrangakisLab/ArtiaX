@@ -45,8 +45,8 @@ def artiax_close_tomo(session, index):
         session.logger.warning("ArtiaX is not currently running, so no tomograms can be closed.")
         return
 
-    if index < 1 or index > session.ArtiaX.tomo_count:
-        raise errors.UserError("artiax close tomo: Requested index {} is outside range 1 to {}".format(index, session.ArtiaX.tomo_count))
+    #if index < 1 or index > session.ArtiaX.tomo_count:
+    #    raise errors.UserError("artiax close tomo: Requested index {} is outside range 1 to {}".format(index, session.ArtiaX.tomo_count))
 
     get_singleton(session)
     session.ArtiaX.close_tomogram(index-1)

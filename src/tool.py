@@ -4,6 +4,7 @@
 from functools import partial
 
 # ChimeraX
+from chimerax.core.models import MODEL_DISPLAY_CHANGED
 from chimerax.core.tools import ToolInstance
 from chimerax.ui import MainToolWindow
 
@@ -32,7 +33,9 @@ from .ArtiaX import (
     SEL_PARTLIST_CHANGED,
     SEL_TOMO_CHANGED,
     OPTIONS_TOMO_CHANGED,
-    OPTIONS_PARTLIST_CHANGED
+    OPTIONS_PARTLIST_CHANGED,
+    TOMO_DISPLAY_CHANGED,
+    PARTLIST_DISPLAY_CHANGED
 )
 
 from .options_window import OptionsWindow
@@ -86,6 +89,9 @@ class ArtiaXUI(ToolInstance):
         artia.triggers.add_handler(OPTIONS_PARTLIST_CHANGED, self._update_partlist_options)
         artia.triggers.add_handler(SEL_TOMO_CHANGED, self._update_tomo_selection)
         artia.triggers.add_handler(SEL_PARTLIST_CHANGED, self._update_partlist_selection)
+
+        artia.triggers.add_handler(PARTLIST_DISPLAY_CHANGED, self._update_partlist_shown)
+        artia.triggers.add_handler(TOMO_DISPLAY_CHANGED, self._update_tomo_shown)
 
         self._build_ui()
         self._build_options_window(tool_name)
@@ -409,6 +415,14 @@ class ArtiaXUI(ToolInstance):
     # Callback for trigger OPTIONS_PARTLIST_CHANGED
     def _update_partlist_options(self, name=None, data=None):
         self.table_part.update_options(data)
+
+    # Callback for trigger TOMO_DISPLAY_CHANGED
+    def _update_tomo_shown(self, name, data):
+        self.table_tomo.update_shown()
+
+    # Callback for trigger PARTLIST_DISPLAY_CHANGED
+    def _update_partlist_shown(self, name, data):
+        self.table_part.update_shown()
 
     def _tomo_table_selected(self, item):
         artia = self.session.ArtiaX
