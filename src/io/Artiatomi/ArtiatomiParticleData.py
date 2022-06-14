@@ -11,15 +11,11 @@ from chimerax.core.errors import UserError
 from ..ParticleData import ParticleData, AxisAnglePair
 from .emwrite import emwrite
 
-
 class ArtiaPhi(AxisAnglePair):
     def __init__(self):
         super().__init__(axis=(0, 0, 1))
 
     def set_from_matrix(self, matrix):
-        # Limit to -1/1 for inaccuracies
-        #matrix = np.maximum(-1, np.minimum(1, matrix))
-
         # Singularity check
         if matrix[2, 2] > 0.9999:
             self.angle = 0
@@ -32,9 +28,6 @@ class ArtiaPsi(AxisAnglePair):
         super().__init__(axis=(0, 0, 1))
 
     def set_from_matrix(self, matrix):
-        # Limit to -1/1 for inaccuracies
-        #matrix = np.maximum(-1, np.minimum(1, matrix))
-
         if matrix[2, 2] > 0.9999:
             self.angle = -1.0 * np.sign(matrix[0, 1]) * np.arccos(matrix[0, 0]) * 180.0/np.pi
         else:
@@ -46,62 +39,50 @@ class ArtiaThe(AxisAnglePair):
         super().__init__(axis=(1, 0, 0))
 
     def set_from_matrix(self, matrix):
-        # Limit to -1/1 for inaccuracies
-        #matrix = np.maximum(-1, np.minimum(1, matrix))
-
         self.angle = np.arctan2(np.sqrt(1 - (matrix[2, 2]*matrix[2, 2])), matrix[2, 2]) * 180.0 / np.pi
-
-
-ARTIATOMI_DATA_KEYS = {
-    'cross_correlation': ['xcorr', 'row_1'],
-    'legacy_x': ['row_2'],
-    'legacy_y': ['row_3'],
-    'legacy_num': ['row_4'],
-    'tomo_number': ['row_5'],
-    'part_number': ['row_6'],
-    'wedge_number': ['row_7'],
-    'position_x': ['pos_x', 'row_8'],
-    'position_y': ['pos_y', 'row_9'],
-    'position_z': ['pos_z', 'row_10'],
-    'shift_x': ['shift_x', 'row_11'],
-    'shift_y': ['shift_y', 'row_12'],
-    'shift_z': ['shift_z', 'row_13'],
-    'legacy_shift_x': ['row_14'],
-    'legacy_shift_y': ['row_15'],
-    'legacy_shift_z': ['row_16'],
-    'phi': ['ang_1', 'row_17'],
-    'psi': ['ang_3', 'row_18'],
-    'the': ['ang_2', 'row_19'],
-    'class_number': ['row_20']
-}
-
-ARTIATOMI_DEFAULT_PARAMS = {
-    'pos_x': 'position_x',
-    'pos_y': 'position_y',
-    'pos_z': 'position_z',
-    'shift_x': 'shift_x',
-    'shift_y': 'shift_y',
-    'shift_z': 'shift_z',
-    'ang_1': 'phi',
-    'ang_2': 'the',
-    'ang_3': 'psi',
-}
-
 
 class ArtiatomiParticleData(ParticleData):
 
-    def __init__(self, session, file_name, oripix=1, trapix=1):
-        super().__init__(session,
-                         file_name,
-                         oripix,
-                         trapix,
-                         data_keys=ARTIATOMI_DATA_KEYS,
-                         default_params=ARTIATOMI_DEFAULT_PARAMS,
-                         rot1=ArtiaPhi,
-                         rot2=ArtiaThe,
-                         rot3=ArtiaPsi)
+    DATA_KEYS = {
+        'cross_correlation': ['xcorr', 'row_1'],
+        'legacy_x': ['row_2'],
+        'legacy_y': ['row_3'],
+        'legacy_num': ['row_4'],
+        'tomo_number': ['row_5'],
+        'part_number': ['row_6'],
+        'wedge_number': ['row_7'],
+        'position_x': ['row_8'],
+        'position_y': ['row_9'],
+        'position_z': ['row_10'],
+        'shift_x': ['row_11'],
+        'shift_y': ['row_12'],
+        'shift_z': ['row_13'],
+        'legacy_shift_x': ['row_14'],
+        'legacy_shift_y': ['row_15'],
+        'legacy_shift_z': ['row_16'],
+        'phi': ['row_17'],
+        'psi': ['row_18'],
+        'the': ['row_19'],
+        'class_number': ['row_20']
+    }
 
-    def _read_file(self):
+    DEFAULT_PARAMS = {
+        'pos_x': 'position_x',
+        'pos_y': 'position_y',
+        'pos_z': 'position_z',
+        'shift_x': 'shift_x',
+        'shift_y': 'shift_y',
+        'shift_z': 'shift_z',
+        'ang_1': 'phi',
+        'ang_2': 'the',
+        'ang_3': 'psi',
+    }
+
+    ROT1 = ArtiaPhi
+    ROT2 = ArtiaThe
+    ROT3 = ArtiaPsi
+
+    def read_file(self):
         tempvol = open_map(self.session, self.file_name)[0][0]
         data = tempvol.data
         arr = data.matrix(ijk_size=data.size)
@@ -162,8 +143,7 @@ class ArtiatomiParticleData(ParticleData):
                 p['the'].angle = arr[18, i]
                 p['class_number'] = arr[19, i]
 
-
-    def _write_file(self, file_name=None):
+    def write_file(self, file_name=None):
         if file_name is None:
             file_name = self.file_name
 

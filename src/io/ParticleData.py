@@ -1,6 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # General
+from __future__ import annotations
 from uuid import uuid4
 from collections import OrderedDict
 
@@ -183,8 +184,9 @@ class Particle:
         self._alias[alias] = key
 
     def _set_keys(self):
-        """Initialize self._data_keys and self._alias from data format specification in self._data_keys and
+        """Initialize self._data and self._alias from data format specification in self._data_keys and
         self._default_params."""
+
         expected_entries = [
             'pos_x',
             'pos_y',
@@ -206,16 +208,16 @@ class Particle:
         # Add aliases for the standard interface
         for key, value in self._default_params.items():
             if key == 'ang_1':
-                self[key] = self._rot1()
                 self._add_alias('ang_1', value)
+                self[key] = self._rot1()
                 expected_entries.remove('ang_1')
             elif key == 'ang_2':
-                self[key] = self._rot2()
                 self._add_alias('ang_2', value)
+                self[key] = self._rot2()
                 expected_entries.remove('ang_2')
             elif key == 'ang_3':
-                self[key] = self._rot3()
                 self._add_alias('ang_3', value)
+                self[key] = self._rot3()
                 expected_entries.remove('ang_3')
             else:
                 self._add_alias(key, value)
@@ -318,16 +320,48 @@ class Particle:
 
         return new_part
 
+    def as_dict(self):
+        d = {}
+        for key in self._data_keys.keys():
+            val = self[key]
+
+            if isinstance(val, AxisAnglePair):
+                val = val.angle
+
+            d[key] = val
+
+        return d
+
+    def as_list(self):
+        l = []
+        for key in self._data_keys.keys():
+            val = self[key]
+
+            if isinstance(val, AxisAnglePair):
+                val = val.angle
+
+            l.append(val)
+
+        return l
+
 
 class ParticleData:
     """
     ParticleData handles creation, storage and deletion of Particle objects, as well as registering attribute names as
     attributes of the Atom class.
 
-    ParticleData implements two methods, self._read_file() and self._write_file() that should be overridden when
-    defining a file format.
+    ParticleData implements two methods, ParticleData.read_file() and ParticleData.write_file() that should be
+    overridden when defining a file format. Additionally, the classmethod ParticleData.from_particle_data() can be
+    overridden to implement file format specific conversion rules.
     """
-    def __init__(self, session, file_name, oripix=1, trapix=1, data_keys=None, default_params=None, rot1=None, rot2=None, rot3=None):
+
+    DATA_KEYS = None
+    DEFAULT_PARAMS = None
+    ROT1 = None
+    ROT2 = None
+    ROT3 = None
+
+    def __init__(self, session, file_name, oripix=1, trapix=1):#, data_keys=None, default_params=None, rot1=None, rot2=None, rot3=None):
 
         self.session = session
         self.file_name = file_name
@@ -338,16 +372,16 @@ class ParticleData:
         self._orig_particles = OrderedDict()
         """Dict containing particles for reverting. Only set when reading from File."""
 
-        self._data_keys = data_keys
+        self._data_keys = self.DATA_KEYS
         """Dict mapping file format description to aliases."""
-        self._default_params = default_params
+        self._default_params = self.DEFAULT_PARAMS
         """Dict mapping expected parameters to file format description."""
 
-        self._rot1 = rot1
+        self._rot1 = self.ROT1
         """Class of type AxisAnglePair, describing conversion matrix->angle for rotation 1."""
-        self._rot2 = rot2
+        self._rot2 = self.ROT2
         """Class of type AxisAnglePair, describing conversion matrix->angle for rotation 2."""
-        self._rot3 = rot3
+        self._rot3 = self.ROT3
         """Class of type AxisAnglePair, describing conversion matrix->angle for rotation 3."""
 
         self.pixelsize_ori = oripix
@@ -357,11 +391,46 @@ class ParticleData:
 
         # Read file if name specified
         if file_name is not None:
-            self._read_file()
+            self.read_file()
             self._store_orig_particles()
 
         # Register attributes with ChimeraX
         self._register_keys()
+
+    @classmethod
+    def from_particle_data(cls, particle_data: ParticleData):
+        """
+        Creates a particle data instance of this classes' datatype. Copies only the default (positional) attributes.
+        Can be overridden in derived classes in order to get custom conversion between file types.
+        """
+
+        # Arguments for init
+        session = particle_data.session
+        oripix = particle_data.pixelsize_ori
+        trapix = particle_data.pixelsize_tra
+
+        # The default attributes
+        default = ['pos_x', 'pos_y', 'pos_z', 'shift_x', 'shift_y', 'shift_z', 'ang_1', 'ang_2', 'ang_3']
+
+        # Create the instance
+        new_pd = cls(session, None, oripix, trapix)
+
+        # Copy particles
+        for _id, p in particle_data:
+            p_new = new_pd.new_particle()
+
+            for attr in default:
+                val = p[attr]
+
+                # For angles: get the rotation as a matrix, set it using the new instances' AxisAnglePair method, as
+                # conventions could be different.
+                if isinstance(val, AxisAnglePair):
+                    val = p.rotation.matrix
+                    p_new[attr].set_from_matrix(val)
+                else:
+                    p_new[attr] = p[attr]
+
+        return new_pd
 
     @property
     def size(self):
@@ -407,12 +476,12 @@ class ParticleData:
         return _id
 
     def new_particle(self):
-        """Creates a new :class:.Particle object and adds it to the list.
+        """Creates a new :class:.Particle instance and adds it to the list.
 
         Returns
         -------
         particle : Particle
-            The new particle object.
+            The new particle instance.
         """
         _id = self._new_id()
         particle = Particle(_id,
@@ -547,10 +616,10 @@ class ParticleData:
         elif isinstance(item, Particle):
             return item in self._particles.values()
 
-    def _read_file(self):
+    def read_file(self):
         pass
 
-    def _write_file(self, file_name=None):
+    def write_file(self, file_name=None):
         pass
 
     def _register_keys(self):

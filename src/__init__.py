@@ -55,15 +55,15 @@ class _MyAPI(BundleAPI):
         # chimerax.open_command.OpenerInfo subclass instance.
 
         # Preset
-        if mgr == session.presets:#mgr.name == 'presets':
+        if mgr == session.presets:
             from .presets import run_preset
             run_preset(session, name, mgr)
 
-        elif mgr == session.toolbar:#mgr.name == 'toolbar':
+        elif mgr == session.toolbar:
             from .toolbar import run_provider
             run_provider(session, name)
 
-        elif mgr == session.open_command:#mgr.name == 'open_command':
+        elif mgr == session.open_command:
             from chimerax.open_command import OpenerInfo
             from .io import open_particle_list, get_fmt_aliases
 
@@ -82,7 +82,35 @@ class _MyAPI(BundleAPI):
 
                 return ArtiatomiMotivelistInfo()
 
-        elif mgr == session.save_command:#mgr.name == 'save_command':
+            elif name == "Generic Particle List":
+                class GenericParticleListInfo(OpenerInfo):
+                    def open(self, session, data, file_name, **kw):
+                        from .cmd import get_singleton
+                        # Make sure plugin runs
+                        get_singleton(session)
+                        return open_particle_list(session, data, file_name, format_name=name, from_chimx=True)
+
+                    @property
+                    def open_args(self):
+                        return {}
+
+                return GenericParticleListInfo()
+
+            elif name == "Dynamo Table":
+                class DynamoTableInfo(OpenerInfo):
+                    def open(self, session, data, file_name, **kw):
+                        from .cmd import get_singleton
+                        # Make sure plugin runs
+                        get_singleton(session)
+                        return open_particle_list(session, data, file_name, format_name=name, from_chimx=True)
+
+                    @property
+                    def open_args(self):
+                        return {}
+
+                return DynamoTableInfo()
+
+        elif mgr == session.save_command:
             from chimerax.save_command import SaverInfo
             from .io import save_particle_list
 
@@ -97,6 +125,30 @@ class _MyAPI(BundleAPI):
                         return {'partlist': ModelArg}
 
                 return ArtiatomiMotivelistInfo()
+
+            elif name == "Generic Particle List":
+                class GenericParticleListInfo(SaverInfo):
+                    def save(self, session, path, *, partlist=None):
+                        save_particle_list(session, path, partlist, format_name="Generic Particle List")
+
+                    @property
+                    def save_args(self):
+                        from chimerax.core.commands import ModelArg
+                        return {'partlist': ModelArg}
+
+                return GenericParticleListInfo()
+
+            elif name == "Dynamo Table":
+                class DynamoTableInfo(SaverInfo):
+                    def save(self, session, path, *, partlist=None):
+                        save_particle_list(session, path, partlist, format_name="Generic Particle List")
+
+                    @property
+                    def save_args(self):
+                        from chimerax.core.commands import ModelArg
+                        return {'partlist': ModelArg}
+
+                return DynamoTableInfo()
 
     @staticmethod
     def register_command(bi, ci, logger):

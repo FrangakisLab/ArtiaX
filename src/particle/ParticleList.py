@@ -1,6 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # General imports
+from __future__ import annotations
 import numpy as np
 
 # ChimeraX imports
@@ -119,6 +120,23 @@ class ParticleList(Model):
 
         # Change trigger for UI
         self.triggers.add_trigger(PARTLIST_CHANGED)
+
+    @classmethod
+    def from_particle_list(cls, particle_list: ParticleList, datatype=None):
+        """Create a new ParticleList instance from an existing, optionally with a different data type."""
+        name = particle_list.name
+        session = particle_list.session
+
+        if datatype is None:
+            datatype = particle_list.datatype
+
+        data = datatype.from_particle_data(particle_list._data)
+
+        return cls(name, session, data)
+
+    @property
+    def data(self):
+        return self._data
 
     @property
     def size(self):
