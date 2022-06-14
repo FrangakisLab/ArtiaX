@@ -107,6 +107,42 @@ def artiax_hide(session, models=None, style=None):
     from ..util.view import show
     show(session, models, style, do_show=False)
 
+def artiax_lock(session, models=None, type=None):
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running.")
+        return
+
+    if models is None:
+        models = session.ArtiaX.partlists.child_models()
+
+    if type is None:
+        type = 'movement'
+
+    if type not in ['translation', 'rotation', 'movement']:
+        errors.UserError("'{}' is not a valid argument for artiax lock. Possible values are: 'translation', 'rotation', 'movement'".format(type))
+
+    from ..particle.ParticleList import lock_particlelist
+    lock_particlelist(models, True, type)
+
+
+def artiax_unlock(session, models=None, type=None):
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running.")
+        return
+
+    if models is None:
+        models = session.ArtiaX.partlists.child_models()
+
+    if type is None:
+        type = 'movement'
+
+    if type not in ['translation', 'rotation', 'movement']:
+        errors.UserError(
+            "'{}' is not a valid argument for artiax unlock. Possible values are: 'translation', 'rotation', 'movement'".format(type))
+
+    from ..particle.ParticleList import lock_particlelist
+    lock_particlelist(models, False, type)
+
 
 def register_artiax(logger):
     from chimerax.core.commands import (
@@ -183,7 +219,7 @@ def register_artiax(logger):
         desc = CmdDesc(
             optional=[("models", Or(ModelsArg, EmptyArg)),
                       ("style", StringArg)],
-            synopsis='Show particles with this style.',
+            synopsis='Render particles of the specified lists with this style.',
             url='help:user/commands/artiax_show.html'
         )
         register('artiax show', desc, artiax_show)
@@ -192,10 +228,28 @@ def register_artiax(logger):
         desc = CmdDesc(
             optional=[("models", Or(ModelsArg, EmptyArg)),
                       ("style", StringArg)],
-            synopsis='Hide this style.',
-            url='help:user/commands/artiax_hide.html'
+            synopsis='Hide particles of the specified lists with this style.',
+            url='help:user/commands/artiax_show.html'
         )
         register('artiax hide', desc, artiax_hide)
+
+    def register_artiax_lock():
+        desc = CmdDesc(
+            optional=[("models", Or(ModelsArg, EmptyArg)),
+                      ("type", StringArg)],
+            synopsis='Prevent types of movement for these particle lists.',
+            url='help:user/commands/artiax_lock.html'
+        )
+        register('artiax lock', desc, artiax_lock)
+
+    def register_artiax_unlock():
+        desc = CmdDesc(
+            optional=[("models", Or(ModelsArg, EmptyArg)),
+                      ("type", StringArg)],
+            synopsis='Allow types of movement for these particle lists.',
+            url='help:user/commands/artiax_lock.html'
+        )
+        register('artiax unlock', desc, artiax_unlock)
 
     register_artiax_start()
     register_artiax_open_tomo()
@@ -207,6 +261,8 @@ def register_artiax(logger):
     register_artiax_particles_attach()
     register_artiax_show()
     register_artiax_hide()
+    register_artiax_lock()
+    register_artiax_unlock()
 
 # Possible styles
 # for pl in models:

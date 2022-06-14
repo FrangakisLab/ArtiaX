@@ -2,6 +2,7 @@
 
 # General
 from functools import partial
+from pathlib import Path
 
 # ChimeraX
 from chimerax.core.commands import run
@@ -10,8 +11,8 @@ from chimerax.core.tools import ToolInstance
 from chimerax.map import open_map
 
 # Qt
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont
+from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtGui import QFont, QIcon
 from PyQt5.QtWidgets import (
     QFileDialog,
     QGridLayout,
@@ -24,7 +25,8 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QTabWidget,
     QScrollArea,
-    QSizePolicy
+    QSizePolicy,
+    QToolButton
 )
 
 # This package
@@ -80,6 +82,9 @@ class OptionsWindow(ToolInstance):
         # Set the font
         self.font = QFont("Arial", 7)
 
+        # Icon path
+        self.iconpath = Path(__file__).parent / 'icons'
+
         # Build the user interfaces
         self._build_tomo_widget()
         self._build_particlelist_widget()
@@ -115,6 +120,8 @@ class OptionsWindow(ToolInstance):
         artia = self.session.ArtiaX
         artia.triggers.add_handler(OPTIONS_TOMO_CHANGED, self._update_tomo_options)
         artia.triggers.add_handler(OPTIONS_PARTLIST_CHANGED, self._update_partlist_options)
+
+
 
 
 # ==============================================================================
@@ -393,18 +400,9 @@ class OptionsWindow(ToolInstance):
         ow.group_fourier_transform_execute_button.clicked.connect(partial(ow._fourier_transform))
 
         ## Partlist Tab
-        # Connect selector
-        ow.partlist_selection.displayChanged.connect(artia.show_particles)
-        ow.partlist_selection.selectionChanged.connect(artia.select_particles)
-
-        # Connect colors
-        ow.color_selection.colorChanged.connect(artia.color_particles)
-        ow.color_selection.colormapChanged.connect(artia.color_particles_byattribute)
-
-        # Connect sliders
-        ow.radius_widget.valueChanged.connect(ow._radius_changed)
-        ow.axes_size_widget.valueChanged.connect(ow._axes_size_changed)
-        ow.surface_level_widget.valueChanged.connect(ow._surface_level_changed)
+        # Connect lock buttons
+        ow.translation_lock_button.stateChanged.connect(ow._lock_translation)
+        ow.rotation_lock_button.stateChanged.connect(ow._lock_rotation)
 
         # Connect partlist pixelsize
         ow.pf_edit_ori.editingFinished.connect(ow._origin_pixelsize_changed)
@@ -418,6 +416,19 @@ class OptionsWindow(ToolInstance):
         # Adding an object
         ow.browse_edit.returnPressed.connect(ow._enter_display_volume)
         ow.browse_button.clicked.connect(ow._browse_display_volume)
+
+        # Connect selector
+        ow.partlist_selection.displayChanged.connect(artia.show_particles)
+        ow.partlist_selection.selectionChanged.connect(artia.select_particles)
+
+        # Connect colors
+        ow.color_selection.colorChanged.connect(artia.color_particles)
+        ow.color_selection.colormapChanged.connect(artia.color_particles_byattribute)
+
+        # Connect sliders
+        ow.radius_widget.valueChanged.connect(ow._radius_changed)
+        ow.axes_size_widget.valueChanged.connect(ow._axes_size_changed)
+        ow.surface_level_widget.valueChanged.connect(ow._surface_level_changed)
 
     def _update_tomo_ui(self):
         self._update_tomo_sliders()
@@ -631,9 +642,13 @@ class OptionsWindow(ToolInstance):
         self.motl_layout = QVBoxLayout()
         self.motl_layout.setAlignment(Qt.AlignTop)
 
+        # Top row with lock/unlock buttons
+        self.top_layout = QHBoxLayout()
+        #self.top_layout.setAlignment(Qt.AlignCenter)
+
         # Display current particle list name and id
         self.group_current_plist = QGroupBox("Current Particle List")
-        self.group_current_plist.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+        self.group_current_plist.setSizePolicy(QSizePolicy(QSizePolicy.Maximum,
                                                            QSizePolicy.Maximum))
         self.group_current_plist.setFont(self.font)
         current_plist_layout = QHBoxLayout()
@@ -642,6 +657,36 @@ class OptionsWindow(ToolInstance):
                                                            QSizePolicy.Minimum))
         current_plist_layout.addWidget(self.current_plist_label)
         self.group_current_plist.setLayout(current_plist_layout)
+
+        from .widgets import StateButton
+        self.translation_lock_button = StateButton(icon_true='lock_translation.png',
+                                                   icon_false='unlock_translation.png',
+                                                   tooltip_true='Translation locked.',
+                                                   tooltip_false='Translation unlocked.',
+                                                   init_state=False)
+
+        self.rotation_lock_button = StateButton(icon_true='lock_rotation.png',
+                                                icon_false='unlock_rotation.png',
+                                                tooltip_true='Rotation locked.',
+                                                tooltip_false='Rotation unlocked.',
+                                                init_state=False)
+
+        # self.translation_lock_button = QToolButton()
+        # ip = self.iconpath / 'unlock_translation.png'
+        # self.translation_lock_button.setIcon(QIcon(str(ip.resolve())))
+        # self.translation_lock_button.setIconSize(QSize(48, 48))
+        # self.translation_lock_button.setToolTip('Translation unlocked.')
+        #
+        # self.rotation_lock_button = QToolButton()
+        # ip = self.iconpath / 'unlock_rotation.png'
+        # self.rotation_lock_button.setIcon(QIcon(str(ip.resolve())))
+        # self.rotation_lock_button.setIconSize(QSize(48, 48))
+        # self.rotation_lock_button.setToolTip('Rotation unlocked.')
+
+        self.top_layout.addWidget(self.group_current_plist, alignment=Qt.AlignLeft)
+        self.top_layout.addStretch()
+        self.top_layout.addWidget(self.translation_lock_button, alignment=Qt.AlignRight)
+        self.top_layout.addWidget(self.rotation_lock_button, alignment=Qt.AlignRight)
 
         # Define a group for the visualization sliders
         self.group_select = QGroupBox("Visualization Options:")
@@ -725,7 +770,7 @@ class OptionsWindow(ToolInstance):
         self.group_manipulation.setLayout(self.group_manipulation_layout)
 
         # Add groups to layout
-        self.motl_layout.addWidget(self.group_current_plist)
+        self.motl_layout.addLayout(self.top_layout)
         self.motl_layout.addWidget(self.group_manipulation)
         self.motl_layout.addWidget(self.group_select)
 
@@ -735,6 +780,10 @@ class OptionsWindow(ToolInstance):
     def _update_partlist_ui(self):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
+
+        # Lock buttons
+        self.translation_lock_button.setState(pl.translation_locked)
+        self.rotation_lock_button.setState(pl.rotation_locked)
 
         # Set new list
         self.partlist_selection.clear(trigger_update=False)
@@ -885,7 +934,25 @@ class OptionsWindow(ToolInstance):
         if self.volume_open_dialog.exec():
             return self.volume_open_dialog.selectedFiles()
 
+    def _lock_translation(self, state):
+        artia = self.session.ArtiaX
+        opl = artia.options_partlist
+        pl = artia.partlists.get(opl)
 
+        if state:
+            run(self.session, 'artiax lock #{} translation'.format(pl.id_string))
+        else:
+            run(self.session, 'artiax unlock #{} translation'.format(pl.id_string))
+
+    def _lock_rotation(self, state):
+        artia = self.session.ArtiaX
+        opl = artia.options_partlist
+        pl = artia.partlists.get(opl)
+
+        if state:
+            run(self.session, 'artiax lock #{} rotation'.format(pl.id_string))
+        else:
+            run(self.session, 'artiax unlock #{} rotation'.format(pl.id_string))
 
     def take_snapshot(self, session, flags):
         return

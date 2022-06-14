@@ -36,18 +36,9 @@ will be displayed without the ChimeraX- prefix.
   <!-- Non-Python files that are part of package -->
   <DataFiles>
     <DataFile>docs/user/ArtiaX-docs-icon.svg</DataFile>
-    <DataFile>docs/user/artiax_index.html</DataFile>
-    <DataFile>docs/user/tools/tutorial.html</DataFile>
-    <DataFile>docs/user/commands/artiax_add_tomo.html</DataFile>
-    <DataFile>docs/user/commands/artiax_close_tomo.html</DataFile>
-    <DataFile>docs/user/commands/artiax_hide.html</DataFile>
-    <DataFile>docs/user/commands/artiax_open_particles.html</DataFile>
-    <DataFile>docs/user/commands/artiax_open_tomo.html</DataFile>
-    <DataFile>docs/user/commands/artiax_particles_attach.html</DataFile>
-    <DataFile>docs/user/commands/artiax_save_particles.html</DataFile>
-    <DataFile>docs/user/commands/artiax_show.html</DataFile>
-    <DataFile>docs/user/commands/artiax_start.html</DataFile>
-    <DataFile>docs/user/commands/artiax_view.html</DataFile>
+    <DataFile>docs/user/*.html</DataFile>
+    <DataFile>docs/user/tools/*.html</DataFile>
+    <DataFile>docs/user/commands/*.html</DataFile>
     <DataFile>icons/*.png</DataFile>
   </DataFiles>
 
@@ -200,6 +191,18 @@ will be displayed without the ChimeraX- prefix.
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax particles attach :: General ::
       Attach a model to an ArtiaX particle list.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax show :: General ::
+      Render particles of the specified lists with this style.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax hide :: General ::
+      Hide particles of the specified lists with this style.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax lock :: General ::
+      Prevent types of movement for these particle lists.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax unlock :: General ::
+      Allow types of movement for these particle lists.</ChimeraXClassifier>
 
 
 

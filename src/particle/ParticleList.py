@@ -67,6 +67,12 @@ class ParticleList(Model):
         self.collection_model = SurfaceCollectionModel('Particles', session)
         """SurfaceCollectionModel for displaying and manipulating particles."""
 
+
+        self.translation_locked = False
+        """Whether to prevent translation when moving particles."""
+        self.rotation_locked = False
+        """Whether to prevent rotation when moving particles. """
+
         # Initial selection settings (for selection table)
         self.selection_settings = {'mode': 'show',
                                    'names': [],
@@ -660,6 +666,10 @@ class ParticleList(Model):
         for m in markers:
             particle, marker = self._map[m.particle_id]
 
+            if self.translation_locked:
+                m.coord = particle.coord
+                continue
+
             new_coord = m.coord
 
             # Set as additional translation for now
@@ -695,8 +705,20 @@ class ParticleList(Model):
                 particle, marker = self._map[pid]
 
                 place = scm.get_place(pid)
-                new_coord = place.translation()
-                new_rot = place
+
+                if self.translation_locked:
+                    new_coord = particle.coord
+                else:
+                    new_coord = place.translation()
+
+                from chimerax.geometry import translation
+
+                if self.rotation_locked:
+                    new_rot = particle.rotation
+                else:
+                    new_rot = place
+
+                new_place = translation(new_coord) * new_rot.zero_translation()
 
                 # Set as additional translation for now
                 #ori = particle.origin_coord
@@ -708,14 +730,17 @@ class ParticleList(Model):
                 # Set particle translation to 0
                 if not particle.translation.is_identity():
                     particle.translation = (0, 0, 0)
+
                 particle.origin = (new_coord[0], new_coord[1], new_coord[2])
                 particle.rotation = new_rot
+                marker.coord = particle.coord
 
-                a = particle.coord
-                marker.coord = a
+                if self.translation_locked:
+                    scm.set_place(pid, new_place)
 
                 # Update attributes
                 self._attr_to_marker(marker, particle)
+
 
 
     def update_position_selectors(self):
@@ -855,3 +880,35 @@ def get_unused_color(session):
         return std_col[0, :]
     else:
         return artia.standard_colors[0]
+
+
+def lock_particlelist(models, lock_state, what, do_print=True):
+    """Set translation or rotation locked in one or more particle list models."""
+    lock_trans = False
+    lock_rot = False
+
+    if what in ['translation', 'movement']:
+        lock_trans = True
+
+    if what in ['rotation', 'movement']:
+        lock_rot = True
+
+    action = 'Locked' if lock_state else 'Unlocked'
+    text = "{} {} of models: ".format(action, what)
+
+    for m in models:
+        if isinstance(m, ParticleList):
+            if lock_trans:
+                m.translation_locked = lock_state
+
+            if lock_rot:
+                m.rotation_locked = lock_state
+
+            if lock_trans or lock_rot:
+                text += '{}, '.format(str(m))
+                m.triggers.activate_trigger(PARTLIST_CHANGED, m)
+
+    text = text[:-2]
+
+    if do_print:
+        print(text)

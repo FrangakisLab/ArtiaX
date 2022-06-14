@@ -42,8 +42,9 @@ class MoveParticlesMode(MoveMouseMode):
         MouseMode.mouse_up(self, event)
 
         # Workaround for slow GUI update: only do it when released
-        for c in self._collections:
-            c.parent.update_position_selectors()
+        if self._collections is not None:
+            for c in self._collections:
+                c.parent.update_position_selectors()
 
     def wheel(self, event):
         return
@@ -108,12 +109,14 @@ class MoveParticlesMode(MoveMouseMode):
 
     def vr_release(self, event):
         # Workaround for slow GUI update: only do it when released
-        for c in self._collections:
-            c.parent.update_position_selectors()
+        if self._collections is not None:
+            for c in self._collections:
+                c.parent.update_position_selectors()
 
 
 class TranslateSelectedParticlesMode(MoveParticlesMode):
     name = 'translate selected particles'
+    icon_file = './icons/translate_selected.png'
 
     def __init__(self, session):
         MoveParticlesMode.__init__(self, session)
@@ -121,6 +124,7 @@ class TranslateSelectedParticlesMode(MoveParticlesMode):
 
 class RotateSelectedParticlesMode(MoveParticlesMode):
     name = 'rotate selected particles'
+    icon_file = './icons/rotate_selected.png'
 
     def __init__(self, session):
         MoveParticlesMode.__init__(self, session)
@@ -161,6 +165,7 @@ class MovePickedParticleMode(MoveParticlesMode):
 
 class TranslatePickedParticleMode(MovePickedParticleMode):
     name = 'translate picked particle'
+    icon_file = './icons/translate_picked.png'
 
     def __init__(self, session):
         MoveParticlesMode.__init__(self, session)
@@ -168,6 +173,7 @@ class TranslatePickedParticleMode(MovePickedParticleMode):
 
 class RotatePickedParticleMode(MovePickedParticleMode):
     name = 'rotate picked particle'
+    icon_file = './icons/rotate_picked.png'
 
     def __init__(self, session):
         MoveParticlesMode.__init__(self, session)
@@ -175,6 +181,7 @@ class RotatePickedParticleMode(MovePickedParticleMode):
 
 class DeletePickedParticleMode(MouseMode):
     name = 'delete picked particle'
+    icon_file = './icons/delete.png'
 
     def __init__(self, session):
         MouseMode.__init__(self, session)
@@ -209,6 +216,7 @@ class DeletePickedParticleMode(MouseMode):
 
 class DeleteSelectedParticlesMode(MouseMode):
     name = 'delete selected particles'
+    icon_file = './icons/delete_selected.png'
 
     def __init__(self, session):
         MouseMode.__init__(self, session)
