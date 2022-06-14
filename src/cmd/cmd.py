@@ -1,8 +1,11 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # General
+import math
+
 from chimerax.core import errors
 from chimerax.map import Volume
+import numpy as np
 
 # This package
 from ..util.view import *
@@ -107,22 +110,45 @@ def artiax_hide(session, models=None, style=None):
     from ..util.view import show
     show(session, models, style, do_show=False)
 
-def artiax_fit_sphere(session, particlelist_id):
+def artiax_fit_sphere(session):
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running, so no sphere can be fitted.")
         return
 
-    #find selected particles
-    selected_particles = []
+    # TODO Move this stuff to appropriate places
+
+    # Find selected particles
+    particle_pos = np.zeros((0, 3))  # each row is one currently selected particle, with columns being x,y,z
     for particlelist in session.ArtiaX.partlists.child_models():
-        selected_particles.append(particlelist.particle_ids[particlelist.selected_particles])
-        #TODO this is where you left off, try it to see that it works, ergo, if you end up with a list containing all the currently selected particles
+        for curr_id in particlelist.particle_ids[particlelist.selected_particles]:
+            x_pos = particlelist.get_particle(curr_id)['pos_x']\
+                    + particlelist.get_particle(curr_id)['shift_x']
+            y_pos = particlelist.get_particle(curr_id)['pos_y'] \
+                    + particlelist.get_particle(curr_id)['shift_y']
+            z_pos = particlelist.get_particle(curr_id)['pos_z'] \
+                    + particlelist.get_particle(curr_id)['shift_z']
+            particle_pos = np.append(particle_pos, [[x_pos, y_pos, z_pos]], axis=0)
 
+    if len(particle_pos) < 4:
+        session.logger.warning("At least four points are needed to fit a sphere")
+        return
 
+    # Create a (overdetermined) system Ax = b, where A = [[2xi, 2yi, 2zi, 1], ...], x = [xi² + yi² + zi², ...],
+    # and b = [x, y, z, r²-x²-y²-z²], where xi,yi,zi are the positions of the particles, and x,y,z is the center of
+    # the fitted sphere with radius r.
 
+    A = np.append(2 * particle_pos, np.ones((len(particle_pos),1)), axis=1)
+    x = np.sum(particle_pos**2, axis=1)
+    b, residules, rank, singval = np.linalg.lstsq(A, x)
+    r = math.sqrt(b[3] + b[0]**2 + b[1]**2 + b[2]**2)
 
-    selected_particles_bools = session.ArtiaX.partlists.get(particlelist_id).selected_particles
+    # TODO remove
+    print(b[0],b[1],b[2],r)
 
+    from ..geometricmodel import GeoModel
+    from ..particle import ParticleList
+    geomodel = GeoModel("test", session, b[:3], r)
+    session.ArtiaX.geomodels.add([geomodel])
 
 
 def register_artiax(logger):
@@ -214,6 +240,14 @@ def register_artiax(logger):
         )
         register('artiax hide', desc, artiax_hide)
 
+    def register_artiax_fit_sphere():
+        desc = CmdDesc(
+            #TODO rewrite and get url right
+            synopsis='Create a geometric model sphere to the currently selected particles.',
+            url='help:user/commands/artiax_hide.html'
+        )
+        register('artiax fit sphere', desc, artiax_fit_sphere)
+
     register_artiax_start()
     register_artiax_open_tomo()
     register_artiax_add_tomo()
@@ -224,6 +258,7 @@ def register_artiax(logger):
     register_artiax_particles_attach()
     register_artiax_show()
     register_artiax_hide()
+    register_artiax_fit_sphere()
 
 # Possible styles
 # for pl in models:

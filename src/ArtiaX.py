@@ -21,14 +21,16 @@ TOMOGRAM_DEL = 'tomo removed'
 PARTICLES_ADD = 'parts added'
 PARTICLES_DEL = 'parts removed'
 
-GEOMODEL_ADD = 'geomodel added'
-GEOMODEL_DEL = 'geomodel removed'
+GEOMODEL_ADD = 'geometricmodel added'
+GEOMODEL_DEL = 'geometricmodel removed'
 
 OPTIONS_TOMO_CHANGED = 'options tomo changed'
 OPTIONS_PARTLIST_CHANGED = 'options partlist changed'
+OPTIONS_GEOMODEL_CHANGED = 'options geometricmodel changed'
 
 SEL_TOMO_CHANGED = 'selected tomo changed'
 SEL_PARTLIST_CHANGED = 'selected partlist changed'
+SEL_GEOMODEL_CHANGED = 'selected geometricmodel changed'
 
 
 def print_trigger(trigger, trigger_data):
@@ -77,8 +79,10 @@ class ArtiaX(Model):
 
         self.triggers.add_trigger(OPTIONS_TOMO_CHANGED)
         self.triggers.add_trigger(OPTIONS_PARTLIST_CHANGED)
+        self.triggers.add_trigger(OPTIONS_GEOMODEL_CHANGED)
         self.triggers.add_trigger(SEL_TOMO_CHANGED)
         self.triggers.add_trigger(SEL_PARTLIST_CHANGED)
+        self.triggers.add_trigger(SEL_GEOMODEL_CHANGED)
 
         # When a particle list is added to the session, move it to the particle list manager
         self.session.triggers.add_handler(ADD_MODELS, self._model_added)

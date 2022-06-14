@@ -29,10 +29,14 @@ from .ArtiaX import (
     TOMOGRAM_DEL,
     PARTICLES_ADD,
     PARTICLES_DEL,
+    GEOMODEL_ADD,
+    GEOMODEL_DEL,
     SEL_PARTLIST_CHANGED,
     SEL_TOMO_CHANGED,
     OPTIONS_TOMO_CHANGED,
-    OPTIONS_PARTLIST_CHANGED
+    OPTIONS_PARTLIST_CHANGED,
+    OPTIONS_GEOMODEL_CHANGED,
+    SEL_GEOMODEL_CHANGED
 )
 
 from .options_window import OptionsWindow
@@ -81,11 +85,15 @@ class ArtiaXUI(ToolInstance):
         artia.triggers.add_handler(TOMOGRAM_DEL, self._update_tomo_table)
         artia.triggers.add_handler(PARTICLES_ADD, self._update_partlist_table)
         artia.triggers.add_handler(PARTICLES_DEL, self._update_partlist_table)
+        artia.triggers.add_handler(GEOMODEL_ADD, self._update_geomodel_table)
+        artia.triggers.add_handler(GEOMODEL_DEL, self._update_geomodel_table)
 
         artia.triggers.add_handler(OPTIONS_TOMO_CHANGED, self._update_tomo_options)
-        artia.triggers.add_handler(OPTIONS_PARTLIST_CHANGED, self._update_partlist_options)
         artia.triggers.add_handler(SEL_TOMO_CHANGED, self._update_tomo_selection)
+        artia.triggers.add_handler(OPTIONS_PARTLIST_CHANGED, self._update_partlist_options)
         artia.triggers.add_handler(SEL_PARTLIST_CHANGED, self._update_partlist_selection)
+        artia.triggers.add_handler(OPTIONS_GEOMODEL_CHANGED, self._update_geomodel_options)
+        artia.triggers.add_handler(SEL_GEOMODEL_CHANGED, self._update_geomodel_selection)
 
         self._build_ui()
         self._build_options_window(tool_name)
@@ -378,6 +386,11 @@ class ArtiaXUI(ToolInstance):
         self.table_part.update_selection(artia.selected_partlist)
         self.table_part.update_options(artia.options_partlist)
 
+    def _update_geomodel_table(self):
+        pass
+    #TODO: fix
+
+
     # Callback for trigger SEL_TOMO_CHANGED
     def _update_tomo_selection(self, name=None, data=None):
         self.table_tomo.update_selection(data)
@@ -402,6 +415,11 @@ class ArtiaXUI(ToolInstance):
             text = "Particle Lists -- Selected: #{}".format(artia.partlists.get(data).id_string)
             self.group_partlist.setTitle(text)
 
+    def _update_geomodel_selection(self):
+        pass
+    #TODO: fix
+
+
     # Callback for trigger OPTIONS_TOMO_CHANGED
     def _update_tomo_options(self, name=None, data=None):
         self.table_tomo.update_options(data)
@@ -409,6 +427,10 @@ class ArtiaXUI(ToolInstance):
     # Callback for trigger OPTIONS_PARTLIST_CHANGED
     def _update_partlist_options(self, name=None, data=None):
         self.table_part.update_options(data)
+
+    def _update_geomodel_options(self):
+        pass
+    #TODO: fix
 
     def _tomo_table_selected(self, item):
         artia = self.session.ArtiaX

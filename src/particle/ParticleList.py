@@ -112,6 +112,8 @@ class ParticleList(Model):
         """Number of particles contained in this list."""
         return self._data.size
 
+
+
     @property
     def datatype(self):
         """Type of file this list originated from."""
@@ -612,7 +614,7 @@ class ParticleList(Model):
         particle.origin = marker.coord
 
         # Add to surface collection
-        self.collection_model.add_place(particle.id, particle.full_transform())
+        self.collection_model.add_place(particle.id, particle.full_transform()) #TODO THIS IS WHEN THE MODEL OF A PARTICLE IS CREATED
 
         # Set custom attributes
         self._attr_to_marker(marker, particle)
