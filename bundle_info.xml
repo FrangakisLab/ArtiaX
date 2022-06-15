@@ -72,6 +72,14 @@ will be displayed without the ChimeraX- prefix.
               nicknames="star,relion"
               reference_url="https://relion.readthedocs.io/en/release-3.1/Reference/Conventions.html"
               synopsis="RELION star files"/>
+
+    <Provider name="Coords file"
+              suffixes=".coords"
+              category="particle list"
+              nicknames="coords,model2point"
+              reference_url="https://bio3d.colorado.edu/imod/doc/man/model2point.html"
+              synopsis="IMOD model2point output"/>
+
   </Providers>
 
   <Providers manager="open command">
@@ -79,6 +87,7 @@ will be displayed without the ChimeraX- prefix.
     <Provider name="Generic Particle List" want_path="true"/>
     <Provider name="Dynamo Table" want_path="true"/>
     <Provider name="RELION STAR file" want_path="true"/>
+    <Provider name="Coords file" want_path="true"/>
   </Providers>
 
   <Providers manager="save command">
@@ -86,6 +95,7 @@ will be displayed without the ChimeraX- prefix.
     <Provider name="Generic Particle List" />
     <Provider name="Dynamo Table" />
     <Provider name="RELION STAR file" />
+    <Provider name="Coords file"/>
   </Providers>
 
    <Providers manager="presets">

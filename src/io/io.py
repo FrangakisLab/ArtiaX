@@ -12,6 +12,7 @@ from .Artiatomi import ArtiatomiParticleData
 from .Generic import GenericParticleData
 from .Dynamo import DynamoParticleData
 from .RELION import RELIONParticleData
+from .Coords import CoordsParticleData
 
 
 def open_particle_list(session, stream, file_name, format_name=None, from_chimx=False):
@@ -53,6 +54,12 @@ def open_particle_list(session, stream, file_name, format_name=None, from_chimx=
         data = RELIONParticleData(session, file_name, oripix=1, trapix=1)
         model = ParticleList(modelname, session, data)
 
+    # Coords
+    elif format_name in get_fmt_aliases(session, "Coords file"):
+        modelname = os.path.basename(file_name)
+        data = CoordsParticleData(session, file_name, oripix=1, trapix=1)
+        model = ParticleList(modelname, session, data)
+
     if model is not None:
         status = 'Opened Particle list {} with {} particles.'.format(modelname, model.size)
 
@@ -91,6 +98,12 @@ def save_particle_list(session, file_name, partlist, format_name=None):
     elif format_name in get_fmt_aliases(session, "RELION STAR file"):
         if not partlist.datatype == RELIONParticleData:
             save_data = RELIONParticleData.from_particle_data(partlist.data)
+        else:
+            save_data = partlist.data
+
+    elif format_name in get_fmt_aliases(session, "Coords file"):
+        if not partlist.datatype == RELIONParticleData:
+            save_data = CoordsParticleData.from_particle_data(partlist.data)
         else:
             save_data = partlist.data
 

@@ -640,7 +640,7 @@ class ParticleData:
 
         for k in list(self._data_keys.keys()):
             d[k] = []
-            for p in self:
+            for _id, p in self:
                 d[k].append(p[k])
 
         return d

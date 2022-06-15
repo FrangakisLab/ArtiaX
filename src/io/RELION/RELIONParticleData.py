@@ -62,9 +62,9 @@ class RELIONParticleData(ParticleData):
         'pos_x': 'rlnCoordinateX',
         'pos_y': 'rlnCoordinateY',
         'pos_z': 'rlnCoordinateZ',
-        'shift_x': 'shift_x',
-        'shift_y': 'shift_y',
-        'shift_z': 'shift_z',
+        'shift_x': 'rlnOriginX',
+        'shift_y': 'rlnOriginY',
+        'shift_z': 'rlnOriginZ',
         'ang_1': 'rlnAngleRot',
         'ang_2': 'rlnAngleTilt',
         'ang_3': 'rlnAnglePsi'
@@ -72,6 +72,7 @@ class RELIONParticleData(ParticleData):
 
     ROT = RELIONEulerRotation
 
+    remaining_loops = {}
     remaining_data = {}
     loop_name = 0
 
@@ -93,7 +94,7 @@ class RELIONParticleData(ParticleData):
         df = content[data_loop]
         content.pop(data_loop)
         self.loop_name = data_loop
-        self.remaining_data = content
+        self.remaining_loops = content
 
         # What is present
         df_keys = list(df.keys())
@@ -121,9 +122,9 @@ class RELIONParticleData(ParticleData):
             self._data_keys['rlnOriginYAngst'] = []
             self._data_keys['rlnOriginZAngst'] = []
 
-            self._default_params['pos_x'] = 'rlnOriginXAngst'
-            self._default_params['pos_y'] = 'rlnOriginYAngst'
-            self._default_params['pos_z'] = 'rlnOriginZAngst'
+            self._default_params['shift_x'] = 'rlnOriginXAngst'
+            self._default_params['shift_y'] = 'rlnOriginYAngst'
+            self._default_params['shift_z'] = 'rlnOriginZAngst'
 
             additional_keys.remove('rlnOriginXAngst')
             additional_keys.remove('rlnOriginYAngst')
@@ -153,6 +154,9 @@ class RELIONParticleData(ParticleData):
             if np.issubdtype(df.dtypes[key], np.number):
                 additional_entries.append(key)
                 self._data_keys[key] = []
+            else:
+                self.remaining_data[key] = df[key]
+
 
         # Store everything
         self._register_keys()
@@ -225,7 +229,7 @@ class RELIONParticleData(ParticleData):
 
         df = pd.DataFrame(data=data)
 
-        full_dict = self.remaining_data
+        full_dict = self.remaining_loops
         full_dict[self.loop_name] = df
 
-        starfile.write(full_dict, file_name)
+        starfile.write(full_dict, file_name, overwrite=True)

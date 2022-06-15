@@ -124,6 +124,20 @@ class _MyAPI(BundleAPI):
 
                 return RELIONInfo()
 
+            elif name == "Coords file":
+                class CoordsInfo(OpenerInfo):
+                    def open(self, session, data, file_name, **kw):
+                        from .cmd import get_singleton
+                        # Make sure plugin runs
+                        get_singleton(session)
+                        return open_particle_list(session, data, file_name, format_name=name, from_chimx=True)
+
+                    @property
+                    def open_args(self):
+                        return {}
+
+                return CoordsInfo()
+
         elif mgr == session.save_command:
             from chimerax.save_command import SaverInfo
             from .io import save_particle_list
@@ -175,6 +189,18 @@ class _MyAPI(BundleAPI):
                         return {'partlist': ModelArg}
 
                 return RELIONInfo()
+
+            elif name == "Coords file":
+                class CoordsInfo(SaverInfo):
+                    def save(self, session, path, *, partlist=None):
+                        save_particle_list(session, path, partlist, format_name=name)
+
+                    @property
+                    def save_args(self):
+                        from chimerax.core.commands import ModelArg
+                        return {'partlist': ModelArg}
+
+                return CoordsInfo()
 
     @staticmethod
     def register_command(bi, ci, logger):
