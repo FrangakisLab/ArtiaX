@@ -542,10 +542,10 @@ class ParticleList(Model):
 
     def _attr_to_marker(self, marker, particle):
         for attr in particle.attributes():
-            if isinstance(particle[attr], AxisAnglePair):
-                val = particle[attr].angle
-            else:
-                val = particle[attr]
+            # if isinstance(particle[attr], AxisAnglePair):
+            #     val = particle[attr].angle
+            # else:
+            val = particle[attr]
 
             setattr(marker, attr, val)
             if attr in self.selection_settings["names"]:

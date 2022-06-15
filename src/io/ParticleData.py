@@ -12,20 +12,41 @@ from chimerax.atomic import Atom
 from chimerax.core.attributes import type_attrs
 
 
-class AxisAnglePair:
-    """
-    An AxisAnglePair defines a rotation in 3D around a specific axis, as well as a method to compute the angle from
-    a 3x4 transformation matrix.
-    """
+class EulerRotation:
 
-    def __init__(self, angle=0, axis=(1, 0, 0)):
-        self.angle = angle
-        self.axis = axis
+    def __init__(self, axis_1, axis_2, axis_3):
+        self.axis_1 = axis_1
+        self.axis_2 = axis_2
+        self.axis_3 = axis_3
 
-    def set_from_matrix(self, matrix):
-        """Compute and set the angle from a given 3x4 Transformation matrix. Should be overridden in particle list
-        file format definition."""
+    def rot1_from_matrix(self, matrix):
+        """
+        Compute and set the 1st rotation angle from a given 3x4 Transformation matrix. Should be overridden in
+        particle list file format definition.
+        """
         pass
+
+    def rot2_from_matrix(self, matrix):
+        """
+        Compute and set the 2nd rotation angle from a given 3x4 Transformation matrix. Should be overridden in
+        particle list file format definition.
+        """
+        pass
+
+    def rot3_from_matrix(self, matrix):
+        """
+        Compute and set the 3rd rotation angle from a given 3x4 Transformation matrix. Should be overridden in
+        particle list file format definition.
+        """
+        pass
+
+    def as_place(self, ang_1, ang_2, ang_3):
+        rot1 = rotation(self.axis_1, ang_1)
+        rot2 = rotation(self.axis_2, ang_2)
+        rot3 = rotation(self.axis_3, ang_3)
+
+        return rot3 * rot2 * rot1
+
 
 class Particle:
     """
@@ -33,7 +54,7 @@ class Particle:
     within a tomogram, as well as particle format specific metadata.
     """
 
-    def __init__(self, id, data_keys, default_params, rot1, rot2, rot3, pixelsize_ori, pixelsize_tra):
+    def __init__(self, id, data_keys, default_params, rot, pixelsize_ori, pixelsize_tra):#rot1, rot2, rot3, pixelsize_ori, pixelsize_tra):
         self.id = id
         """This particles' uuid."""
         self.pixelsize_ori = pixelsize_ori
@@ -48,13 +69,14 @@ class Particle:
         """Dict mapping file format description to aliases."""
         self._default_params = default_params
         """Dict mapping expected parameters to file format description."""
+        self._angle_alias = []
+        """List containing all the aliases for rotations."""
 
-        self._rot1 = rot1
-        """Class of type AxisAnglePair, describing conversion matrix->angle for rotation 1."""
-        self._rot2 = rot2
-        """Class of type AxisAnglePair, describing conversion matrix->angle for rotation 2."""
-        self._rot3 = rot3
-        """Class of type AxisAnglePair, describing conversion matrix->angle for rotation 3."""
+        self._rot = rot
+        """Class of type EulerRotation, describing conversion matrix->angle for 3 rotations."""
+
+        self.rot = self._rot()
+        """Instance of type EulerRotation, describing conversion matrix->angle for 3 rotations."""
 
         self._set_keys()
 
@@ -128,24 +150,19 @@ class Particle:
         :getter: Returns this particles' rotation as a :class:`~chimerax.geometry.place.Place` object.
         :setter: Sets this particles' rotation (:class:`~chimerax.geometry.place.Place` object or 3x4 affine matrix).
         """
-        pair1, pair2, pair3 = self._get_rotation()
-        rot1 = rotation(pair1.axis, pair1.angle)
-        rot2 = rotation(pair2.axis, pair2.angle)
-        rot3 = rotation(pair3.axis, pair3.angle)
-
-        return rot3 * rot2 * rot1
+        ang_1, ang_2, ang_3 = self._get_rotation()
+        return self.rot.as_place(ang_1, ang_2, ang_3)
 
     @rotation.setter
     def rotation(self, value):
         if isinstance(value, Place):
-            self['ang_1'].set_from_matrix(value.matrix)
-            self['ang_2'].set_from_matrix(value.matrix)
-            self['ang_3'].set_from_matrix(value.matrix)
+            self['ang_1'] = self.rot.rot1_from_matrix(value.matrix)
+            self['ang_2'] = self.rot.rot2_from_matrix(value.matrix)
+            self['ang_3'] = self.rot.rot3_from_matrix(value.matrix)
         else:
-            self['ang_1'].set_from_matrix(value)
-            self['ang_2'].set_from_matrix(value)
-            self['ang_3'].set_from_matrix(value)
-
+            self['ang_1'] = self.rot.rot1_from_matrix(value)
+            self['ang_2'] = self.rot.rot2_from_matrix(value)
+            self['ang_3'] = self.rot.rot3_from_matrix(value)
 
     def __getitem__(self, item):
         """
@@ -207,21 +224,8 @@ class Particle:
 
         # Add aliases for the standard interface
         for key, value in self._default_params.items():
-            if key == 'ang_1':
-                self._add_alias('ang_1', value)
-                self[key] = self._rot1()
-                expected_entries.remove('ang_1')
-            elif key == 'ang_2':
-                self._add_alias('ang_2', value)
-                self[key] = self._rot2()
-                expected_entries.remove('ang_2')
-            elif key == 'ang_3':
-                self._add_alias('ang_3', value)
-                self[key] = self._rot3()
-                expected_entries.remove('ang_3')
-            else:
-                self._add_alias(key, value)
-                expected_entries.remove(key)
+            self._add_alias(key, value)
+            expected_entries.remove(key)
 
         # Does the data format conform to our spec?
         if len(expected_entries) > 0:
@@ -245,7 +249,7 @@ class Particle:
 
         Parameters
         ----------
-        data : three-element tuple, list or array
+        data: three-element tuple, list or array
             The origin of the particle in physical coordinates.
         """
         self['pos_x'] = data[0] / self.pixelsize_ori
@@ -285,6 +289,7 @@ class Particle:
         Returns
         -------
         rotation: three-element tuple of float
+            The rotation
         """
         return (self['ang_1'], self['ang_2'], self['ang_3'])
 
@@ -298,49 +303,55 @@ class Particle:
         data : Place object or 3x4 affine matrix
             The rotation transform of the particle.
         """
-        self['ang_1'].set_from_matrix(data)
-        self['ang_2'].set_from_matrix(data)
-        self['ang_3'].set_from_matrix(data)
+        if isinstance(data, Place):
+            self['ang_1'] = self.rot.rot1_from_matrix(data.matrix)
+            self['ang_2'] = self.rot.rot2_from_matrix(data.matrix)
+            self['ang_3'] = self.rot.rot3_from_matrix(data.matrix)
+        else:
+            self['ang_1'] = self.rot.rot1_from_matrix(data)
+            self['ang_2'] = self.rot.rot2_from_matrix(data)
+            self['ang_3'] = self.rot.rot3_from_matrix(data)
 
     def copy(self):
         new_part = Particle(self.id,
                             self._data_keys,
                             self._default_params,
-                            self._rot1,
-                            self._rot2,
-                            self._rot3,
+                            self._rot,
                             self.pixelsize_ori,
                             self.pixelsize_tra)
 
         for key in self._data_keys.keys():
-            if isinstance(self[key], AxisAnglePair):
-                new_part[key].angle = self[key].angle
-            else:
-                new_part[key] = self[key]
+            new_part[key] = self[key]
 
         return new_part
 
     def as_dict(self):
+        """
+        Returns this particles' data as a dictionary. Keys are the keys of Particle._data_keys.
+
+        Returns
+        -------
+        d : Dict
+            The dictionary.
+        """
         d = {}
         for key in self._data_keys.keys():
-            val = self[key]
-
-            if isinstance(val, AxisAnglePair):
-                val = val.angle
-
-            d[key] = val
+            d[key] = self[key]
 
         return d
 
     def as_list(self):
+        """
+        Returns this particles' data as a list. List items are in the order of the keys in Particle._data_keys.
+
+        Returns
+        -------
+        l : List
+            The list.
+        """
         l = []
         for key in self._data_keys.keys():
-            val = self[key]
-
-            if isinstance(val, AxisAnglePair):
-                val = val.angle
-
-            l.append(val)
+            l.append(self[key])
 
         return l
 
@@ -357,11 +368,9 @@ class ParticleData:
 
     DATA_KEYS = None
     DEFAULT_PARAMS = None
-    ROT1 = None
-    ROT2 = None
-    ROT3 = None
+    ROT = None
 
-    def __init__(self, session, file_name, oripix=1, trapix=1):#, data_keys=None, default_params=None, rot1=None, rot2=None, rot3=None):
+    def __init__(self, session, file_name, oripix=1, trapix=1):
 
         self.session = session
         self.file_name = file_name
@@ -377,12 +386,8 @@ class ParticleData:
         self._default_params = self.DEFAULT_PARAMS
         """Dict mapping expected parameters to file format description."""
 
-        self._rot1 = self.ROT1
-        """Class of type AxisAnglePair, describing conversion matrix->angle for rotation 1."""
-        self._rot2 = self.ROT2
-        """Class of type AxisAnglePair, describing conversion matrix->angle for rotation 2."""
-        self._rot3 = self.ROT3
-        """Class of type AxisAnglePair, describing conversion matrix->angle for rotation 3."""
+        self._rot = self.ROT
+        """Class of type EulerRotation, describing conversion matrix->angle for all rotations."""
 
         self.pixelsize_ori = oripix
         """Pixelsize with which the origin is specified."""
@@ -410,7 +415,7 @@ class ParticleData:
         trapix = particle_data.pixelsize_tra
 
         # The default attributes
-        default = ['pos_x', 'pos_y', 'pos_z', 'shift_x', 'shift_y', 'shift_z', 'ang_1', 'ang_2', 'ang_3']
+        default = ['pos_x', 'pos_y', 'pos_z', 'shift_x', 'shift_y', 'shift_z']
 
         # Create the instance
         new_pd = cls(session, None, oripix, trapix)
@@ -420,15 +425,11 @@ class ParticleData:
             p_new = new_pd.new_particle()
 
             for attr in default:
-                val = p[attr]
+                p_new[attr] = p[attr]
 
-                # For angles: get the rotation as a matrix, set it using the new instances' AxisAnglePair method, as
-                # conventions could be different.
-                if isinstance(val, AxisAnglePair):
-                    val = p.rotation.matrix
-                    p_new[attr].set_from_matrix(val)
-                else:
-                    p_new[attr] = p[attr]
+            # For angles: get the rotation as a Place, set it using the new instances' rotation property, as
+            # conventions could be different.
+            p_new.rotation = p.rotation
 
         return new_pd
 
@@ -487,9 +488,7 @@ class ParticleData:
         particle = Particle(_id,
                             self._data_keys,
                             self._default_params,
-                            self._rot1,
-                            self._rot2,
-                            self._rot3,
+                            self._rot,
                             self.pixelsize_ori,
                             self.pixelsize_tra)
         self._particles[_id] = particle
@@ -541,18 +540,8 @@ class ParticleData:
         ids : list of str
             The IDs of the particles to delete.
         """
-        #indices = sorted(list(indices), reverse=True)
-
         for _id in ids:
             self._particles.pop(_id)
-
-        #TODO: update min/max
-
-    #def append(self, particle):
-    #    self._particles.append(particle)
-
-    #def remove(self, particle):
-    #    self._particles.remove(particle)
 
     def get_main_attributes(self):
         """Returns a list of the main attributes of a particle in this list."""
