@@ -8,38 +8,40 @@ from chimerax.map import open_map
 from chimerax.core.errors import UserError
 
 # This package
-from ..ParticleData import ParticleData, AxisAnglePair
+from ..ParticleData import ParticleData, EulerRotation
 from .emwrite import emwrite
 
-class ArtiaPhi(AxisAnglePair):
-    def __init__(self):
-        super().__init__(axis=(0, 0, 1))
 
-    def set_from_matrix(self, matrix):
+class ArtiatomiEulerRotation(EulerRotation):
+
+    def __init__(self):
+        super().__init__(axis_1=(0, 0, 1), axis_2=(1, 0, 0), axis_3=(0, 0, 1))
+
+    def rot1_from_matrix(self, matrix):
+        """Phi"""
         # Singularity check
         if matrix[2, 2] > 0.9999:
-            self.angle = 0
+            angle = 0
         else:
-            self.angle = np.arctan2(matrix[2, 0], matrix[2, 1]) * 180.0 / np.pi
+            angle = np.arctan2(matrix[2, 0], matrix[2, 1]) * 180.0 / np.pi
 
+        return angle
 
-class ArtiaPsi(AxisAnglePair):
-    def __init__(self):
-        super().__init__(axis=(0, 0, 1))
+    def rot2_from_matrix(self, matrix):
+        """Theta"""
+        angle = np.arctan2(np.sqrt(1 - (matrix[2, 2] * matrix[2, 2])), matrix[2, 2]) * 180.0 / np.pi
 
-    def set_from_matrix(self, matrix):
+        return angle
+
+    def rot3_from_matrix(self, matrix):
+        """Psi"""
+        # Singularity check
         if matrix[2, 2] > 0.9999:
-            self.angle = -1.0 * np.sign(matrix[0, 1]) * np.arccos(matrix[0, 0]) * 180.0/np.pi
+            angle = -1.0 * np.sign(matrix[0, 1]) * np.arccos(matrix[0, 0]) * 180.0/np.pi
         else:
-            self.angle = np.arctan2(matrix[0, 2], -matrix[1, 2]) * 180.0 / np.pi
+            angle = np.arctan2(matrix[0, 2], -matrix[1, 2]) * 180.0 / np.pi
 
-
-class ArtiaThe(AxisAnglePair):
-    def __init__(self):
-        super().__init__(axis=(1, 0, 0))
-
-    def set_from_matrix(self, matrix):
-        self.angle = np.arctan2(np.sqrt(1 - (matrix[2, 2]*matrix[2, 2])), matrix[2, 2]) * 180.0 / np.pi
+        return angle
 
 class ArtiatomiParticleData(ParticleData):
 
@@ -78,9 +80,7 @@ class ArtiatomiParticleData(ParticleData):
         'ang_3': 'psi',
     }
 
-    ROT1 = ArtiaPhi
-    ROT2 = ArtiaThe
-    ROT3 = ArtiaPsi
+    ROT = ArtiatomiEulerRotation
 
     def read_file(self):
         tempvol = open_map(self.session, self.file_name)[0][0]
@@ -114,9 +114,9 @@ class ArtiatomiParticleData(ParticleData):
             p['legacy_shift_x'] = arr[13]
             p['legacy_shift_y'] = arr[14]
             p['legacy_shift_z'] = arr[15]
-            p['phi'].angle = arr[16]
-            p['psi'].angle = arr[17]
-            p['the'].angle = arr[18]
+            p['phi'] = arr[16]
+            p['psi'] = arr[17]
+            p['the'] = arr[18]
             p['class_number'] = arr[19]
         else:
             for i in range(arr.shape[1]):
@@ -138,9 +138,9 @@ class ArtiatomiParticleData(ParticleData):
                 p['legacy_shift_x'] = arr[13, i]
                 p['legacy_shift_y'] = arr[14, i]
                 p['legacy_shift_z'] = arr[15, i]
-                p['phi'].angle = arr[16, i]
-                p['psi'].angle = arr[17, i]
-                p['the'].angle = arr[18, i]
+                p['phi'] = arr[16, i]
+                p['psi'] = arr[17, i]
+                p['the'] = arr[18, i]
                 p['class_number'] = arr[19, i]
 
     def write_file(self, file_name=None):
@@ -168,9 +168,9 @@ class ArtiatomiParticleData(ParticleData):
             arr[13, idx] = p['legacy_shift_x']
             arr[14, idx] = p['legacy_shift_y']
             arr[15, idx] = p['legacy_shift_z']
-            arr[16, idx] = p['phi'].angle
-            arr[17, idx] = p['psi'].angle
-            arr[18, idx] = p['the'].angle
+            arr[16, idx] = p['phi']
+            arr[17, idx] = p['psi']
+            arr[18, idx] = p['the']
             arr[19, idx] = p['class_number']
 
         arr = np.moveaxis(arr, (1, 0), (0, 1))

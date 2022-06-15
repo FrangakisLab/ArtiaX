@@ -8,37 +8,39 @@ import csv
 from chimerax.core.errors import UserError
 
 # This package
-from ..ParticleData import ParticleData, AxisAnglePair
+from ..ParticleData import ParticleData, EulerRotation
 
-class GenericPhi(AxisAnglePair):
+
+class GenericEulerRotation(EulerRotation):
+
     def __init__(self):
-        super().__init__(axis=(0, 0, 1))
+        super().__init__(axis_1=(0, 0, 1), axis_2=(1, 0, 0), axis_3=(0, 0, 1))
 
-    def set_from_matrix(self, matrix):
+    def rot1_from_matrix(self, matrix):
+        """Phi"""
         # Singularity check
         if matrix[2, 2] > 0.9999:
-            self.angle = 0
+            angle = 0
         else:
-            self.angle = np.arctan2(matrix[2, 0], matrix[2, 1]) * 180.0 / np.pi
+            angle = np.arctan2(matrix[2, 0], matrix[2, 1]) * 180.0 / np.pi
 
+        return angle
 
-class GenericPsi(AxisAnglePair):
-    def __init__(self):
-        super().__init__(axis=(0, 0, 1))
+    def rot2_from_matrix(self, matrix):
+        """Theta"""
+        angle = np.arctan2(np.sqrt(1 - (matrix[2, 2] * matrix[2, 2])), matrix[2, 2]) * 180.0 / np.pi
 
-    def set_from_matrix(self, matrix):
+        return angle
+
+    def rot3_from_matrix(self, matrix):
+        """Psi"""
+        # Singularity check
         if matrix[2, 2] > 0.9999:
-            self.angle = -1.0 * np.sign(matrix[0, 1]) * np.arccos(matrix[0, 0]) * 180.0/np.pi
+            angle = -1.0 * np.sign(matrix[0, 1]) * np.arccos(matrix[0, 0]) * 180.0 / np.pi
         else:
-            self.angle = np.arctan2(matrix[0, 2], -matrix[1, 2]) * 180.0 / np.pi
+            angle = np.arctan2(matrix[0, 2], -matrix[1, 2]) * 180.0 / np.pi
 
-
-class GenericThe(AxisAnglePair):
-    def __init__(self):
-        super().__init__(axis=(1, 0, 0))
-
-    def set_from_matrix(self, matrix):
-        self.angle = np.arctan2(np.sqrt(1 - (matrix[2, 2]*matrix[2, 2])), matrix[2, 2]) * 180.0 / np.pi
+        return angle
 
 class GenericParticleData(ParticleData):
 
@@ -66,9 +68,7 @@ class GenericParticleData(ParticleData):
         'ang_3': 'psi'
     }
 
-    ROT1 = GenericPhi
-    ROT2 = GenericThe
-    ROT3 = GenericPsi
+    ROT = GenericEulerRotation
 
     def read_file(self):
         with open(self.file_name, newline='') as csvfile:
@@ -97,10 +97,7 @@ class GenericParticleData(ParticleData):
                 p = self.new_particle()
 
                 for key in self._data_keys:
-                    if isinstance(p[key], AxisAnglePair):
-                        p[key].angle = float(row[key])
-                    else:
-                        p[key] = float(row[key])
+                    p[key] = float(row[key])
 
     def write_file(self, file_name=None):
         if file_name is None:

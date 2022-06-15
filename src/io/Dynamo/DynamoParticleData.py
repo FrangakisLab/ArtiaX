@@ -8,42 +8,39 @@ import csv
 from chimerax.core.errors import UserError
 
 # This package
-from ..ParticleData import ParticleData, AxisAnglePair
+from ..ParticleData import ParticleData, EulerRotation
 
 
-class DynamoTDROT(AxisAnglePair):
+class DynamoEulerRotation(EulerRotation):
 
     def __init__(self):
-        super().__init__(axis=(0, 0, 1))
+        super().__init__(axis_1=(0, 0, 1), axis_2=(1, 0, 0), axis_3=(0, 0, 1))
 
-    def set_from_matrix(self, matrix):
+    def rot1_from_matrix(self, matrix):
+        """tdrot"""
         # Singularity check
         if matrix[2, 2] > 0.9999:
-            self.angle = 0
+            angle = 0
         else:
-            self.angle = np.arctan2(matrix[2, 0], matrix[2, 1]) * 180.0 / np.pi
+            angle = np.arctan2(matrix[2, 0], matrix[2, 1]) * 180.0 / np.pi
 
+        return angle
 
-class DynamoNAROT(AxisAnglePair):
+    def rot2_from_matrix(self, matrix):
+        """tilt"""
+        angle = np.arctan2(np.sqrt(1 - (matrix[2, 2] * matrix[2, 2])), matrix[2, 2]) * 180.0 / np.pi
 
-    def __init__(self):
-        super().__init__(axis=(0, 0, 1))
+        return angle
 
-    def set_from_matrix(self, matrix):
+    def rot3_from_matrix(self, matrix):
+        """narot"""
+        # Singularity check
         if matrix[2, 2] > 0.9999:
-            self.angle = -1.0 * np.sign(matrix[0, 1]) * np.arccos(matrix[0, 0]) * 180.0/np.pi
+            angle = -1.0 * np.sign(matrix[0, 1]) * np.arccos(matrix[0, 0]) * 180.0 / np.pi
         else:
-            self.angle = np.arctan2(matrix[0, 2], -matrix[1, 2]) * 180.0 / np.pi
+            angle = np.arctan2(matrix[0, 2], -matrix[1, 2]) * 180.0 / np.pi
 
-
-class DynamoTILT(AxisAnglePair):
-
-    def __init__(self):
-        super().__init__(axis=(1, 0, 0))
-
-    def set_from_matrix(self, matrix):
-        self.angle = np.arctan2(np.sqrt(1 - (matrix[2, 2]*matrix[2, 2])), matrix[2, 2]) * 180.0 / np.pi
-
+        return angle
 
 class DynamoParticleData(ParticleData):
     DATA_KEYS = {
@@ -100,9 +97,7 @@ class DynamoParticleData(ParticleData):
         'ang_3': 'narot',
     }
 
-    ROT1 = DynamoTDROT
-    ROT2 = DynamoTILT
-    ROT3 = DynamoNAROT
+    ROT = DynamoEulerRotation
 
     def read_file(self):
         with open(self.file_name, newline='') as csvfile:
@@ -138,10 +133,7 @@ class DynamoParticleData(ParticleData):
                 keys = list(self._data_keys.keys())
 
                 for idx, key in enumerate(keys):
-                    if isinstance(p[key], AxisAnglePair):
-                        p[key].angle = float(row[idx])
-                    else:
-                        p[key] = float(row[idx])
+                    p[key] = float(row[idx])
 
     def write_file(self, file_name=None):
         if file_name is None:
