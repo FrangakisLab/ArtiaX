@@ -9,6 +9,8 @@ from chimerax.core.errors import UserError
 # This package
 from ..particle import ParticleList
 from .Artiatomi import ArtiatomiParticleData
+from .Generic import GenericParticleData
+from .Dynamo import DynamoParticleData
 
 
 def open_particle_list(session, stream, file_name, format_name=None, from_chimx=False):
@@ -26,9 +28,20 @@ def open_particle_list(session, stream, file_name, format_name=None, from_chimx=
     modelname = ''
     status = 'Failed to open as Particle List: {}'.format(file_name)
 
+    # MOTL
     if format_name in get_fmt_aliases(session, "Artiatomi Motivelist"):
         modelname = os.path.basename(file_name)
         data = ArtiatomiParticleData(session, file_name, oripix=1, trapix=1)
+        model = ParticleList(modelname, session, data)
+
+    elif format_name in get_fmt_aliases(session, "Generic Particle List"):
+        modelname = os.path.basename(file_name)
+        data = GenericParticleData(session, file_name, oripix=1, trapix=1)
+        model = ParticleList(modelname, session, data)
+
+    elif format_name in get_fmt_aliases(session, "Dynamo Table"):
+        modelname = os.path.basename(file_name)
+        data = DynamoParticleData(session, file_name, oripix=1, trapix=1)
         model = ParticleList(modelname, session, data)
 
     if model is not None:
@@ -46,13 +59,28 @@ def save_particle_list(session, file_name, partlist, format_name=None):
     if not isinstance(partlist, ParticleList):
         raise UserError("save_particle_list: {} is not a particle list.".format(partlist.id_string))
 
+    save_data = None
+
     if format_name in get_fmt_aliases(session, "Artiatomi Motivelist"):
         if not partlist.datatype == ArtiatomiParticleData:
-            raise UserError("save_particle_list: format conversion not implemented".format(partlist.id_string))
+            save_data = ArtiatomiParticleData.from_particle_data(partlist.data)
+        else:
+            save_data = partlist.data
 
-        #TODO: Does this need to be protected?
-        partlist._data._write_file(file_name=file_name)
+    elif format_name in get_fmt_aliases(session, "Generic Particle List"):
+        if not partlist.datatype == GenericParticleData:
+            save_data = GenericParticleData.from_particle_data(partlist.data)
+        else:
+            save_data = partlist.data
 
+    elif format_name in get_fmt_aliases(session, "Dynamo Table"):
+        if not partlist.datatype == DynamoParticleData:
+            save_data = DynamoParticleData.from_particle_data(partlist.data)
+        else:
+            save_data = partlist.data
+
+    if save_data is not None:
+        save_data.write_file(file_name=file_name)
 
 def get_partlist_formats(session):
     return [fmt for fmt in session.data_formats.formats if fmt.category == "particle list"]

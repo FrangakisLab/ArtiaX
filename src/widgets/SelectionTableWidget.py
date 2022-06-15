@@ -22,7 +22,7 @@ class SelectionTableWidget(QWidget):
     A SelectionTableWidget allows selecting from or hiding parts of a ParticleList based on a combination attribute ranges.
 
     """
-    DEBUG = True
+    DEBUG = False
 
     selectionChanged = pyqtSignal(tuple, list, list, list)
     displayChanged = pyqtSignal(tuple, list, list, list)

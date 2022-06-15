@@ -1,6 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # General imports
+from __future__ import annotations
 import numpy as np
 
 # ChimeraX imports
@@ -67,6 +68,19 @@ class ParticleList(Model):
         self.collection_model = SurfaceCollectionModel('Particles', session)
         """SurfaceCollectionModel for displaying and manipulating particles."""
 
+
+        self.translation_locked = False
+        """Whether to prevent translation when moving particles."""
+        self.rotation_locked = False
+        """Whether to prevent rotation when moving particles. """
+
+        # Initial selection settings (for selection table)
+        self.selection_settings = {'mode': 'show',
+                                   'names': [],
+                                   'minima': [],
+                                   'maxima': []}
+
+
         # Add the child models
         self.add([self.display_model])
         self.add([self.collection_model])
@@ -75,7 +89,7 @@ class ParticleList(Model):
         # Contains mapping Particle.id -> (Particle, Atom)
         self._map = {}
         # Register particle id tuple as attribute of atoms
-        Atom.register_attr(self.session, 'particle_id', 'artiax', attr_type=tuple)
+        Atom.register_attr(self.session, 'particle_id', 'artiax', attr_type=str)
 
         # MarkerSet changes connections
         self._connect_markers()
@@ -106,6 +120,23 @@ class ParticleList(Model):
 
         # Change trigger for UI
         self.triggers.add_trigger(PARTLIST_CHANGED)
+
+    @classmethod
+    def from_particle_list(cls, particle_list: ParticleList, datatype=None):
+        """Create a new ParticleList instance from an existing, optionally with a different data type."""
+        name = particle_list.name
+        session = particle_list.session
+
+        if datatype is None:
+            datatype = particle_list.datatype
+
+        data = datatype.from_particle_data(particle_list._data)
+
+        return cls(name, session, data)
+
+    @property
+    def data(self):
+        return self._data
 
     @property
     def size(self):
@@ -275,7 +306,6 @@ class ParticleList(Model):
         from numpy import copy
         self._displayed_particles = copy(value)
 
-        #print("{} : State property".format(value))
         self.markers.displayed_markers = copy(value)
         self.collection_model.displayed_child_positions = copy(value)
 
@@ -513,9 +543,18 @@ class ParticleList(Model):
     def _attr_to_marker(self, marker, particle):
         for attr in particle.attributes():
             if isinstance(particle[attr], AxisAnglePair):
-                setattr(marker, attr, particle[attr].angle)
+                val = particle[attr].angle
             else:
-                setattr(marker, attr, particle[attr])
+                val = particle[attr]
+
+            setattr(marker, attr, val)
+            if attr in self.selection_settings["names"]:
+                idx = self.selection_settings["names"].index(attr)
+                if val < self.selection_settings["minima"][idx]:
+                    self.selection_settings["minima"][idx] = particle[attr]
+
+                if val > self.selection_settings["maxima"][idx]:
+                    self.selection_settings["maxima"][idx] = particle[attr]
 
         marker.particle_id = particle.id
 
@@ -590,18 +629,12 @@ class ParticleList(Model):
 
         # Now update colors and display to keep consistent
         mask = logical_not(mask)
-        #print("{} : Selection Mask:".format(mask))
-        #print("{} : State before".format(self.displayed_particles))
-        #print("{} : State set".format(self.displayed_particles[mask]))
-        # print("Selected: {}".format(self.particle_colors[mask, :]))
 
         self.selected_particles = zeros((self.size,), dtype=bool)
         self.displayed_particles = self.displayed_particles[mask]
 
-        self.particle_colors = self.particle_colors[mask, :]    #self.markers.marker_colors
-        # print("State after: {}".format(self.particle_colors))
-
-        #self.triggers.activate_trigger(PARTLIST_CHANGED, self)
+        self.particle_colors = self.particle_colors[mask, :]
+        self.triggers.activate_trigger(PARTLIST_CHANGED, self)
 
     def _marker_created(self, name, data):
         """Create Particle instances and add position to SurfaceCollection when new Marker was placed.
@@ -641,7 +674,7 @@ class ParticleList(Model):
             pc = self.particle_colors
             self.particle_colors = append(pc, reshape(pc[-1, :], (1, 4)), axis=0)
 
-        #self.triggers.activate_trigger(PARTLIST_CHANGED, self)
+        self.update_position_selectors()
 
     def _marker_moved(self, name, data):
         # Data sent by trigger should be marker instances
@@ -653,14 +686,23 @@ class ParticleList(Model):
         for m in markers:
             particle, marker = self._map[m.particle_id]
 
+            if self.translation_locked:
+                m.coord = particle.coord
+                continue
+
             new_coord = m.coord
 
             # Set as additional translation for now
-            ori = particle.origin.translation()
-            dx = new_coord[0] - ori[0]
-            dy = new_coord[1] - ori[1]
-            dz = new_coord[2] - ori[2]
-            particle.translation = (dx, dy, dz)
+            #ori = particle.origin.translation()
+            #dx = new_coord[0] - ori[0]
+            #dy = new_coord[1] - ori[1]
+            #dz = new_coord[2] - ori[2]
+            #particle.translation = (dx, dy, dz)
+
+            # Set particle translation to 0
+            if not particle.translation.is_identity():
+                particle.translation = (0, 0, 0)
+            particle.origin = (new_coord[0], new_coord[1], new_coord[2])
 
             # Update attributes
             self._attr_to_marker(marker, particle)
@@ -669,7 +711,6 @@ class ParticleList(Model):
             places.append(particle.full_transform())
 
         self.collection_model.set_places(place_ids, places)
-        #self.triggers.activate_trigger(PARTLIST_CHANGED, self)
 
     def _model_moved(self, name, data):
         # Data sent by trigger should be particle ids
@@ -684,24 +725,63 @@ class ParticleList(Model):
                 particle, marker = self._map[pid]
 
                 place = scm.get_place(pid)
-                new_coord = place.translation()
-                new_rot = place
+
+                if self.translation_locked:
+                    new_coord = particle.coord
+                else:
+                    new_coord = place.translation()
+
+                from chimerax.geometry import translation
+
+                if self.rotation_locked:
+                    new_rot = particle.rotation
+                else:
+                    new_rot = place
+
+                new_place = translation(new_coord) * new_rot.zero_translation()
 
                 # Set as additional translation for now
-                ori = particle.origin_coord
-                dx = new_coord[0] - ori[0]
-                dy = new_coord[1] - ori[1]
-                dz = new_coord[2] - ori[2]
-                particle.translation = (dx, dy, dz)
-                particle.rotation = new_rot
+                #ori = particle.origin_coord
+                #dx = new_coord[0] - ori[0]
+                #dy = new_coord[1] - ori[1]
+                #dz = new_coord[2] - ori[2]
+                #particle.translation = (dx, dy, dz)
 
-                a = particle.coord
-                marker.coord = a
+                # Set particle translation to 0
+                if not particle.translation.is_identity():
+                    particle.translation = (0, 0, 0)
+
+                particle.origin = (new_coord[0], new_coord[1], new_coord[2])
+                particle.rotation = new_rot
+                marker.coord = particle.coord
+
+                if self.translation_locked:
+                    scm.set_place(pid, new_place)
 
                 # Update attributes
                 self._attr_to_marker(marker, particle)
 
-        #self.triggers.activate_trigger(PARTLIST_CHANGED, self)
+
+
+    def update_position_selectors(self):
+        # names = self.selection_settings['names']
+        # mini = self.selection_settings['minima']
+        # maxi = self.selection_settings['maxima']
+        #
+        #
+        # pattr = self._data.get_position_attributes()
+        #
+        # for idx, n in enumerate(names):
+        #     if n in pattr:
+        #         # Update ranges if new values are below old range
+        #         mini[idx] = min(mini[idx], self.get_attribute_min([n])[0])
+        #         maxi[idx] = max(maxi[idx], self.get_attribute_max([n])[0])
+        #
+        # self.selection_settings['names'] = names
+        # self.selection_settings['minima'] = mini
+        # self.selection_settings['maxima'] = maxi
+
+        self.triggers.activate_trigger(PARTLIST_CHANGED, self)
 
     def _marker_selected(self, name, data):
         sm = self.markers.selected_markers
@@ -712,7 +792,6 @@ class ParticleList(Model):
 
         from numpy import copy
         self.selected_particles = copy(sm)
-        #self.collection_model.set_child_highlighted(self.markers.selected_markers)
 
     def _model_selected(self, name, data):
         sc = self.collection_model.selected_child_positions
@@ -723,7 +802,6 @@ class ParticleList(Model):
 
         from numpy import copy
         self.selected_particles = copy(sc)
-        #self.markers.selected_markers = data
 
     def _marker_color_changed(self, name, data):
         cm = self.markers.marker_colors
@@ -822,3 +900,35 @@ def get_unused_color(session):
         return std_col[0, :]
     else:
         return artia.standard_colors[0]
+
+
+def lock_particlelist(models, lock_state, what, do_print=True):
+    """Set translation or rotation locked in one or more particle list models."""
+    lock_trans = False
+    lock_rot = False
+
+    if what in ['translation', 'movement']:
+        lock_trans = True
+
+    if what in ['rotation', 'movement']:
+        lock_rot = True
+
+    action = 'Locked' if lock_state else 'Unlocked'
+    text = "{} {} of models: ".format(action, what)
+
+    for m in models:
+        if isinstance(m, ParticleList):
+            if lock_trans:
+                m.translation_locked = lock_state
+
+            if lock_rot:
+                m.rotation_locked = lock_state
+
+            if lock_trans or lock_rot:
+                text += '{}, '.format(str(m))
+                m.triggers.activate_trigger(PARTLIST_CHANGED, m)
+
+    text = text[:-2]
+
+    if do_print:
+        print(text)

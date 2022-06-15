@@ -3,7 +3,7 @@
 # ChimeraX
 from chimerax.core import errors
 from chimerax.core.commands import run
-from chimerax.core.models import Model, ADD_MODELS, REMOVE_MODELS
+from chimerax.core.models import Model, ADD_MODELS, REMOVE_MODELS, MODEL_DISPLAY_CHANGED
 from chimerax.map import Volume, open_map
 from pprint import pprint
 
@@ -32,6 +32,8 @@ SEL_TOMO_CHANGED = 'selected tomo changed'
 SEL_PARTLIST_CHANGED = 'selected partlist changed'
 SEL_GEOMODEL_CHANGED = 'selected geometricmodel changed'
 
+TOMO_DISPLAY_CHANGED = 'tomo display changed'
+PARTLIST_DISPLAY_CHANGED = 'partlist display changed'
 
 def print_trigger(trigger, trigger_data):
     print(trigger)
@@ -71,22 +73,30 @@ class ArtiaX(Model):
         #self.session.models.add([self.partlists], parent=self)
 
         # Triggers
+        # Triggers when new tomo/partlist is added
         self.triggers.add_trigger(TOMOGRAM_ADD)
         self.triggers.add_trigger(TOMOGRAM_DEL)
-
         self.triggers.add_trigger(PARTICLES_ADD)
         self.triggers.add_trigger(PARTICLES_DEL)
 
+        # Triggers when options window should be displayed (by setting ArtiaX.options_XXX)
         self.triggers.add_trigger(OPTIONS_TOMO_CHANGED)
         self.triggers.add_trigger(OPTIONS_PARTLIST_CHANGED)
+
+        # Triggers when particle list selection changes
         self.triggers.add_trigger(OPTIONS_GEOMODEL_CHANGED)
         self.triggers.add_trigger(SEL_TOMO_CHANGED)
         self.triggers.add_trigger(SEL_PARTLIST_CHANGED)
         self.triggers.add_trigger(SEL_GEOMODEL_CHANGED)
 
+        # Triggers when display of objects changes
+        self.triggers.add_trigger(PARTLIST_DISPLAY_CHANGED)
+        self.triggers.add_trigger(TOMO_DISPLAY_CHANGED)
+
         # When a particle list is added to the session, move it to the particle list manager
         self.session.triggers.add_handler(ADD_MODELS, self._model_added)
         self.session.triggers.add_handler(REMOVE_MODELS, self._model_removed)
+        self.session.triggers.add_handler(MODEL_DISPLAY_CHANGED, self._model_display_changed)
 
         self.triggers.add_trigger(GEOMODEL_ADD)
         self.triggers.add_trigger(GEOMODEL_DEL)
@@ -125,7 +135,6 @@ class ArtiaX(Model):
         self.session.ui.mouse_modes.add_mode(self.rotate_picked)
         self.session.ui.mouse_modes.add_mode(self.delete_selected)
         self.session.ui.mouse_modes.add_mode(self.delete_picked)
-        #TODO: Add a bunch of commands here
 
     def redraw_needed(self, **kw):
         if self.DEBUG:
@@ -303,21 +312,17 @@ class ArtiaX(Model):
     def attach_display_model(self, identifier, model):
         self.partlists.get(identifier).attach_display_model(model)
 
-    def show_tomogram(self, idx):
-        # TODO: log command
-        self.tomograms.get(idx).display = True
+    def show_tomogram(self, identifier):
+        run(self.session, 'show #!{} models'.format(self.tomograms.get(identifier).id_string))
 
-    def hide_tomogram(self, idx):
-        # TODO: log command
-        self.tomograms.get(idx).display = False
+    def hide_tomogram(self, identifier):
+        run(self.session, 'hide #!{} models'.format(self.tomograms.get(identifier).id_string))
 
-    def show_partlist(self, idx):
-        # TODO: log command
-        self.partlists.get(idx).display = True
+    def show_partlist(self, identifier):
+        run(self.session, 'show #!{} models'.format(self.partlists.get(identifier).id_string))
 
-    def hide_partlist(self, idx):
-        # TODO: log command
-        self.partlists.get(idx).display = False
+    def hide_partlist(self, identifier):
+        run(self.session, 'hide #!{} models'.format(self.partlists.get(identifier).id_string))
 
     def show_particles(self, identifier, attributes, minima, maxima):
         id = self.partlists.get(identifier).id
@@ -342,6 +347,7 @@ class ArtiaX(Model):
 # Callbacks
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+    # Callback for trigger ADD_MODELS
     def _model_added(self, name, data):
         """
         Checks if a model that was added to the session is a ParticleList and adds it to ArtiaX.
@@ -359,6 +365,7 @@ class ArtiaX(Model):
             if isinstance(m, ParticleList) and not (m in self.partlists.child_models()):
                 self.add_particlelist(m)
 
+    # Callback for trigger REMOVE_MODELS
     def _model_removed(self, name, data):
         """
         Checks if a model that was deleted from the session was a Tomogram or ParticleList and removes it from ArtiaX.
@@ -383,4 +390,13 @@ class ArtiaX(Model):
                 self.selected_tomogram = None
                 self.options_tomogram = None
                 self.triggers.activate_trigger(TOMOGRAM_DEL, '')
+
+    # Callback for trigger MODEL_DISPLAY_CHANGED
+    def _model_display_changed(self, name, data):
+
+
+        if isinstance(data, ParticleList):
+            self.triggers.activate_trigger(PARTLIST_DISPLAY_CHANGED, data)
+        elif isinstance(data, Tomogram):
+            self.triggers.activate_trigger(TOMO_DISPLAY_CHANGED, data)
 

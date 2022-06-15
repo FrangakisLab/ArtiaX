@@ -31,23 +31,15 @@ will be displayed without the ChimeraX- prefix.
     <Dependency name="ChimeraX-Core" version="~=1.2"/>
     <Dependency name="ChimeraX-UI" version="~=1.0"/>
     <Dependency name="superqt"/>
+    <Dependency name="starfile"/>
   </Dependencies>
 
   <!-- Non-Python files that are part of package -->
   <DataFiles>
     <DataFile>docs/user/ArtiaX-docs-icon.svg</DataFile>
-    <DataFile>docs/user/artiax_index.html</DataFile>
-    <DataFile>docs/user/tools/tutorial.html</DataFile>
-    <DataFile>docs/user/commands/artiax_add_tomo.html</DataFile>
-    <DataFile>docs/user/commands/artiax_close_tomo.html</DataFile>
-    <DataFile>docs/user/commands/artiax_hide.html</DataFile>
-    <DataFile>docs/user/commands/artiax_open_particles.html</DataFile>
-    <DataFile>docs/user/commands/artiax_open_tomo.html</DataFile>
-    <DataFile>docs/user/commands/artiax_particles_attach.html</DataFile>
-    <DataFile>docs/user/commands/artiax_save_particles.html</DataFile>
-    <DataFile>docs/user/commands/artiax_show.html</DataFile>
-    <DataFile>docs/user/commands/artiax_start.html</DataFile>
-    <DataFile>docs/user/commands/artiax_view.html</DataFile>
+    <DataFile>docs/user/*.html</DataFile>
+    <DataFile>docs/user/tools/*.html</DataFile>
+    <DataFile>docs/user/commands/*.html</DataFile>
     <DataFile>icons/*.png</DataFile>
   </DataFiles>
 
@@ -59,14 +51,32 @@ will be displayed without the ChimeraX- prefix.
               nicknames="motl,motivelist"
               reference_url="https://github.com/uermel/Artiatomi/wiki/Motivelist"
               synopsis="Artiatomi particle lists"/>
+
+    <Provider name="Generic Particle List"
+              suffixes=".csv"
+              category="particle list"
+              nicknames="generic_particles"
+              reference_url="help:user/tools/generic_particle_list.html"
+              synopsis="CSV particle lists"/>
+
+    <Provider name="Dynamo Table"
+              suffixes=".tbl"
+              category="particle list"
+              nicknames="dynamo,tbl"
+              reference_url="https://wiki.dynamo.biozentrum.unibas.ch/w/index.php/Table"
+              synopsis="Dynamo particle table"/>
   </Providers>
 
   <Providers manager="open command">
     <Provider name="Artiatomi Motivelist" want_path="true"/>
+    <Provider name="Generic Particle List" want_path="true"/>
+    <Provider name="Dynamo Table" want_path="true"/>
   </Providers>
 
   <Providers manager="save command">
     <Provider name="Artiatomi Motivelist" />
+    <Provider name="Generic Particle List" />
+    <Provider name="Dynamo Table" />
   </Providers>
 
    <Providers manager="presets">
@@ -200,6 +210,18 @@ will be displayed without the ChimeraX- prefix.
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax particles attach :: General ::
       Attach a model to an ArtiaX particle list.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax show :: General ::
+      Render particles of the specified lists with this style.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax hide :: General ::
+      Hide particles of the specified lists with this style.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax lock :: General ::
+      Prevent types of movement for these particle lists.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax unlock :: General ::
+      Allow types of movement for these particle lists.</ChimeraXClassifier>
 
 
 

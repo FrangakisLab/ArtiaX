@@ -4,6 +4,7 @@
 from functools import partial
 
 # Qt
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QTableWidget, QAbstractItemView, QHeaderView, QButtonGroup
 
 # This package
@@ -111,6 +112,22 @@ class ManagerTableWidget(QTableWidget):
 
             if not send_signal:
                 btn.blockSignals(prev)
+
+    def update_shown(self, send_signal=False):
+        for idx, btn in enumerate(self.show_group.buttons()):
+            prev = False
+            if not send_signal:
+                prev = btn.blockSignals(True)
+
+            # Set the check state
+            if self.model.get(idx).display:
+                btn.setCheckState(Qt.Checked)
+            else:
+                btn.setCheckState(Qt.Unchecked)
+
+            if not send_signal:
+                btn.blockSignals(prev)
+
 
     def update_table(self, options_model_id):
         """

@@ -1,0 +1,52 @@
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=windows-1252">
+    <link rel="stylesheet" type="text/css" href="../userdocs.css">
+    <title>Command: artiax hide</title>
+  </head>
+  <body> <a name="top"></a> <a href="../artiax_index.html"> <img src="../ArtiaX-docs-icon.svg"
+        alt="ChimeraX docs icon" class="clRight" title="User Guide Index" width="60px"></a>
+    <h3><a href="../artiax_index.html#commands">Command</a>: artiax lock, artiax
+      unlock</h3>
+    <h3 class="usage"><a href="usageconventions.html">Usage</a>: <br>
+      <b>artiax lock</b> [ <a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+      ] [ <em>type</em> ] </h3>
+    <h3 class="usage"><a href="usageconventions.html">Usage</a>: <br>
+      <b>artiax unlock</b> [ <a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+      ] [ <em>type</em> ] </h3>
+    <p>The commands <strong>artiax lock</strong> and <strong>artiax unlock</strong>
+      allow restricting the manipulation of the specified particle lists using
+      mouse modes. A blank spec will lock or unlock all particle lists currently
+      open. Locking rotation or translation is particularly useful in VR to
+      prevent moving particles away from the original locations. </p>
+    <p>The keyword <em>type </em>specifies which type of movement is
+      locked/unlocked. When not specified, <em>type</em> defaults to '<strong>movement</strong>'.</p>
+    <table style="width: 764px; height: 108px;" border="1">
+      <tbody>
+        <tr>
+          <td style="text-align: center; width: 143.517px;"><em><strong>type</strong></em></td>
+          <td style="width: 1580.48px; text-align: center;"><em><strong>meaning</strong></em></td>
+        </tr>
+        <tr>
+          <td style="height: 19px; text-align: center;"><strong>translation</strong></td>
+          <td>locks particles to their current origin</td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>rotation</strong></td>
+          <td>locks particles in their current orientation</td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>movement</strong></td>
+          <td>completely prevents moving particles</td>
+        </tr>
+      </tbody>
+    </table>
+    <p> Examples: </p>
+    <blockquote> <b>artiax lock #1.2.1<br>
+        artiax unlock #1.2.2 rotation<br>
+      </b> </blockquote>
+    <p></p>
+    <hr>
+    <address>BMLS Frangakis Group / June 2022</address>
+  </body>
+</html>

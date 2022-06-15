@@ -135,13 +135,9 @@ class MarkerSetPlus(MarkerSet):
             print("Started changes")
             print(changes.atom_reasons())
 
-        #self.session.change_data = changes
-
-
         if changes.num_deleted_atoms() > 0:
             deleted = self._deleted_atoms()
             self.triggers.activate_trigger(MARKER_DELETED, deleted)
-            #self._update_state()
             self._remove_atoms(deleted)
 
         if 'coord changed' in changes.atom_reasons():

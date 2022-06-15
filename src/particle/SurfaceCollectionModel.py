@@ -263,29 +263,15 @@ class SurfaceCollectionModel(Model):
 
     @displayed_child_positions.setter
     def displayed_child_positions(self, value):
-        from numpy import all
-
-        #print("{} : state _dcp".format(self._displayed_child_positions))
-        #print("{} : state dcp1".format(value))
-
-        #if all(self._displayed_child_positions == value):
-        #    return
-
-        #print("{} : state dcp2".format(value))
-
         if value is None:
             from numpy import zeros
             value = zeros((len(self),), dtype=bool)
 
-        #print("{} : state dcp3".format(value))
-
         from numpy import copy
         self._displayed_child_positions = copy(value)
-        #self.set_child_displayed(value)
 
         for name, col in self.collections.items():
             if col.active:
-                #print("{} : state {}".format(value, col.name))
                 col.display_positions = copy(value)
 
 
@@ -377,9 +363,10 @@ class SurfaceCollectionModel(Model):
         return b
 
     def masked_bounds(self, mask):
-        from chimerax.geometry import union_bounds, copies_bounding_box
+        from chimerax.geometry import copies_bounding_box, Bounds
 
-        sb = union_bounds([col.geometry_bounds() for col in self.collections.values()])
+        # Single point at the origin of each object, masked by mask
+        sb = Bounds((0, 0, 0), (0, 0, 0))
         spos = self.child_positions.masked(mask)
         pb = sb if spos.is_identity() else copies_bounding_box(sb, spos)
 
@@ -577,8 +564,10 @@ def rotate_instances(axis, angle, drawings, masks):
     """Rotates individual opengl instances."""
     from chimerax.geometry import bounds
 
+    # Bounds of all objects to be rotated (across multiple lists)
     b = bounds.union_bounds([d.masked_bounds(m) for d, m in zip(drawings, masks)])
 
+    # Anything actually selected?
     if b is None:
         return
 

@@ -37,6 +37,9 @@ from .ArtiaX import (
     OPTIONS_PARTLIST_CHANGED,
     OPTIONS_GEOMODEL_CHANGED,
     SEL_GEOMODEL_CHANGED
+    OPTIONS_PARTLIST_CHANGED,
+    TOMO_DISPLAY_CHANGED,
+    PARTLIST_DISPLAY_CHANGED
 )
 
 from .options_window import OptionsWindow
@@ -94,6 +97,9 @@ class ArtiaXUI(ToolInstance):
         artia.triggers.add_handler(SEL_PARTLIST_CHANGED, self._update_partlist_selection)
         artia.triggers.add_handler(OPTIONS_GEOMODEL_CHANGED, self._update_geomodel_options)
         artia.triggers.add_handler(SEL_GEOMODEL_CHANGED, self._update_geomodel_selection)
+
+        artia.triggers.add_handler(PARTLIST_DISPLAY_CHANGED, self._update_partlist_shown)
+        artia.triggers.add_handler(TOMO_DISPLAY_CHANGED, self._update_tomo_shown)
 
         self._build_ui()
         self._build_options_window(tool_name)
@@ -431,6 +437,14 @@ class ArtiaXUI(ToolInstance):
     def _update_geomodel_options(self):
         pass
     #TODO: fix
+
+    # Callback for trigger TOMO_DISPLAY_CHANGED
+    def _update_tomo_shown(self, name, data):
+        self.table_tomo.update_shown()
+
+    # Callback for trigger PARTLIST_DISPLAY_CHANGED
+    def _update_partlist_shown(self, name, data):
+        self.table_part.update_shown()
 
     def _tomo_table_selected(self, item):
         artia = self.session.ArtiaX

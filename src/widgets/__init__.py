@@ -9,3 +9,4 @@ from .IgnorantComboBox import IgnorantComboBox
 from .SelectorWidget import SelectorWidget
 from .SelectionTableWidget import SelectionTableWidget
 from .ColorRangeWidget import ColorRangeWidget
+from .StateButton import StateButton
