@@ -34,6 +34,7 @@ SEL_GEOMODEL_CHANGED = 'selected geometricmodel changed'
 
 TOMO_DISPLAY_CHANGED = 'tomo display changed'
 PARTLIST_DISPLAY_CHANGED = 'partlist display changed'
+GEOMODEL_DISPLAY_CHANGED = 'geomodel display changed'
 
 def print_trigger(trigger, trigger_data):
     print(trigger)
@@ -91,6 +92,7 @@ class ArtiaX(Model):
 
         # Triggers when display of objects changes
         self.triggers.add_trigger(PARTLIST_DISPLAY_CHANGED)
+        self.triggers.add_trigger(TOMO_DISPLAY_CHANGED)
         self.triggers.add_trigger(TOMO_DISPLAY_CHANGED)
 
         # When a particle list is added to the session, move it to the particle list manager

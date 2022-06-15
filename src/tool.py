@@ -36,17 +36,18 @@ from .ArtiaX import (
     OPTIONS_TOMO_CHANGED,
     OPTIONS_PARTLIST_CHANGED,
     OPTIONS_GEOMODEL_CHANGED,
-    SEL_GEOMODEL_CHANGED
+    SEL_GEOMODEL_CHANGED,
     OPTIONS_PARTLIST_CHANGED,
     TOMO_DISPLAY_CHANGED,
-    PARTLIST_DISPLAY_CHANGED
+    PARTLIST_DISPLAY_CHANGED,
+    GEOMODEL_DISPLAY_CHANGED
 )
 
 from .options_window import OptionsWindow
 from .io import get_partlist_formats
 
-class ArtiaXUI(ToolInstance):
 
+class ArtiaXUI(ToolInstance):
     # Does this instance persist when session closes
     SESSION_ENDURING = False
     # We do save/restore in sessions
@@ -54,9 +55,9 @@ class ArtiaXUI(ToolInstance):
     # Let ChimeraX know about our help page
     help = "help:user/tools/tutorial.html"
 
-# ==============================================================================
-# Instance Initialization ======================================================
-# ==============================================================================
+    # ==============================================================================
+    # Instance Initialization ======================================================
+    # ==============================================================================
 
     def __init__(self, session, tool_name):
         # 'session'     - chimerax.core.session.Session instance
@@ -75,7 +76,7 @@ class ArtiaXUI(ToolInstance):
         self.tool_window = MainToolWindow(self, close_destroys=False)
 
         # Connect the shortcurts to functions in the options window
-        #self.define_shortcuts(session)
+        # self.define_shortcuts(session)
 
         # Base Model if it doesn't exist yet
         if not hasattr(session, 'ArtiaX'):
@@ -100,14 +101,15 @@ class ArtiaXUI(ToolInstance):
 
         artia.triggers.add_handler(PARTLIST_DISPLAY_CHANGED, self._update_partlist_shown)
         artia.triggers.add_handler(TOMO_DISPLAY_CHANGED, self._update_tomo_shown)
+        artia.triggers.add_handler(GEOMODEL_DISPLAY_CHANGED, self._update_geomodel_shown)
 
         self._build_ui()
         self._build_options_window(tool_name)
         self._connect_ui()
 
-# ==============================================================================
-# Interface construction =======================================================
-# ==============================================================================
+    # ==============================================================================
+    # Interface construction =======================================================
+    # ==============================================================================
 
     def _build_ui(self):
 
@@ -137,7 +139,7 @@ class ArtiaXUI(ToolInstance):
         self.particle_save_dialog.setAcceptMode(QFileDialog.AcceptSave)
 
         # Build the menu bar
-        #self._build_menubar()
+        # self._build_menubar()
 
         # Prepare some widgets that are used later
         self._build_table_widgets()
@@ -147,10 +149,11 @@ class ArtiaXUI(ToolInstance):
 
         # Build the actual GUI
         layout = QVBoxLayout()
-        #layout.addLayout(self.menu_bar_widget)
-        #layout.addWidget(self.menu_bar_widget)
+        # layout.addLayout(self.menu_bar_widget)
+        # layout.addWidget(self.menu_bar_widget)
         layout.addWidget(self.group_tomo)
         layout.addWidget(self.group_partlist)
+        layout.addWidget(self.group_geomodel)
 
         # Set the layout
         self.tool_window.ui_area.setLayout(layout)
@@ -159,10 +162,9 @@ class ArtiaXUI(ToolInstance):
         # ChimeraX main window
         self.tool_window.manage("left")
 
-
-# ==============================================================================
-# Set shortcuts =============================================
-# ==============================================================================
+    # ==============================================================================
+    # Set shortcuts =============================================
+    # ==============================================================================
 
     def _define_shortcuts(self, session):
         # Define the shortcuts
@@ -176,12 +178,13 @@ class ArtiaXUI(ToolInstance):
         # self.jump_1_backwards.activated.connect(partial(self.skip_planes, session, -1))
         # self.jump_10_backwards.activated.connect(partial(self.skip_planes, session, -10))
 
-
-# ==============================================================================
-# Prepare GUI functions ========================================================
-# ==============================================================================
+    # ==============================================================================
+    # Prepare GUI functions ========================================================
+    # ==============================================================================
 
     def _build_menubar(self):
+        # Not used anymore
+
         # Use a QHBoxLayout for the menu bar
         self.menu_bar_widget = QHBoxLayout()
 
@@ -203,7 +206,7 @@ class ArtiaXUI(ToolInstance):
         # Add the menu bar to the widget
         self.menu_bar_widget.addWidget(self.menu_bar)
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     def _build_table_widgets(self):
         """Build the two table widgets."""
@@ -223,7 +226,13 @@ class ArtiaXUI(ToolInstance):
                                              self._show_partlist,
                                              self._show_partlist_options)
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        # A display table for the geometric models
+        self.table_geomodel = ManagerTableWidget(self.session,
+                                                 artia.geomodels,
+                                                 self._show_geomodel,
+                                                 self._show_geomodel_options)
+
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     def _build_main_ui(self):
         '''Add the table widgets and some buttons the the main layout.'''
@@ -275,10 +284,29 @@ class ArtiaXUI(ToolInstance):
         self.group_partlist.setLayout(group_partlist_layout)
         ##### Group Box "Particle Lists" #####
 
+        ##### Group Box "Geometric Models" #####
+        self.group_geomodel = QGroupBox("Geometric Models -- Selected: ")
+        self.group_geomodel.setFont(self.font)
+        # Group Box Layout
+        group_geomodel_layout = QVBoxLayout()
+
+        # Contents
+        # TODO add support for saving and opening geomodels
+        # self.group_geomodel_open_button = QPushButton("Open tomogram ...")
+        self.group_geomodel_close_button = QPushButton("Close selected geometric model")
+
+        # group_geomodel_layout.addWidget(self.group_geomodel_open_button)
+        group_geomodel_layout.addWidget(self.table_geomodel)
+        group_geomodel_layout.addWidget(self.group_geomodel_close_button)
+
+        # Add layout to the group
+        self.group_geomodel.setLayout(group_geomodel_layout)
+        ##### Group Box "Tomograms" #####
 
     def _connect_ui(self):
         self._connect_tomo_ui()
         self._connect_part_ui()
+        self._connect_geomodel_ui()
 
     def _connect_tomo_ui(self):
         ui = self
@@ -291,7 +319,6 @@ class ArtiaXUI(ToolInstance):
 
         ui.group_tomo_open_button.clicked.connect(self._open_volume)
         ui.group_tomo_close_button.clicked.connect(self._close_volume)
-
 
     def _connect_part_ui(self):
         ui = self
@@ -308,9 +335,21 @@ class ArtiaXUI(ToolInstance):
         ui.group_partlist_create_button.clicked.connect(self._create_partlist)
         ui.group_partlist_close_button.clicked.connect(self._close_partlist)
 
-# ==============================================================================
-# Menu Bar Functions ===========================================================
-# ==============================================================================
+    def _connect_geomodel_ui(self):
+        ui = self
+        ow = self.ow
+        artia = self.session.ArtiaX
+
+        # Tomo table
+        ui.table_geomodel.itemClicked.connect(self._geomodel_table_selected)
+        ui.table_geomodel.itemChanged.connect(self._geomodel_table_name_changed)
+
+        # ui.group_geomodel_open_button.clicked.connect(self._open_geomodel)
+        ui.group_geomodel_close_button.clicked.connect(self._close_geomodel)
+
+    # ==============================================================================
+    # Menu Bar Functions ===========================================================
+    # ==============================================================================
 
     def _open_volume(self):
         artia = self.session.ArtiaX
@@ -374,9 +413,17 @@ class ArtiaXUI(ToolInstance):
 
         artia.close_partlist(artia.selected_partlist)
 
-# ==============================================================================
-# Table Functions ==============================================================
-# ==============================================================================
+    def _close_geomodel(self):
+        artia = self.session.ArtiaX
+
+        if artia.selected_geomodel is None or artia.geomodel.count == 0:
+            return
+
+        artia.close_geomodel(artia.selected_geomodel)
+
+    # ==============================================================================
+    # Table Functions ==============================================================
+    # ==============================================================================
 
     # Callback for triggers TOMOGRAM_ADD, TOMOGRAM_DEL
     def _update_tomo_table(self, name=None, data=None):
@@ -392,10 +439,12 @@ class ArtiaXUI(ToolInstance):
         self.table_part.update_selection(artia.selected_partlist)
         self.table_part.update_options(artia.options_partlist)
 
+    # Callback for triggers GEOMODEL_ADD, GEOMODEL_DEL
     def _update_geomodel_table(self):
-        pass
-    #TODO: fix
-
+        artia = self.session.ArtiaX
+        self.table_geomodel.update_table(artia.options_geomodel)
+        self.table_geomodel.update_selection(artia.selected_geomodel)
+        self.table_geomodel.update_options(artia.options_geomodel)
 
     # Callback for trigger SEL_TOMO_CHANGED
     def _update_tomo_selection(self, name=None, data=None):
@@ -421,10 +470,17 @@ class ArtiaXUI(ToolInstance):
             text = "Particle Lists -- Selected: #{}".format(artia.partlists.get(data).id_string)
             self.group_partlist.setTitle(text)
 
-    def _update_geomodel_selection(self):
-        pass
-    #TODO: fix
+    # Callback for trigger SEL_GEOMODEL_CHANGED
+    def _update_geomodel_selection(self, name=None, data=None):
+        self.table_geomodel.update_selection(data)
 
+        artia = self.session.ArtiaX
+        if data is None:
+            text = "Particle Lists -- Selected: "
+            self.group_geomodel.setTitle(text)
+        else:
+            text = "Particle Lists -- Selected: #{}".format(artia.geomodel.get(data).id_string)
+            self.group_geomodel.setTitle(text)
 
     # Callback for trigger OPTIONS_TOMO_CHANGED
     def _update_tomo_options(self, name=None, data=None):
@@ -434,9 +490,9 @@ class ArtiaXUI(ToolInstance):
     def _update_partlist_options(self, name=None, data=None):
         self.table_part.update_options(data)
 
-    def _update_geomodel_options(self):
-        pass
-    #TODO: fix
+    # Callback for trigger OPTIONS_GEOMODEL_CHANGED
+    def _update_geomodel_options(self, name=None, data=None):
+        self.table_geomodel.update_options(data)
 
     # Callback for trigger TOMO_DISPLAY_CHANGED
     def _update_tomo_shown(self, name, data):
@@ -445,6 +501,10 @@ class ArtiaXUI(ToolInstance):
     # Callback for trigger PARTLIST_DISPLAY_CHANGED
     def _update_partlist_shown(self, name, data):
         self.table_part.update_shown()
+
+    # Callback for trigger GEOMODEL_DISPLAY_CHANGED
+    def _update_geomodel_shown(self, name, data):
+        self.table_geomodel.update_shown()
 
     def _tomo_table_selected(self, item):
         artia = self.session.ArtiaX
@@ -474,7 +534,7 @@ class ArtiaXUI(ToolInstance):
         if state:
             artia.options_tomogram = artia.tomograms.get_id(idx)
 
-        #if state:
+        # if state:
         #    self.ow._show_tab("tomogram")
 
     def _partlist_table_selected(self, item):
@@ -505,33 +565,56 @@ class ArtiaXUI(ToolInstance):
         if state:
             artia.options_partlist = artia.partlists.get_id(idx)
 
-        #if state:
+        # if state:
         #    self.ow._show_tab("partlist")
 
-# ==============================================================================
-# Shortcut Functions ===========================================================
-# ==============================================================================
+    def _geomodel_table_name_changed(self, item):
+        artia = self.session.ArtiaX
+        if (item is not None) and (item.column() == 1):
+            name = item.text()
+            row = item.row()
+            artia.geomodel.set_name(row, name)
 
-# The following 4 jump functions only work if a tomogram is selected
+    def _show_geomodel(self, idx, state):
+        artia = self.session.ArtiaX
+        artia.selected_geomodel = artia.geomodels.get_id(idx)
+
+        if state == Qt.Checked:
+            artia.show_geomodel(idx)
+        elif state == Qt.Unchecked:
+            artia.hide_geomodel(idx)
+
+    def _show_geomodel_options(self, idx, state):
+        artia = self.session.ArtiaX
+
+        if state:
+            artia.options_geomodel = artia.geomodels.get_id(idx)
+
+    def _geomodel_table_selected(self, item):
+        artia = self.session.ArtiaX
+
+        if item is not None:
+            artia.selected_geomodel = artia.geomodels.get_id(item.row())
+    # ==============================================================================
+    # Shortcut Functions ===========================================================
+    # ==============================================================================
+
+    # The following 4 jump functions only work if a tomogram is selected
     def jump_1_forwards_pressed(self, session):
         print("Yes, the shortcut worked.")
-
 
     def jump_10_forwards_pressed(self, session):
         print("Yes, the shortcut worked.")
 
-
     def jump_1_backwards_pressed(self, session):
         print("Yes, the shortcut worked.")
-
 
     def jump_10_backwards_pressed(self, session):
         print("Yes, the shortcut worked.")
 
-
-# ==============================================================================
-# Options Window ===============================================================
-# ==============================================================================
+    # ==============================================================================
+    # Options Window ===============================================================
+    # ==============================================================================
 
     def _build_options_window(self, tool_name):
         # Creates an instance of the new window's class
