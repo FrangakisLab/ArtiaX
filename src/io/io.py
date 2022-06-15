@@ -11,6 +11,7 @@ from ..particle import ParticleList
 from .Artiatomi import ArtiatomiParticleData
 from .Generic import GenericParticleData
 from .Dynamo import DynamoParticleData
+from .RELION import RELIONParticleData
 
 
 def open_particle_list(session, stream, file_name, format_name=None, from_chimx=False):
@@ -34,14 +35,22 @@ def open_particle_list(session, stream, file_name, format_name=None, from_chimx=
         data = ArtiatomiParticleData(session, file_name, oripix=1, trapix=1)
         model = ParticleList(modelname, session, data)
 
+    # CSV
     elif format_name in get_fmt_aliases(session, "Generic Particle List"):
         modelname = os.path.basename(file_name)
         data = GenericParticleData(session, file_name, oripix=1, trapix=1)
         model = ParticleList(modelname, session, data)
 
+    # Dynamo
     elif format_name in get_fmt_aliases(session, "Dynamo Table"):
         modelname = os.path.basename(file_name)
         data = DynamoParticleData(session, file_name, oripix=1, trapix=1)
+        model = ParticleList(modelname, session, data)
+
+    # RELION
+    elif format_name in get_fmt_aliases(session, "RELION STAR file"):
+        modelname = os.path.basename(file_name)
+        data = RELIONParticleData(session, file_name, oripix=1, trapix=1)
         model = ParticleList(modelname, session, data)
 
     if model is not None:
@@ -76,6 +85,12 @@ def save_particle_list(session, file_name, partlist, format_name=None):
     elif format_name in get_fmt_aliases(session, "Dynamo Table"):
         if not partlist.datatype == DynamoParticleData:
             save_data = DynamoParticleData.from_particle_data(partlist.data)
+        else:
+            save_data = partlist.data
+
+    elif format_name in get_fmt_aliases(session, "RELION STAR file"):
+        if not partlist.datatype == RELIONParticleData:
+            save_data = RELIONParticleData.from_particle_data(partlist.data)
         else:
             save_data = partlist.data
 
