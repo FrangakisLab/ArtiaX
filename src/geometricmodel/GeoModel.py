@@ -20,7 +20,7 @@ class GeoModel(Model):
         self.set_geometry(vertices, normals, triangles)
         self.vertex_colors = vertex_colors
 
-    # TODO move this to a good spot and fix transparancy
+    # TODO move this to a good spot
     def define_sphere(self, pos, r):
         from chimerax.bild.bild import _BildFile
         b = _BildFile(self.session, 'dummy')

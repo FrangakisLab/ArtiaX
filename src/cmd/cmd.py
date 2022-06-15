@@ -121,13 +121,14 @@ def artiax_fit_sphere(session):
     particle_pos = np.zeros((0, 3))  # each row is one currently selected particle, with columns being x,y,z
     for particlelist in session.ArtiaX.partlists.child_models():
         for curr_id in particlelist.particle_ids[particlelist.selected_particles]:
-            x_pos = particlelist.get_particle(curr_id)['pos_x']\
-                    + particlelist.get_particle(curr_id)['shift_x']
-            y_pos = particlelist.get_particle(curr_id)['pos_y'] \
-                    + particlelist.get_particle(curr_id)['shift_y']
-            z_pos = particlelist.get_particle(curr_id)['pos_z'] \
-                    + particlelist.get_particle(curr_id)['shift_z']
-            particle_pos = np.append(particle_pos, [[x_pos, y_pos, z_pos]], axis=0)
+            if curr_id:
+                x_pos = particlelist.get_particle(curr_id)['pos_x']\
+                        + particlelist.get_particle(curr_id)['shift_x']
+                y_pos = particlelist.get_particle(curr_id)['pos_y'] \
+                        + particlelist.get_particle(curr_id)['shift_y']
+                z_pos = particlelist.get_particle(curr_id)['pos_z'] \
+                        + particlelist.get_particle(curr_id)['shift_z']
+                particle_pos = np.append(particle_pos, [[x_pos, y_pos, z_pos]], axis=0)
 
     if len(particle_pos) < 4:
         session.logger.warning("At least four points are needed to fit a sphere")
@@ -142,12 +143,17 @@ def artiax_fit_sphere(session):
     b, residules, rank, singval = np.linalg.lstsq(A, x)
     r = math.sqrt(b[3] + b[0]**2 + b[1]**2 + b[2]**2)
 
+    # Reorient selected particles so that Z-axis points towards center of sphere
+    # for particlelist in session.ArtiaX.partlists.child_models():
+    #     for curr_id in particlelist.particle_ids[particlelist.selected_particles]:
+    #         if curr_id:
+    #             particlelist.get_particle(curr_id).
+
     # TODO remove
     print(b[0],b[1],b[2],r)
 
     from ..geometricmodel import GeoModel
-    from ..particle import ParticleList
-    geomodel = GeoModel("test", session, b[:3], r)
+    geomodel = GeoModel("sphere", session, b[:3], r)
     session.ArtiaX.geomodels.add([geomodel])
 
 
