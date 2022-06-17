@@ -165,7 +165,7 @@ class ParticleList(Model):
 
         self._data.pixelsize_ori = value
 
-        self._update_places()
+        self.update_places()
 
     @property
     def translation_pixelsize(self):
@@ -178,7 +178,7 @@ class ParticleList(Model):
 
         self._data.pixelsize_tra = value
 
-        self._update_places()
+        self.update_places()
 
     @property
     def radius(self):
@@ -513,7 +513,7 @@ class ParticleList(Model):
         col[:, ] = self.color
         self.particle_colors = col
 
-    def _update_places(self):
+    def update_places(self):
         pids = []
         places = []
         for particle, marker in self._map.values():

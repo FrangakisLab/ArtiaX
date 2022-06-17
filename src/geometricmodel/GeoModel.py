@@ -10,34 +10,52 @@ from chimerax.map import Volume
 from chimerax.atomic import Atom
 from chimerax.graphics import Drawing
 
-#Triggers
+# Triggers
 GEOMODEL_CHANGED = 'geomodel changed'  # Data is the modified geometric model.
+
 
 class GeoModel(Model):
     """Handles geometric models"""
 
-    def __init__(self, name, session, pos, r):
+    def __init__(self, name, session):
         super().__init__(name, session)
 
-        vertices, normals, triangles, vertex_colors = self.define_sphere(pos, r)
-        self.set_geometry(vertices, normals, triangles)
-        self.vertex_colors = vertex_colors
+        self.transparency = 170
+        self.color = self._get_unused_color()
+        self.color[3] = self.transparency
 
         # Change trigger for UI
         self.triggers.add_trigger(GEOMODEL_CHANGED)
 
-    def define_sphere(self, pos, r):
-        from chimerax.bild.bild import _BildFile
-        b = _BildFile(self.session, 'dummy')
-        b.transparency_command('.transparency 0.7'.split())
-        b.color_command('.color 1 0 0'.split())
-        b.sphere_command('.sphere {} {} {} {}'.format(pos[0], pos[1], pos[2], r).split())
+    def _get_unused_color(self):
+        artia = self.session.ArtiaX
 
-        from chimerax.atomic import AtomicShapeDrawing
-        d = AtomicShapeDrawing('shapes')
-        d.add_shapes(b.shapes)
+        std_col = np.array(artia.standard_colors)
+        for gm in artia.geomodels.iter():
+            gmcol = np.array([np.append(gm.color[:3], 255)])
+            mask = np.logical_not(np.all(gmcol == std_col, axis=1))
+            std_col = std_col[mask, :]
 
-        return d.vertices, d.normals, d.triangles, d.vertex_colors
+        # Change both -1 to 0 to go from the start of the list and not the end
+        if std_col.shape[0] > 0:
+            col = std_col[-1, :]
+        else:
+            col = artia.standard_colors[-1]
+        col[3] = self.transparency
+        return col
+
+    def change_color(self, color):
+        if len(color) == 4: #transparency was given
+            self.transparency = color[3]
+            self.vertex_colors = np.full(np.shape(self.vertex_colors), color)
+        else: #don't change transparency
+            color = np.append(color,self.transparency)
+            self.vertex_colors = np.full(np.shape(self.vertex_colors), color)
+        self.color = color
+
+    def change_transparency(self, t):
+        self.color[3] = t
+        self.change_color(self.color)
 
 def fit_sphere(session):
     """Fits a sphere to the currently selected particles"""
@@ -45,15 +63,13 @@ def fit_sphere(session):
 
     # Find selected particles
     particle_pos = np.zeros((0, 3))  # each row is one currently selected particle, with columns being x,y,z
-    for particlelist in artiax.partlists.child_models():
-        for curr_id in particlelist.particle_ids[particlelist.selected_particles]:
+    for particle_list in artiax.partlists.child_models():
+        for curr_id in particle_list.particle_ids[particle_list.selected_particles]:
             if curr_id:
-                x_pos = particlelist.get_particle(curr_id)['pos_x'] \
-                        + particlelist.get_particle(curr_id)['shift_x']
-                y_pos = particlelist.get_particle(curr_id)['pos_y'] \
-                        + particlelist.get_particle(curr_id)['shift_y']
-                z_pos = particlelist.get_particle(curr_id)['pos_z'] \
-                        + particlelist.get_particle(curr_id)['shift_z']
+                curr_part = particle_list.get_particle(curr_id)
+                x_pos = curr_part.coord[0]
+                y_pos = curr_part.coord[1]
+                z_pos = curr_part.coord[2]
                 particle_pos = np.append(particle_pos, [[x_pos, y_pos, z_pos]], axis=0)
 
     if len(particle_pos) < 4:
@@ -66,18 +82,26 @@ def fit_sphere(session):
 
     A = np.append(2 * particle_pos, np.ones((len(particle_pos), 1)), axis=1)
     x = np.sum(particle_pos ** 2, axis=1)
-    b, residules, rank, singval = np.linalg.lstsq(A, x)
+    b, residules, rank, singval = np.linalg.lstsq(A, x, rcond=None)
     r = math.sqrt(b[3] + b[0] ** 2 + b[1] ** 2 + b[2] ** 2)
 
+    print("Created sphere with center: {} and radius: {}".format(b[:3], r))
+
     # Reorient selected particles so that Z-axis points towards center of sphere
-    for particlelist in session.ArtiaX.partlists.child_models():
-        for curr_id in particlelist.particle_ids[particlelist.selected_particles]:
+    from chimerax.geometry import z_align, translation
+    for particle_list in session.ArtiaX.partlists.child_models():
+        for curr_id in particle_list.particle_ids[particle_list.selected_particles]:
             if curr_id:
-                particlelist.get_particle(curr_id).
+                curr_part = particle_list.get_particle(curr_id)
+                # Finds the rotation needed to align the vector (from the origin of the sphere to the particle) to
+                # the z-axis. The inverse is then taken to find the rotation needed to make the particle's z-axis
+                # perpendicular to the surface of the sphere.
+                rotation_to_z = z_align(b[:3], curr_part.full_transform().translation())
+                rotation = rotation_to_z.zero_translation().inverse()
+                curr_part.rotation = rotation
+        # Updated graphics
+        particle_list.update_places()
 
-    # TODO remove
-    print(b[0], b[1], b[2], r)
-
-    geomodel = GeoModel("sphere", session, b[:3], r)
+    from .Sphere import Sphere
+    geomodel = Sphere("sphere", session, b[:3], r)
     artiax.add_geomodel(geomodel)
-

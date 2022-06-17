@@ -182,6 +182,10 @@ will be displayed without the ChimeraX- prefix.
       name="Delete Picked Particle" display_name="Delete Picked" icon="delete.png"
       description="Delete picked particle."/>
 
+    <!-- ArtiaX tab, Geometric models-->
+    <Provider tab="ArtiaX" section="Getmetric models"
+      name="Fit Sphere" icon="show_markers.png" description="Fits a sphere to the currently selected particles."/>
+
 
   </Providers>
 
@@ -241,6 +245,9 @@ will be displayed without the ChimeraX- prefix.
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax unlock :: General ::
       Allow types of movement for these particle lists.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax fit sphere :: General ::
+      Fits a sphere to the currently selected particles..</ChimeraXClassifier>
 
 
 

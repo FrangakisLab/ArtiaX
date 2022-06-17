@@ -33,7 +33,7 @@ from PyQt5.QtWidgets import (
 
 # This package
 from .volume.Tomogram import orthoplane_cmd
-from .widgets import LabelEditSlider, SelectionTableWidget, ColorRangeWidget
+from .widgets import LabelEditSlider, SelectionTableWidget, ColorRangeWidget, ColorGeomodelWidget
 from .ArtiaX import (
     OPTIONS_TOMO_CHANGED,
     OPTIONS_GEOMODEL_CHANGED,
@@ -456,7 +456,9 @@ class OptionsWindow(ToolInstance):
         ow.surface_level_widget.valueChanged.connect(ow._surface_level_changed)
 
         ## Geometric Model Tab
-
+        # Connect colors
+        ow.geomodel_color_selection.colorChanged.connect(artia.color_geomodel)
+        #ow.geomodel_transparency_selection.geomodelTransparencyChanged.connect(artia.geomodels_transparency)
 
     def _update_tomo_ui(self):
         self._update_tomo_sliders()
@@ -1025,12 +1027,38 @@ class OptionsWindow(ToolInstance):
         # Add groups to layout
         geomodel_layout.addWidget(group_current_geomodel)
 
+        # Define a group for the visualization sliders
+        group_select = QGroupBox("Color Options:")
+        group_select.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+                                               QSizePolicy.MinimumExpanding))
+        group_select.setFont(self.font)
+        group_select.setCheckable(True)
+
+        # Set the layout of the group
+        group_color_layout = QVBoxLayout()
+
+        # Define the input of the GridLayout which includes some sliders and LineEdits
+        self.geomodel_color_selection = ColorGeomodelWidget(self.session)
+        self.transparency_slider = LabelEditSlider((1, 255), 'Transparency', step_size=1)
+        group_color_layout.addWidget(self.geomodel_color_selection)
+        group_color_layout.addWidget(self.transparency_slider)
+
+        # Set layout of group
+        group_select.setLayout(group_color_layout)
+
+        geomodel_layout.addWidget(group_select)
+
         # And finally set the layout of the widget
         self.geomodel_widget.setLayout(geomodel_layout)
+
+
 
     def _update_geomodel_ui(self):
         artia = self.session.ArtiaX
         geomodel = artia.geomodels.get(artia.options_geomodel)
+
+        # Set new list
+        self.geomodel_color_selection.set_geomodel(geomodel)
 
     def _geomodel_changed(self, name, model):
         artia = self.session.ArtiaX

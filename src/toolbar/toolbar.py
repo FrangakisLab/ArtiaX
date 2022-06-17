@@ -21,6 +21,7 @@ _providers = {
     "Hide Axes": "artiax hide axes",
     "Show Surfaces": "artiax show surfaces",
     "Hide Surfaces": "artiax hide surfaces",
+    "Fit Sphere": "artiax fit sphere"
 }
 
 

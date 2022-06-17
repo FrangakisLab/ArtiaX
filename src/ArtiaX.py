@@ -410,6 +410,10 @@ class ArtiaX(Model):
         id = self.partlists.get(identifier).id
         from .util.select import colormap_cmd
         colormap_cmd(self.session, id, palette, attribute, minimum, maximum)
+
+    def color_geomodel(self, identifier, color):
+        self.geomodels.get(identifier).color = color
+
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Callbacks
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
