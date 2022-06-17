@@ -26,6 +26,8 @@ from PyQt5.QtWidgets import (
     QTabWidget,
     QScrollArea,
     QSizePolicy,
+    QStackedLayout,
+    QStackedWidget,
     QToolButton
 )
 
@@ -34,6 +36,7 @@ from .volume.Tomogram import orthoplane_cmd
 from .widgets import LabelEditSlider, SelectionTableWidget, ColorRangeWidget
 from .ArtiaX import (
     OPTIONS_TOMO_CHANGED,
+    OPTIONS_GEOMODEL_CHANGED,
     OPTIONS_PARTLIST_CHANGED
 )
 
@@ -88,6 +91,7 @@ class OptionsWindow(ToolInstance):
         # Build the user interfaces
         self._build_tomo_widget()
         self._build_particlelist_widget()
+        self._build_geomodel_widget()
         # Build the final gui
         self._build_full_ui()
         self._connect_ui()
@@ -120,6 +124,7 @@ class OptionsWindow(ToolInstance):
         artia = self.session.ArtiaX
         artia.triggers.add_handler(OPTIONS_TOMO_CHANGED, self._update_tomo_options)
         artia.triggers.add_handler(OPTIONS_PARTLIST_CHANGED, self._update_partlist_options)
+        artia.triggers.add_handler(OPTIONS_GEOMODEL_CHANGED, self._update_geomodel_options)
 
 
 
@@ -136,8 +141,10 @@ class OptionsWindow(ToolInstance):
         # Add the Tabs
         self.tabs.addTab(self.tomo_widget, 'Tomogram Tools')
         self.tabs.addTab(self.motl_widget, 'Particle List Tools')
+        self.tabs.addTab(self.geomodel_widget, 'Geometric Model Tools')
         self.tabs.widget(0).setEnabled(False)
         self.tabs.widget(1).setEnabled(False)
+        self.tabs.widget(2).setEnabled(False)
         self.tabs.setCurrentIndex(0)
         self.main_layout.addWidget(self.tabs)
 
@@ -166,6 +173,14 @@ class OptionsWindow(ToolInstance):
         else:
             self._show_tab("partlist")
 
+    # Callback for trigger OPTIONS_GEOMODEL_CHANGED
+    def _update_geomodel_options(self, name, data):
+        if data is None:
+            self.tabs.widget(0).setEnabled(False)
+            self.current_geomodel_label.setText('')
+        else:
+            self._show_tab("geomodel")
+
     def _show_tab(self, type):
         artia = self.session.ArtiaX
 
@@ -183,9 +198,6 @@ class OptionsWindow(ToolInstance):
             from .volume.VolumePlus import RENDERING_OPTIONS_CHANGED
             ct.triggers.add_handler(RENDERING_OPTIONS_CHANGED, self._models_changed)
 
-            # Make sure we are on top
-            run(self.session, 'ui tool show "ArtiaX Options"', log=False)
-
         elif type == "partlist":
             cpl = artia.partlists.get(artia.options_partlist)
             text = '#{} -- {}'.format(cpl.id_string, cpl.name)
@@ -199,8 +211,21 @@ class OptionsWindow(ToolInstance):
             from .particle.ParticleList import PARTLIST_CHANGED
             cpl.triggers.add_handler(PARTLIST_CHANGED, self._partlist_changed)
 
-            # Make sure we are on top
-            run(self.session, 'ui tool show "ArtiaX Options"', log=False)
+        elif type == "geomodel":
+            cpl = artia.geomodels.get(artia.options_geomodel)
+            text = '#{} -- {}'.format(cpl.id_string, cpl.name)
+            self.current_geomodel_label.setText(text)
+            self.tabs.setCurrentIndex(2)
+            self.tabs.widget(2).setEnabled(True)
+
+            # Update the ui
+            self._update_geomodel_ui()
+
+            from .geometricmodel.GeoModel import GEOMODEL_CHANGED
+            cpl.triggers.add_handler(GEOMODEL_CHANGED, self._geomodel_changed)
+
+        # Make sure we are on top
+        run(self.session, 'ui tool show "ArtiaX Options"', log=False)
 
 # ==============================================================================
 # Options Menu for Tomograms ===================================================
@@ -429,6 +454,9 @@ class OptionsWindow(ToolInstance):
         ow.radius_widget.valueChanged.connect(ow._radius_changed)
         ow.axes_size_widget.valueChanged.connect(ow._axes_size_changed)
         ow.surface_level_widget.valueChanged.connect(ow._surface_level_changed)
+
+        ## Geometric Model Tab
+
 
     def _update_tomo_ui(self):
         self._update_tomo_sliders()
@@ -970,3 +998,43 @@ class OptionsWindow(ToolInstance):
         inst = class_obj(session, "Tomo Bundle")
         inst.line_edit.setText(data['current text'])
         return inst
+
+# ==============================================================================
+# Options Menu for Geometric Models ============================================
+# ==============================================================================
+
+    def _build_geomodel_widget(self):
+         # This window is a widget of the stacked layout
+        self.geomodel_widget = QScrollArea()
+        # Define the overall layout
+        geomodel_layout = QVBoxLayout()
+        geomodel_layout.setAlignment(Qt.AlignTop)
+
+        # Display current geomodel name
+        group_current_geomodel = QGroupBox("Current Geometric Model")
+        group_current_geomodel.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+                                                     QSizePolicy.Maximum))
+        group_current_geomodel.setFont(self.font)
+        current_geomodel_layout = QHBoxLayout()
+        self.current_geomodel_label = QLabel("")
+        self.current_geomodel_label.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+                                                          QSizePolicy.Minimum))
+        current_geomodel_layout.addWidget(self.current_geomodel_label)
+        group_current_geomodel.setLayout(current_geomodel_layout)
+
+        # Add groups to layout
+        geomodel_layout.addWidget(group_current_geomodel)
+
+        # And finally set the layout of the widget
+        self.geomodel_widget.setLayout(geomodel_layout)
+
+    def _update_geomodel_ui(self):
+        artia = self.session.ArtiaX
+        geomodel = artia.geomodels.get(artia.options_geomodel)
+
+    def _geomodel_changed(self, name, model):
+        artia = self.session.ArtiaX
+        opl = artia.geomodels.get(artia.options_geomodel)
+
+        if model is opl:
+            self._update_geomodel_ui()

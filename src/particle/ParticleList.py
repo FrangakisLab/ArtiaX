@@ -15,7 +15,7 @@ from chimerax.graphics import Drawing
 # This package
 from ..volume import VolumePlus
 from ..util import ManagerModel
-from ..io.ParticleData import ParticleData, AxisAnglePair
+from ..io.ParticleData import ParticleData
 from .SurfaceCollectionModel import SurfaceCollectionModel, MODELS_MOVED, MODELS_SELECTED
 from .MarkerSetPlus import (
     MarkerSetPlus,

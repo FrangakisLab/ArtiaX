@@ -220,7 +220,7 @@ class ArtiaXUI(ToolInstance):
                                              self._show_tomo,
                                              self._show_tomo_options)
 
-        # A display table for the motivelists
+        # A display table for the particle lists
         self.table_part = ManagerTableWidget(self.session,
                                              artia.partlists,
                                              self._show_partlist,
@@ -416,7 +416,7 @@ class ArtiaXUI(ToolInstance):
     def _close_geomodel(self):
         artia = self.session.ArtiaX
 
-        if artia.selected_geomodel is None or artia.geomodel.count == 0:
+        if artia.selected_geomodel is None or artia.geomodels.count == 0:
             return
 
         artia.close_geomodel(artia.selected_geomodel)
@@ -440,7 +440,7 @@ class ArtiaXUI(ToolInstance):
         self.table_part.update_options(artia.options_partlist)
 
     # Callback for triggers GEOMODEL_ADD, GEOMODEL_DEL
-    def _update_geomodel_table(self):
+    def _update_geomodel_table(self, name=None, data=None):
         artia = self.session.ArtiaX
         self.table_geomodel.update_table(artia.options_geomodel)
         self.table_geomodel.update_selection(artia.selected_geomodel)
@@ -476,10 +476,10 @@ class ArtiaXUI(ToolInstance):
 
         artia = self.session.ArtiaX
         if data is None:
-            text = "Particle Lists -- Selected: "
+            text = "Geometric Models -- Selected: "
             self.group_geomodel.setTitle(text)
         else:
-            text = "Particle Lists -- Selected: #{}".format(artia.geomodel.get(data).id_string)
+            text = "Geometric Models -- Selected: #{}".format(artia.geomodels.get(data).id_string)
             self.group_geomodel.setTitle(text)
 
     # Callback for trigger OPTIONS_TOMO_CHANGED
@@ -573,7 +573,7 @@ class ArtiaXUI(ToolInstance):
         if (item is not None) and (item.column() == 1):
             name = item.text()
             row = item.row()
-            artia.geomodel.set_name(row, name)
+            artia.geomodels.set_name(row, name)
 
     def _show_geomodel(self, idx, state):
         artia = self.session.ArtiaX

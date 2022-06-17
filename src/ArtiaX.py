@@ -13,6 +13,7 @@ from .util import ManagerModel
 from .util.colors import add_colors, ARTIAX_COLORS
 from .io import ArtiatomiParticleData, open_particle_list, save_particle_list, get_fmt_aliases
 from .particle import ParticleList
+from .geometricmodel import GeoModel
 
 # Triggers
 TOMOGRAM_ADD = 'tomo added'
@@ -26,7 +27,7 @@ GEOMODEL_DEL = 'geometricmodel removed'
 
 OPTIONS_TOMO_CHANGED = 'options tomo changed'
 OPTIONS_PARTLIST_CHANGED = 'options partlist changed'
-OPTIONS_GEOMODEL_CHANGED = 'options geometricmodel changed'
+OPTIONS_GEOMODEL_CHANGED = 'options geomodel changed'
 
 SEL_TOMO_CHANGED = 'selected tomo changed'
 SEL_PARTLIST_CHANGED = 'selected partlist changed'
@@ -83,9 +84,9 @@ class ArtiaX(Model):
         # Triggers when options window should be displayed (by setting ArtiaX.options_XXX)
         self.triggers.add_trigger(OPTIONS_TOMO_CHANGED)
         self.triggers.add_trigger(OPTIONS_PARTLIST_CHANGED)
+        self.triggers.add_trigger(OPTIONS_GEOMODEL_CHANGED)
 
         # Triggers when particle list selection changes
-        self.triggers.add_trigger(OPTIONS_GEOMODEL_CHANGED)
         self.triggers.add_trigger(SEL_TOMO_CHANGED)
         self.triggers.add_trigger(SEL_PARTLIST_CHANGED)
         self.triggers.add_trigger(SEL_GEOMODEL_CHANGED)
@@ -93,7 +94,7 @@ class ArtiaX(Model):
         # Triggers when display of objects changes
         self.triggers.add_trigger(PARTLIST_DISPLAY_CHANGED)
         self.triggers.add_trigger(TOMO_DISPLAY_CHANGED)
-        self.triggers.add_trigger(TOMO_DISPLAY_CHANGED)
+        self.triggers.add_trigger(GEOMODEL_DISPLAY_CHANGED)
 
         # When a particle list is added to the session, move it to the particle list manager
         self.session.triggers.add_handler(ADD_MODELS, self._model_added)
@@ -166,6 +167,15 @@ class ArtiaX(Model):
             self.partlists.get(value).store_marker_information()
 
     @property
+    def selected_geomodel(self):
+        return self._selected_geomodel
+
+    @selected_geomodel.setter
+    def selected_geomodel(self, value):
+        self._selected_geomodel = value
+        self.triggers.activate_trigger(SEL_GEOMODEL_CHANGED, self._selected_geomodel)
+
+    @property
     def options_partlist(self):
         return self._options_partlist
 
@@ -188,6 +198,18 @@ class ArtiaX(Model):
 
         if value is None:
             self.ui.ow.tomo_widget.setEnabled(False)
+
+    @property
+    def options_geomodel(self):
+        return self._options_geomodel
+
+    @options_geomodel.setter
+    def options_geomodel(self, value):
+        self._options_geomodel = value
+        self.triggers.activate_trigger(OPTIONS_GEOMODEL_CHANGED, self._options_geomodel)
+
+        if value is None:
+            self.ui.ow.geomodel_widget.setEnabled(False)
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Convenience Methods
@@ -219,6 +241,19 @@ class ArtiaX(Model):
         """
         return self.partlists.get(identifier)
 
+    def get_geomodel(self):
+        """Return list of all geometric models."""
+        return self.geomodels.child_models()
+
+    def get_geomodel(self, identifier):
+        """Return one geometric model at idx.
+
+         Parameters
+        ----------
+        identifier : int, model id tuple
+        """
+        return self.geomodels.get(identifier)
+
     def add_tomogram(self, model):
         """Add a tomogram model."""
         self.tomograms.add([model])
@@ -233,6 +268,13 @@ class ArtiaX(Model):
         self.selected_partlist = model.id
         self.options_partlist = model.id
 
+    def add_geomodel(self, model):
+        """Add a geometric model."""
+        self.geomodels.add([model])
+        self.triggers.activate_trigger(GEOMODEL_ADD, model)
+        self.selected_geomodel = model.id
+        self.options_geomodel = model.id
+
     @property
     def tomo_count(self):
         return self.tomograms.count
@@ -240,6 +282,10 @@ class ArtiaX(Model):
     @property
     def partlist_count(self):
         return self.partlists.count
+
+    @property
+    def geomodel_count(self):
+        return self.geomodels.count
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # I/O
@@ -311,6 +357,19 @@ class ArtiaX(Model):
         partlist = self.partlists.get(identifier)
         save_particle_list(self.session, file_name, partlist, format_name=format_name)
 
+    def close_geomodel(self, identifier):
+        """Close a geometric model by ArtiaX identifier."""
+        cid = self.geomodels.get(identifier).id
+
+        if cid == self.selected_geomodel:
+            self.selected_geomodel = None
+
+        if cid == self.options_geomodel:
+            self.options_geomodel = None
+
+        self.geomodels.get(identifier).delete()
+        self.triggers.activate_trigger(GEOMODEL_DEL, '')
+
     def attach_display_model(self, identifier, model):
         self.partlists.get(identifier).attach_display_model(model)
 
@@ -325,6 +384,12 @@ class ArtiaX(Model):
 
     def hide_partlist(self, identifier):
         run(self.session, 'hide #!{} models'.format(self.partlists.get(identifier).id_string))
+
+    def show_geomodel(self, identifier):
+        run(self.session, 'show #!{} models'.format(self.geomodels.get(identifier).id_string))
+
+    def hide_geomodel(self, identifier):
+        run(self.session, 'hide #!{} models'.format(self.geomodels.get(identifier).id_string))
 
     def show_particles(self, identifier, attributes, minima, maxima):
         id = self.partlists.get(identifier).id
@@ -392,6 +457,11 @@ class ArtiaX(Model):
                 self.selected_tomogram = None
                 self.options_tomogram = None
                 self.triggers.activate_trigger(TOMOGRAM_DEL, '')
+            elif isinstance(m, GeoModel):
+                # Since ID is unknown at this point, we need to cancel any selection
+                self.selected_geomodel = None
+                self.options_geomodel = None
+                self.triggers.activate_trigger(GEOMODEL_DEL, '')
 
     # Callback for trigger MODEL_DISPLAY_CHANGED
     def _model_display_changed(self, name, data):
@@ -401,4 +471,6 @@ class ArtiaX(Model):
             self.triggers.activate_trigger(PARTLIST_DISPLAY_CHANGED, data)
         elif isinstance(data, Tomogram):
             self.triggers.activate_trigger(TOMO_DISPLAY_CHANGED, data)
+        elif isinstance(data, GeoModel):
+            self.triggers.activate_trigger(GEOMODEL_DISPLAY_CHANGED, data)
 
