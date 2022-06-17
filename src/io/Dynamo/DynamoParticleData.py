@@ -116,6 +116,8 @@ class DynamoParticleData(ParticleData):
                 for i in range(0, diff):
                     self._data_keys['eig{}'.format(i+1)] = ['column_{}'.format(i+41)]
 
+            self._register_keys()
+
             # Back to the beginning
             csvfile.seek(0)
 

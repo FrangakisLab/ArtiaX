@@ -635,6 +635,17 @@ class ParticleData:
         """
         return Places([part.full_transform() for part in self._particles.values()])
 
+    def as_dictionary(self):
+        d = {}
+
+        for k in list(self._data_keys.keys()):
+            d[k] = []
+            for _id, p in self:
+                d[k].append(p[k])
+
+        return d
+
+
 
 
 

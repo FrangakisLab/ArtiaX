@@ -65,18 +65,37 @@ will be displayed without the ChimeraX- prefix.
               nicknames="dynamo,tbl"
               reference_url="https://wiki.dynamo.biozentrum.unibas.ch/w/index.php/Table"
               synopsis="Dynamo particle table"/>
+
+    <Provider name="RELION STAR file"
+              suffixes=".star"
+              category="particle list"
+              nicknames="star,relion"
+              reference_url="https://relion.readthedocs.io/en/release-3.1/Reference/Conventions.html"
+              synopsis="RELION star files"/>
+
+    <Provider name="Coords file"
+              suffixes=".coords"
+              category="particle list"
+              nicknames="coords,model2point"
+              reference_url="https://bio3d.colorado.edu/imod/doc/man/model2point.html"
+              synopsis="IMOD model2point output"/>
+
   </Providers>
 
   <Providers manager="open command">
     <Provider name="Artiatomi Motivelist" want_path="true"/>
     <Provider name="Generic Particle List" want_path="true"/>
     <Provider name="Dynamo Table" want_path="true"/>
+    <Provider name="RELION STAR file" want_path="true"/>
+    <Provider name="Coords file" want_path="true"/>
   </Providers>
 
   <Providers manager="save command">
     <Provider name="Artiatomi Motivelist" />
     <Provider name="Generic Particle List" />
     <Provider name="Dynamo Table" />
+    <Provider name="RELION STAR file" />
+    <Provider name="Coords file"/>
   </Providers>
 
    <Providers manager="presets">
