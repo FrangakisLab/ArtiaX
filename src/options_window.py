@@ -65,14 +65,15 @@ def is_float(s):
 class OptionsWindow(ToolInstance):
     DEBUG = False
 
-    SESSION_ENDURING = False    # Does this instance persist when session closes
-    SESSION_SAVE = True         # We do save/restore in sessions
+    SESSION_ENDURING = False  # Does this instance persist when session closes
+    SESSION_SAVE = True  # We do save/restore in sessions
     help = "help:user/tools/tutorial.html"
-                            # Let ChimeraX know about our help page
 
-# ==============================================================================
-# Instance Initialization ======================================================
-# ==============================================================================
+    # Let ChimeraX know about our help page
+
+    # ==============================================================================
+    # Instance Initialization ======================================================
+    # ==============================================================================
 
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name)
@@ -126,12 +127,9 @@ class OptionsWindow(ToolInstance):
         artia.triggers.add_handler(OPTIONS_PARTLIST_CHANGED, self._update_partlist_options)
         artia.triggers.add_handler(OPTIONS_GEOMODEL_CHANGED, self._update_geomodel_options)
 
-
-
-
-# ==============================================================================
-# Show selected GUI ============================================================
-# ==============================================================================
+    # ==============================================================================
+    # Show selected GUI ============================================================
+    # ==============================================================================
 
     def _build_full_ui(self):
         # Define a stacked layout and only show the selected layout
@@ -155,7 +153,7 @@ class OptionsWindow(ToolInstance):
         self.volume_open_dialog.setNameFilters(["Volume (*.em *.mrc *.mrcs *.rec *.map *.hdf)"])
         self.volume_open_dialog.setAcceptMode(QFileDialog.AcceptOpen)
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     # Callback for trigger OPTIONS_TOMO_CHANGED
     def _update_tomo_options(self, name, data):
@@ -227,9 +225,9 @@ class OptionsWindow(ToolInstance):
         # Make sure we are on top
         run(self.session, 'ui tool show "ArtiaX Options"', log=False)
 
-# ==============================================================================
-# Options Menu for Tomograms ===================================================
-# ==============================================================================
+    # ==============================================================================
+    # Options Menu for Tomograms ===================================================
+    # ==============================================================================
 
     def _build_tomo_widget(self):
         # This window is a widget of the stacked layout
@@ -272,7 +270,7 @@ class OptionsWindow(ToolInstance):
         # Define a group for the contrast sliders
         group_contrast = QGroupBox("Contrast Settings")
         group_contrast.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
-                                                  QSizePolicy.Maximum))
+                                                 QSizePolicy.Maximum))
         group_contrast.setFont(self.font)
         group_contrast_layout = QGridLayout()
 
@@ -303,7 +301,7 @@ class OptionsWindow(ToolInstance):
         # Define a group for different orthoplanes of a tomogram
         group_orthoplanes = QGroupBox("Orthoplanes")
         group_orthoplanes.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
-                                                 QSizePolicy.Maximum))
+                                                    QSizePolicy.Maximum))
         group_orthoplanes.setFont(self.font)
         # Set the layout of the group
         group_orthoplanes_layout = QGridLayout()
@@ -323,7 +321,7 @@ class OptionsWindow(ToolInstance):
         # Define a group for the fourier transform of a volume
         group_fourier_transform = QGroupBox("Fourier transformation")
         group_fourier_transform.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
-                                               QSizePolicy.Maximum))
+                                                          QSizePolicy.Maximum))
         group_fourier_transform.setFont(self.font)
         group_fourier_transform_layout = QGridLayout()
         # Define Button to press for execute the transformation
@@ -385,8 +383,8 @@ class OptionsWindow(ToolInstance):
         # And finally set the layout of the widget
         self.tomo_widget.setLayout(tomo_layout)
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# Tomo Window Functions ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # Tomo Window Functions ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     def _connect_ui(self):
         ow = self
@@ -458,7 +456,7 @@ class OptionsWindow(ToolInstance):
         ## Geometric Model Tab
         # Connect colors
         ow.geomodel_color_selection.colorChanged.connect(artia.color_geomodel)
-        #ow.geomodel_transparency_selection.geomodelTransparencyChanged.connect(artia.geomodels_transparency)
+        # ow.geomodel_transparency_selection.geomodelTransparencyChanged.connect(artia.geomodels_transparency)
 
     def _update_tomo_ui(self):
         self._update_tomo_sliders()
@@ -493,7 +491,7 @@ class OptionsWindow(ToolInstance):
         self.group_contrast_width_edit.setText(str(tomo.contrast_width))
 
         self.group_slices_slider.setMinimum(0)
-        self.group_slices_slider.setMaximum(tomo.slab_count-1)
+        self.group_slices_slider.setMaximum(tomo.slab_count - 1)
         self.group_contrast_width_slider.setSingleStep(1)
 
         self.group_slices_slider.setValue(tomo.integer_slab_position)
@@ -505,7 +503,7 @@ class OptionsWindow(ToolInstance):
 
         self.group_pixelsize_edit.setText(str(tomo.pixelsize[0]))
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _set_tomo_pixelsize(self):
         ow = self
         artia = self.session.ArtiaX
@@ -660,9 +658,9 @@ class OptionsWindow(ToolInstance):
         command = "volume fourier #{} phase true".format(id)
         run(self.session, command)
 
-# ==============================================================================
-# Options Menu for Motivelists =================================================
-# ==============================================================================
+    # ==============================================================================
+    # Options Menu for Motivelists =================================================
+    # ==============================================================================
 
     def _build_particlelist_widget(self):
         # This widget is the particle lists tab
@@ -674,7 +672,7 @@ class OptionsWindow(ToolInstance):
 
         # Top row with lock/unlock buttons
         self.top_layout = QHBoxLayout()
-        #self.top_layout.setAlignment(Qt.AlignCenter)
+        # self.top_layout.setAlignment(Qt.AlignCenter)
 
         # Display current particle list name and id
         self.group_current_plist = QGroupBox("Current Particle List")
@@ -851,29 +849,29 @@ class OptionsWindow(ToolInstance):
         if model is opl:
             self._update_partlist_ui()
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# Motl Group Functions +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # Motl Group Functions +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     #
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _radius_changed(self, value):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
         pl.radius = value
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _surface_level_changed(self, value):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
         pl.surface_level = value
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _axes_size_changed(self, value):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
         pl.axes_size = value
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _origin_pixelsize_changed(self):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
@@ -885,7 +883,7 @@ class OptionsWindow(ToolInstance):
         value = float(self.pf_edit_ori.text())
         pl.origin_pixelsize = value
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _trans_pixelsize_changed(self):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
@@ -897,7 +895,7 @@ class OptionsWindow(ToolInstance):
         value = float(self.pf_edit_tra.text())
         pl.translation_pixelsize = value
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _delete_selected(self):
         from numpy import any
 
@@ -909,7 +907,7 @@ class OptionsWindow(ToolInstance):
             ids = pl.particle_ids[mask]
             pl.delete_data(ids)
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _reset_selected(self):
         from numpy import any
         artia = self.session.ArtiaX
@@ -920,14 +918,14 @@ class OptionsWindow(ToolInstance):
             ids = pl.particle_ids[mask]
             pl.reset_particles(ids)
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _reset_all(self):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
         pl.reset_all_particles()
         self._update_partlist_ui()
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     def _attach_display_model(self, file):
         artia = self.session.ArtiaX
@@ -1001,12 +999,12 @@ class OptionsWindow(ToolInstance):
         inst.line_edit.setText(data['current text'])
         return inst
 
-# ==============================================================================
-# Options Menu for Geometric Models ============================================
-# ==============================================================================
+    # ==============================================================================
+    # Options Menu for Geometric Models ============================================
+    # ==============================================================================
 
     def _build_geomodel_widget(self):
-         # This window is a widget of the stacked layout
+        # This window is a widget of the stacked layout
         self.geomodel_widget = QScrollArea()
         # Define the overall layout
         geomodel_layout = QVBoxLayout()
@@ -1015,12 +1013,12 @@ class OptionsWindow(ToolInstance):
         # Display current geomodel name
         group_current_geomodel = QGroupBox("Current Geometric Model")
         group_current_geomodel.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
-                                                     QSizePolicy.Maximum))
+                                                         QSizePolicy.Maximum))
         group_current_geomodel.setFont(self.font)
         current_geomodel_layout = QHBoxLayout()
         self.current_geomodel_label = QLabel("")
         self.current_geomodel_label.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
-                                                          QSizePolicy.Minimum))
+                                                              QSizePolicy.Minimum))
         current_geomodel_layout.addWidget(self.current_geomodel_label)
         group_current_geomodel.setLayout(current_geomodel_layout)
 
@@ -1039,9 +1037,12 @@ class OptionsWindow(ToolInstance):
 
         # Define the input of the GridLayout which includes some sliders and LineEdits
         self.geomodel_color_selection = ColorGeomodelWidget(self.session)
+        self.geomodel_color_selection.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+                                                                QSizePolicy.Maximum))
         self.transparency_slider = LabelEditSlider((1, 255), 'Transparency', step_size=1)
         group_color_layout.addWidget(self.geomodel_color_selection)
         group_color_layout.addWidget(self.transparency_slider)
+        group_color_layout.addStretch()
 
         # Set layout of group
         group_select.setLayout(group_color_layout)
@@ -1050,8 +1051,6 @@ class OptionsWindow(ToolInstance):
 
         # And finally set the layout of the widget
         self.geomodel_widget.setLayout(geomodel_layout)
-
-
 
     def _update_geomodel_ui(self):
         artia = self.session.ArtiaX

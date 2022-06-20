@@ -25,7 +25,7 @@ class Sphere(GeoModel):
     def define_sphere(self):
         from chimerax.bild.bild import _BildFile
         b = _BildFile(self.session, 'dummy')
-        b.transparency_command('.transparency {}'.format(self.transparency/255).split())
+        b.transparency_command('.transparency {}'.format(self._color[3]/255).split())
         bild_color = np.multiply(self.color, 1/255)
         b.color_command('.color {} {} {}'.format(*bild_color).split())
         b.sphere_command('.sphere {} {} {} {}'.format(self.pos[0], self.pos[1], self.pos[2], self.r).split())

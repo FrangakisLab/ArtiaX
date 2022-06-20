@@ -143,4 +143,4 @@ class ColorGeomodelWidget(QWidget):
         pass
 
     def _color_changed(self):
-        self.colorChanged.emit(self.geomodel.id, self._color)
+        self.colorChanged.emit(self.geomodel.id, self._color[:3])

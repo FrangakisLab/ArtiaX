@@ -20,9 +20,8 @@ class GeoModel(Model):
     def __init__(self, name, session):
         super().__init__(name, session)
 
-        self.transparency = 170
-        self.color = self._get_unused_color()
-        self.color[3] = self.transparency
+        self._color = self._get_unused_color()
+        self.change_transparency(170)
 
         # Change trigger for UI
         self.triggers.add_trigger(GEOMODEL_CHANGED)
@@ -41,21 +40,22 @@ class GeoModel(Model):
             col = std_col[-1, :]
         else:
             col = artia.standard_colors[-1]
-        col[3] = self.transparency
         return col
 
-    def change_color(self, color):
-        if len(color) == 4: #transparency was given
-            self.transparency = color[3]
-            self.vertex_colors = np.full(np.shape(self.vertex_colors), color)
-        else: #don't change transparency
-            color = np.append(color,self.transparency)
-            self.vertex_colors = np.full(np.shape(self.vertex_colors), color)
-        self.color = color
-
     def change_transparency(self, t):
-        self.color[3] = t
-        self.change_color(self.color)
+        self._color[3] = t
+
+    @property
+    def color(self):
+        return self._color
+
+    @color.setter
+    def color(self, color):
+        if len(color) == 3:  # transparency was not given
+            color = np.append(color, self._color[3])
+        self._color = color
+        self.vertex_colors = np.full(np.shape(self.vertex_colors), color)
+
 
 def fit_sphere(session):
     """Fits a sphere to the currently selected particles"""
