@@ -34,7 +34,7 @@ from Qt.QtWidgets import (
 
 # This package
 from .volume.Tomogram import orthoplane_cmd
-from .widgets import LabelEditSlider, SelectionTableWidget, ColorRangeWidget, ColorGeomodelWidget
+from .widgets import LabelEditSlider, SelectionTableWidget, ColorRangeWidget, ColorGeomodelWidget, LineOptions
 from .ArtiaX import (
     OPTIONS_TOMO_CHANGED,
     OPTIONS_GEOMODEL_CHANGED,
@@ -1148,7 +1148,7 @@ class OptionsWindow(ToolInstance):
         self.model_options.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
                                                      QSizePolicy.Maximum))
         sphere_options = QWidget()
-        line_options = QWidget()
+        line_options = LineOptions(self.session)
 
         self.model_options.addWidget(sphere_options)
         self.model_options.addWidget(line_options)

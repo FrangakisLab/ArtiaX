@@ -25,6 +25,7 @@ from Qt.QtWidgets import (
 
 # This package
 from .LabelEditSlider import LabelEditSlider
+from .LabelEditRangeSlider import LabelEditRangeSlider
 
 class LineOptions(QWidget):
     def __init__(self, session, parent=None):
@@ -32,3 +33,10 @@ class LineOptions(QWidget):
 
         self.session = session
         self.geomodel = None
+
+        self.layout = QVBoxLayout()
+
+        self.spacing_slider = LabelEditRangeSlider((0,200), "spacing")
+
+        self.layout.addWidget(self.spacing_slider)
+        self.setLayout(self.layout)

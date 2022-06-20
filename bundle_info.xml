@@ -263,6 +263,9 @@ will be displayed without the ChimeraX- prefix.
     <ChimeraXClassifier>ChimeraX :: Command :: artiax fit sphere :: General ::
       Fits a sphere to the currently selected particles..</ChimeraXClassifier>
 
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax fit line :: General ::
+      Fits a line to two selected particles..</ChimeraXClassifier>
+
 
 
 <!--    <ChimeraXClassifier>ChimeraX :: Command :: artiax open particles :: General ::-->

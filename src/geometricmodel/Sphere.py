@@ -22,7 +22,7 @@ class Sphere(GeoModel):
         self.r = r
 
         self.update()
-        print("Created sphere with center: {} and radius: {}".format(b[:3], r))
+        print("Created sphere with center: {} and radius: {}".format(pos, r))
 
     def define_sphere(self):
         from chimerax.bild.bild import _BildFile
