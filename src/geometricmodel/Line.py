@@ -11,25 +11,25 @@ from chimerax.atomic import Atom
 from chimerax.graphics import Drawing
 from .GeoModel import GeoModel
 
-class Sphere(GeoModel):
-    """Sphere"""
 
-    def __init__(self, name, session, pos, r):
+class Line(GeoModel):
+    """Line between two points"""
+
+    def __init__(self, name, session, start, end):
         super().__init__(name, session)
-        self.change_transparency(100)
 
-        self.center = pos
-        self.r = r
+        self.start = start
+        self.end = end
 
         self.update()
 
-    def define_sphere(self):
+    def define_line(self):
         from chimerax.bild.bild import _BildFile
         b = _BildFile(self.session, 'dummy')
         b.transparency_command('.transparency {}'.format(self._color[3]/255).split())
         bild_color = np.multiply(self.color, 1/255)
         b.color_command('.color {} {} {}'.format(*bild_color).split())
-        b.sphere_command('.sphere {} {} {} {}'.format(self.center[0], self.center[1], self.center[2], self.r).split())
+        b.cylinder_command(".vector {} {} {} {} {} {} 1".format(*self.start, *self.end).split())
 
         from chimerax.atomic import AtomicShapeDrawing
         d = AtomicShapeDrawing('shapes')
@@ -38,14 +38,6 @@ class Sphere(GeoModel):
         return d.vertices, d.normals, d.triangles, d.vertex_colors
 
     def update(self):
-        vertices, normals, triangles, vertex_colors = self.define_sphere()
+        vertices, normals, triangles, vertex_colors = self.define_line()
         self.set_geometry(vertices, normals, triangles)
         self.vertex_colors = vertex_colors
-
-    def change_radius(self, r):
-        self.r = r
-        self.update()
-
-    def translate(self, pos):
-        self.center = pos
-        self.update()

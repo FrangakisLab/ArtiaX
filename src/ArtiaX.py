@@ -182,9 +182,6 @@ class ArtiaX(Model):
         self._options_partlist = value
         self.triggers.activate_trigger(OPTIONS_PARTLIST_CHANGED, self._options_partlist)
 
-        if value is None:
-            self.ui.ow.motl_widget.setEnabled(False)
-
     @property
     def options_tomogram(self):
         return self._options_tomogram
@@ -194,8 +191,6 @@ class ArtiaX(Model):
         self._options_tomogram = value
         self.triggers.activate_trigger(OPTIONS_TOMO_CHANGED, self._options_tomogram)
 
-        if value is None:
-            self.ui.ow.tomo_widget.setEnabled(False)
 
     @property
     def options_geomodel(self):
@@ -205,9 +200,6 @@ class ArtiaX(Model):
     def options_geomodel(self, value):
         self._options_geomodel = value
         self.triggers.activate_trigger(OPTIONS_GEOMODEL_CHANGED, self._options_geomodel)
-
-        if value is None:
-            self.ui.ow.geomodel_widget.setEnabled(False)
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Convenience Methods

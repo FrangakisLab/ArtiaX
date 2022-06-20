@@ -131,7 +131,7 @@ class ColorGeomodelWidget(QWidget):
         self._color_changed()
 
     def _set_color(self):
-        self.current_color_label.setStyleSheet('background-color: rgba({},{},{},{});'.format(*tuple(self._color)))
+        self.current_color_label.setStyleSheet('background-color: rgba({},{},{},255);'.format(*tuple(self._color[:3])))
         self.transparency_slider.value = (255 - self._color[3]) * 100 / 255
 
     def _pick_color(self):

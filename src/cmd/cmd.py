@@ -110,6 +110,7 @@ def artiax_hide(session, models=None, style=None):
     from ..util.view import show
     show(session, models, style, do_show=False)
 
+
 def artiax_fit_sphere(session):
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running, so no sphere can be fitted.")
@@ -117,6 +118,16 @@ def artiax_fit_sphere(session):
 
     from ..geometricmodel.GeoModel import fit_sphere
     fit_sphere(session)
+
+
+def artiax_fit_line(session):
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running, so no line can be fitted.")
+        return
+
+    from ..geometricmodel.GeoModel import fit_line
+    fit_line(session)
+
 
 def artiax_lock(session, models=None, type=None):
     if not hasattr(session, 'ArtiaX'):
@@ -252,6 +263,14 @@ def register_artiax(logger):
         )
         register('artiax fit sphere', desc, artiax_fit_sphere)
 
+    def register_artiax_fit_line():
+        desc = CmdDesc(
+            #TODO rewrite and get url right
+            synopsis='Create a geometric model line between two selected particles.',
+            url='help:user/commands/artiax_hide.html'
+        )
+        register('artiax fit line', desc, artiax_fit_line)
+
     def register_artiax_lock():
         desc = CmdDesc(
             optional=[("models", Or(ModelsArg, EmptyArg)),
@@ -283,6 +302,7 @@ def register_artiax(logger):
     register_artiax_lock()
     register_artiax_unlock()
     register_artiax_fit_sphere()
+    register_artiax_fit_line()
 
 # Possible styles
 # for pl in models:

@@ -21,7 +21,7 @@ class GeoModel(Model):
         super().__init__(name, session)
 
         self._color = self._get_unused_color()
-        self.change_transparency(170)
+        self.change_transparency(255)
 
         # Change trigger for UI
         self.triggers.add_trigger(GEOMODEL_CHANGED)
@@ -57,8 +57,7 @@ class GeoModel(Model):
         self.vertex_colors = np.full(np.shape(self.vertex_colors), color)
 
 
-def fit_sphere(session):
-    """Fits a sphere to the currently selected particles"""
+def get_curr_selected_particles_pos(session):
     artiax = session.ArtiaX
 
     # Find selected particles
@@ -71,6 +70,15 @@ def fit_sphere(session):
                 y_pos = curr_part.coord[1]
                 z_pos = curr_part.coord[2]
                 particle_pos = np.append(particle_pos, [[x_pos, y_pos, z_pos]], axis=0)
+
+    return particle_pos
+
+
+def fit_sphere(session):
+    """Fits a sphere to the currently selected particles"""
+    artiax = session.ArtiaX
+
+    particle_pos = get_curr_selected_particles_pos(session)
 
     if len(particle_pos) < 4:
         session.logger.warning("At least four points are needed to fit a sphere")
@@ -88,7 +96,7 @@ def fit_sphere(session):
     print("Created sphere with center: {} and radius: {}".format(b[:3], r))
 
     # Reorient selected particles so that Z-axis points towards center of sphere
-    from chimerax.geometry import z_align, translation
+    from chimerax.geometry import z_align
     for particle_list in session.ArtiaX.partlists.child_models():
         for curr_id in particle_list.particle_ids[particle_list.selected_particles]:
             if curr_id:
@@ -104,4 +112,34 @@ def fit_sphere(session):
 
     from .Sphere import Sphere
     geomodel = Sphere("sphere", session, b[:3], r)
+    artiax.add_geomodel(geomodel)
+
+
+def fit_line(session):
+    """Creates a line between two particles"""
+    artiax = session.ArtiaX
+
+    particle_pos = get_curr_selected_particles_pos(session)
+
+    if len(particle_pos) != 2:
+        session.logger.warning("Only select a start and end point")
+        return
+
+    start = particle_pos[0]
+    end = particle_pos[1]
+
+    # Reorient selected particles so that Z-axis along the line
+    from chimerax.geometry import z_align
+    rotation_to_z = z_align(start, end)
+    rotation = rotation_to_z.zero_translation().inverse()
+    for particle_list in session.ArtiaX.partlists.child_models():
+        for curr_id in particle_list.particle_ids[particle_list.selected_particles]:
+            if curr_id:
+                curr_part = particle_list.get_particle(curr_id)
+                curr_part.rotation = rotation
+        # Updated graphics
+        particle_list.update_places()
+
+    from .Line import Line
+    geomodel = Line("line", session, start, end)
     artiax.add_geomodel(geomodel)

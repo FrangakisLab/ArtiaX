@@ -27,7 +27,9 @@ from Qt.QtWidgets import (
     QScrollArea,
     QSizePolicy,
     QLayout,
-    QWidget
+    QWidget,
+    QStackedLayout,
+    QStackedWidget
 )
 
 # This package
@@ -64,14 +66,15 @@ def is_float(s):
 class OptionsWindow(ToolInstance):
     DEBUG = False
 
-    SESSION_ENDURING = False    # Does this instance persist when session closes
-    SESSION_SAVE = True         # We do save/restore in sessions
+    SESSION_ENDURING = False  # Does this instance persist when session closes
+    SESSION_SAVE = True  # We do save/restore in sessions
     help = "help:user/tools/tutorial.html"
-                            # Let ChimeraX know about our help page
 
-# ==============================================================================
-# Instance Initialization ======================================================
-# ==============================================================================
+    # Let ChimeraX know about our help page
+
+    # ==============================================================================
+    # Instance Initialization ======================================================
+    # ==============================================================================
 
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name)
@@ -127,9 +130,9 @@ class OptionsWindow(ToolInstance):
         artia.triggers.add_handler(OPTIONS_PARTLIST_CHANGED, self._update_partlist_options)
         artia.triggers.add_handler(OPTIONS_GEOMODEL_CHANGED, self._update_geomodel_options)
 
-# ==============================================================================
-# Show selected GUI ============================================================
-# ==============================================================================
+    # ==============================================================================
+    # Show selected GUI ============================================================
+    # ==============================================================================
 
     def _build_full_ui(self):
         # Define a stacked layout and only show the selected layout
@@ -155,7 +158,7 @@ class OptionsWindow(ToolInstance):
         self.volume_open_dialog.setNameFilters(["Volume (*.em *.mrc *.mrcs *.rec *.map *.hdf)"])
         self.volume_open_dialog.setAcceptMode(QFileDialog.AcceptOpen)
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     # Callback for trigger OPTIONS_TOMO_CHANGED
     def _update_tomo_options(self, name, data):
@@ -180,12 +183,13 @@ class OptionsWindow(ToolInstance):
             self.tabs.widget(3).setEnabled(False)
             self.current_geomodel_label.setText('')
         else:
+
             self._show_tab("geomodel")
 
-    def _show_tab(self, type):
+    def _show_tab(self, obj):
         artia = self.session.ArtiaX
 
-        if type == "tomogram":
+        if obj == "tomogram":
             ct = artia.tomograms.get(artia.options_tomogram)
             text = '#{} -- {}'.format(ct.id_string, ct.name)
             self.current_tomo_label.setText(text)
@@ -199,7 +203,7 @@ class OptionsWindow(ToolInstance):
             from .volume.VolumePlus import RENDERING_OPTIONS_CHANGED
             ct.triggers.add_handler(RENDERING_OPTIONS_CHANGED, self._models_changed)
 
-        elif type == "partlist":
+        elif obj == "partlist":
             cpl = artia.partlists.get(artia.options_partlist)
             self.tabs.setCurrentIndex(1)
             self.tabs.widget(1).setEnabled(True)
@@ -211,25 +215,26 @@ class OptionsWindow(ToolInstance):
             from .particle.ParticleList import PARTLIST_CHANGED
             cpl.triggers.add_handler(PARTLIST_CHANGED, self._partlist_changed)
 
-        elif type == "geomodel":
-            cpl = artia.geomodels.get(artia.options_geomodel)
-            text = '#{} -- {}'.format(cpl.id_string, cpl.name)
+        elif obj == "geomodel":
+            geomodel = artia.geomodels.get(artia.options_geomodel)
+            text = '#{} -- {}'.format(geomodel.id_string, geomodel.name)
             self.current_geomodel_label.setText(text)
-            self.tabs.setCurrentIndex(2)
-            self.tabs.widget(2).setEnabled(True)
+            self.tabs.setCurrentIndex(3)
+            self.tabs.widget(3).setEnabled(True)
+            self.curr_model = type(geomodel).__name__
 
             # Update the ui
             self._update_geomodel_ui()
 
             from .geometricmodel.GeoModel import GEOMODEL_CHANGED
-            cpl.triggers.add_handler(GEOMODEL_CHANGED, self._geomodel_changed)
+            geomodel.triggers.add_handler(GEOMODEL_CHANGED, self._geomodel_changed)
 
         # Make sure we are on top
         run(self.session, 'ui tool show "ArtiaX Options"', log=False)
 
-# ==============================================================================
-# Options Menu for Tomograms ===================================================
-# ==============================================================================
+    # ==============================================================================
+    # Options Menu for Tomograms ===================================================
+    # ==============================================================================
 
     def _build_tomo_widget(self):
         # This window is a widget of the stacked layout
@@ -385,8 +390,8 @@ class OptionsWindow(ToolInstance):
         # And finally set the layout of the widget
         self.tomo_widget.setLayout(tomo_layout)
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# Tomo Window Functions ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # Tomo Window Functions ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     def _connect_ui(self):
         ow = self
@@ -506,7 +511,7 @@ class OptionsWindow(ToolInstance):
 
         self.group_pixelsize_edit.setText(str(tomo.pixelsize[0]))
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _set_tomo_pixelsize(self):
         ow = self
         artia = self.session.ArtiaX
@@ -661,9 +666,9 @@ class OptionsWindow(ToolInstance):
         command = "volume fourier #{} phase true".format(id)
         run(self.session, command)
 
-# ==============================================================================
-# Options Menus for Motivelists =================================================
-# ==============================================================================
+    # ==============================================================================
+    # Options Menus for Motivelists =================================================
+    # ==============================================================================
 
     def _build_manipulation_widget(self):
         # This widget is the Select/Manipulate lists tab
@@ -699,7 +704,7 @@ class OptionsWindow(ToolInstance):
         #### Scaling group box ####
         self.group_scale = QGroupBox("Scaling:")
         self.group_scale.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
-                                                          QSizePolicy.Maximum))
+                                                   QSizePolicy.Maximum))
 
         self.group_scale.setFont(self.font)
         self.group_scale.setCheckable(True)
@@ -775,8 +780,7 @@ class OptionsWindow(ToolInstance):
         self.manip_widget.setLayout(self.manip_layout)
         self.manip_area.setWidget(self.manip_widget)
 
-
-    #def _build_particlelist_widget(self):
+    # def _build_particlelist_widget(self):
     def _build_visualization_widget(self):
         # This widget is the Visualize particle lists tab
         self.vis_area = QScrollArea()
@@ -791,16 +795,16 @@ class OptionsWindow(ToolInstance):
         #### Top bar with label and tool buttons ####
         from .widgets import StateButton
         self.translation_lock_button_1 = StateButton(icon_true='lock_translation.png',
-                                                   icon_false='unlock_translation.png',
-                                                   tooltip_true='Translation locked.',
-                                                   tooltip_false='Translation unlocked.',
-                                                   init_state=False)
+                                                     icon_false='unlock_translation.png',
+                                                     tooltip_true='Translation locked.',
+                                                     tooltip_false='Translation unlocked.',
+                                                     init_state=False)
 
         self.rotation_lock_button_1 = StateButton(icon_true='lock_rotation.png',
-                                                icon_false='unlock_rotation.png',
-                                                tooltip_true='Rotation locked.',
-                                                tooltip_false='Rotation unlocked.',
-                                                init_state=False)
+                                                  icon_false='unlock_rotation.png',
+                                                  tooltip_true='Rotation locked.',
+                                                  tooltip_false='Rotation unlocked.',
+                                                  init_state=False)
 
         buttons = [self.translation_lock_button_1, self.rotation_lock_button_1]
 
@@ -871,7 +875,6 @@ class OptionsWindow(ToolInstance):
         self.vis_widget.setLayout(self.vis_layout)
         self.vis_area.setWidget(self.vis_widget)
 
-
     def _update_partlist_ui(self):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
@@ -920,29 +923,29 @@ class OptionsWindow(ToolInstance):
         if model is opl:
             self._update_partlist_ui()
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# Motl Group Functions +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # Motl Group Functions +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     #
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _radius_changed(self, value):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
         pl.radius = value
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _surface_level_changed(self, value):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
         pl.surface_level = value
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _axes_size_changed(self, value):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
         pl.axes_size = value
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _origin_pixelsize_changed(self):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
@@ -954,7 +957,7 @@ class OptionsWindow(ToolInstance):
         value = float(self.pf_edit_ori.text())
         pl.origin_pixelsize = value
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _trans_pixelsize_changed(self):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
@@ -966,7 +969,7 @@ class OptionsWindow(ToolInstance):
         value = float(self.pf_edit_tra.text())
         pl.translation_pixelsize = value
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _delete_selected(self):
         from numpy import any
 
@@ -978,7 +981,7 @@ class OptionsWindow(ToolInstance):
             ids = pl.particle_ids[mask]
             pl.delete_data(ids)
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _reset_selected(self):
         from numpy import any
         artia = self.session.ArtiaX
@@ -989,14 +992,14 @@ class OptionsWindow(ToolInstance):
             ids = pl.particle_ids[mask]
             pl.reset_particles(ids)
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _reset_all(self):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
         pl.reset_all_particles()
         self._update_partlist_ui()
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     def _attach_display_model(self, file):
         artia = self.session.ArtiaX
@@ -1095,30 +1098,38 @@ class OptionsWindow(ToolInstance):
         current_geomodel_layout.addWidget(self.current_geomodel_label)
         group_current_geomodel.setLayout(current_geomodel_layout)
 
-        # Add groups to layout
-        geomodel_layout.addWidget(group_current_geomodel)
-
         # Define a group for the visualization sliders
-        group_select = QGroupBox("Color Options:")
-        group_select.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+        color_select = QGroupBox("Color Options:")
+        color_select.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
                                                QSizePolicy.Maximum))
-        group_select.setFont(self.font)
-        group_select.setCheckable(True)
+        color_select.setFont(self.font)
+        color_select.setCheckable(True)
 
-        # Set the layout of the group
+        # Define the color settings
         group_color_layout = QVBoxLayout()
 
-        # Define the input of the GridLayout which includes some sliders and LineEdits
         self.geomodel_color_selection = ColorGeomodelWidget(self.session)
         self.geomodel_color_selection.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
                                                                 QSizePolicy.Maximum))
         group_color_layout.addWidget(self.geomodel_color_selection)
         group_color_layout.addStretch()
 
-        # Set layout of group
-        group_select.setLayout(group_color_layout)
+        color_select.setLayout(group_color_layout)
 
-        geomodel_layout.addWidget(group_select)
+        # Define the model specific options
+        self.models = {"Sphere": 0, "Line": 1}
+        self.model_options = QStackedWidget()
+        self.model_options.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+                                                     QSizePolicy.Maximum))
+        sphere_options = QWidget()
+        line_options = QWidget()
+
+        self.model_options.addWidget(sphere_options)
+        self.model_options.addWidget(line_options)
+
+        geomodel_layout.addWidget(group_current_geomodel)
+        geomodel_layout.addWidget(color_select)
+        geomodel_layout.addWidget(self.model_options)
 
         # And finally set the layout of the widget
         geomodel_widget = QWidget()
@@ -1132,6 +1143,7 @@ class OptionsWindow(ToolInstance):
 
         # Set new list
         self.geomodel_color_selection.set_geomodel(geomodel)
+        self.model_options.setCurrentIndex(self.models[self.curr_model])
 
     def _geomodel_changed(self, name, model):
         artia = self.session.ArtiaX
