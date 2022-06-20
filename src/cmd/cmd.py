@@ -7,6 +7,7 @@ from chimerax.map import Volume
 # This package
 from ..util.view import *
 
+
 def get_singleton(session, create=True):
     if not session.ui.is_gui:
         return None
@@ -14,6 +15,7 @@ def get_singleton(session, create=True):
     from chimerax.core import tools
     from ..tool import ArtiaXUI
     return tools.get_singleton(session, ArtiaXUI, 'ArtiaX', create=create)
+
 
 def artiax_start(session):
     """Start ArtiaX UI."""
@@ -23,33 +25,63 @@ def artiax_start(session):
     get_singleton(session)
     return session.ArtiaX
 
+
 def artiax_open_tomo(session, path):
     """Open a tomogram."""
     get_singleton(session)
     session.ArtiaX.open_tomogram(path)
 
-def artiax_add_tomo(session, model=None):
+
+def artiax_add_tomo(session, models=None):
     """Add a tomogram already open in ChimeraX."""
-    if model is None:
-        raise errors.UserError("artiax add tomo: No model specified.")
-
-    if not isinstance(model, Volume):
-        raise errors.UserError("artiax add tomo: Cannot import data of type {} to ArtiaX as a tomogram.".format(type(model)))
-
-    get_singleton(session)
-    session.ArtiaX.import_tomogram(model)
-
-def artiax_close_tomo(session, index):
-    """Close a tomogram by internal ID."""
-    if not hasattr(session, 'ArtiaX'):
-        session.logger.warning("ArtiaX is not currently running, so no tomograms can be closed.")
+    # No Model
+    if models is None:
+        session.logger.warning("artiax add tomo: No model specified.")
         return
 
-    #if index < 1 or index > session.ArtiaX.tomo_count:
-    #    raise errors.UserError("artiax close tomo: Requested index {} is outside range 1 to {}".format(index, session.ArtiaX.tomo_count))
+    # Filter by class
+    ms = []
+    for model in models:
+        if not isinstance(model, Volume):
+            session.logger.warning("artiax add tomo: Cannot import data of type {} to ArtiaX as a tomogram.".format(type(model)))
+            continue
 
+        ms.append(model)
+
+    # Make sure it's running
     get_singleton(session)
-    session.ArtiaX.close_tomogram(index-1)
+
+    # Add
+    for model in ms:
+        session.ArtiaX.import_tomogram(model)
+
+
+# def artiax_close_tomo(session, models=None):
+#     """Close a tomogram by internal ID."""
+#     # No ArtiaX
+#     if not hasattr(session, 'ArtiaX'):
+#         session.logger.warning("ArtiaX is not currently running, so no tomograms can be closed.")
+#         return
+#
+#     # No Model
+#     if models is None:
+#         session.logger.warning("artiax close tomo: No model specified.")
+#         return
+#
+#     # Filter by class
+#     ms = []
+#     for model in models:
+#         if not session.ArtiaX.tomograms.has_id(model.id):
+#             session.logger.warning(
+#                 'artiax close tomo: Model #{} - "{}" is not managed by ArtiaX'.format(model.id_string, model.name))
+#             continue
+#
+#         ms.append(model)
+#
+#     # Close
+#     for model in ms:
+#         session.ArtiaX.close_tomogram(model.id)
+
 
 def artiax_view(session, direction):
     """Set the current camera position to one of the perpendicular views."""
@@ -64,10 +96,12 @@ def artiax_view(session, direction):
 
     directions[direction.lower()](session)
 
+
 def artiax_open_particlelist(session, path, format):
     """Open a particle list in ArtiaX"""
     get_singleton(session)
     session.ArtiaX.open_partlist(path, format)
+
 
 def artiax_save_particlelist(session, index, path, format):
     """Save a particle list in specified format."""
@@ -80,17 +114,39 @@ def artiax_save_particlelist(session, index, path, format):
 
     session.ArtiaX.save_partlist(index-1, path, format)
 
-def artiax_particles_attach(session, index, model):
+
+def artiax_attach(session, model=None, toParticleList=None):
+    # No ArtiaX
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running, so nothing can be attached.")
         return
 
-    if index < 1 or index > session.ArtiaX.partlist_count:
-        raise errors.UserError("artiax particles attach: Requested index {} is outside range 1 to {}".format(index, session.ArtiaX.partlist_count))
+    # No Volume
+    if model is None:
+        raise errors.UserError("artiax attach: model parameter needs to be set.")
 
-    session.ArtiaX.attach_display_model(index-1, model)
+    # No PL
+    if toParticleList is None:
+        raise errors.UserError("artiax attach: toParticleList parameter needs to be set.")
+
+    # Model not Volume
+    if not isinstance(model, Volume):
+        raise errors.UserError("artiax attach: model needs to be a Volume, but is {}.".format(type(model)))
+
+    # Model is Tomogram
+    if session.ArtiaX.tomograms.has_id(model.id):
+        raise errors.UserError("artiax attach: cannot attach a Tomogram as a particle list surface.".format(type(model)))
+
+    # Not a Particle list
+    if not session.ArtiaX.partlists.has_id(toParticleList.id):
+        session.logger.warning(
+            'artiax attach: Model #{} - "{}" is not managed by ArtiaX'.format(toParticleList.id_string, toParticleList.name))
+        return
+
+    session.ArtiaX.attach_display_model(toParticleList, model)
 
 def artiax_show(session, models=None, style=None):
+    # No ArtiaX
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running, so nothing can be shown.")
         return
@@ -100,6 +156,7 @@ def artiax_show(session, models=None, style=None):
 
 
 def artiax_hide(session, models=None, style=None):
+    # No ArtiaX
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running, so nothing can be shown.")
         return
@@ -108,45 +165,129 @@ def artiax_hide(session, models=None, style=None):
     show(session, models, style, do_show=False)
 
 def artiax_lock(session, models=None, type=None):
+    # No ArtiaX
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running.")
         return
 
+    # No Models
     if models is None:
         models = session.ArtiaX.partlists.child_models()
 
+    # No Type
     if type is None:
         type = 'movement'
 
+    # Type unknown
     if type not in ['translation', 'rotation', 'movement']:
-        errors.UserError("'{}' is not a valid argument for artiax lock. Possible values are: 'translation', 'rotation', 'movement'".format(type))
+        errors.UserError("artiax lock: '{}' is not a valid argument for artiax lock. Possible values are: 'translation', 'rotation', 'movement'".format(type))
+
+    # Filter models
+    ms = []
+    for model in models:
+        if not session.ArtiaX.partlists.has_id(model.id):
+            session.logger.warning(
+                'artiax lock: Model #{} - "{}" is not managed by ArtiaX'.format(model.id_string, model.name))
+            continue
+
+        ms.append(model)
 
     from ..particle.ParticleList import lock_particlelist
     lock_particlelist(models, True, type)
 
 
 def artiax_unlock(session, models=None, type=None):
+    # No ArtiaX
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running.")
         return
 
+    # No Models
     if models is None:
         models = session.ArtiaX.partlists.child_models()
 
+    # No type
     if type is None:
         type = 'movement'
 
+    # Type unknown
     if type not in ['translation', 'rotation', 'movement']:
         errors.UserError(
-            "'{}' is not a valid argument for artiax unlock. Possible values are: 'translation', 'rotation', 'movement'".format(type))
+            "artiax unlock: '{}' is not a valid argument for artiax unlock. Possible values are: 'translation', 'rotation', 'movement'".format(type))
+
+    # Filter models
+    ms = []
+    for model in models:
+        if not session.ArtiaX.partlists.has_id(model.id):
+            session.logger.warning(
+                'artiax unlock: Model #{} - "{}" is not managed by ArtiaX'.format(model.id_string, model.name))
+            continue
+
+        ms.append(model)
 
     from ..particle.ParticleList import lock_particlelist
-    lock_particlelist(models, False, type)
+    lock_particlelist(ms, False, type)
+
+def artiax_particles(session, models=None, radius=None, axes_size=None, surface_level=None, color=None):
+    # No ArtiaX
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running.")
+        return
+
+    # No Models
+    if models is None:
+        models = session.ArtiaX.partlists.child_models()
+
+    set_radius = False
+    if radius is not None:
+        set_radius = True
+
+    set_axes_size = False
+    if axes_size is not None:
+        set_axes_size = True
+
+    set_surface_level = False
+    if surface_level is not None:
+        set_surface_level = True
+
+    set_color = False
+    if color is not None:
+        set_color = True
+
+    # Filter models and work
+    for model in models:
+        if not session.ArtiaX.partlists.has_id(model.id):
+            session.logger.warning(
+                'artiax particles: Model #{} - "{}" is not managed by ArtiaX'.format(model.id_string, model.name))
+            continue
+
+        if set_radius:
+            model.radius = radius
+
+        if set_axes_size:
+            model.axes_size = axes_size
+
+        if set_surface_level:
+            model.surface_level = surface_level
+
+        if set_color:
+            model.color = color
 
 
 def register_artiax(logger):
     from chimerax.core.commands import (
-        register, CmdDesc, StringArg, ModelsArg, ModelArg, IntArg, Or, EmptyArg, FileNameArg)
+        register,
+        CmdDesc,
+        StringArg,
+        ModelsArg,
+        ModelArg,
+        IntArg,
+        Or,
+        EmptyArg,
+        FileNameArg,
+        FloatArg,
+        ColorArg
+    )
 
     def register_artiax_start():
         desc = CmdDesc(
@@ -165,19 +306,19 @@ def register_artiax(logger):
 
     def register_artiax_add_tomo():
         desc = CmdDesc(
-            required=[("model", ModelArg)],
-            synopsis='Add a volume loaded by ChimeraX to ArtiaX.',
+            required=[("models", ModelsArg)],
+            synopsis='Add volumes loaded by ChimeraX to ArtiaX.',
             url='help:user/commands/artiax_add_tomo.html'
         )
         register('artiax add tomo', desc, artiax_add_tomo)
 
-    def register_artiax_close_tomo():
-        desc = CmdDesc(
-            required=[("index", IntArg)],
-            synopsis='Close a tomogram currently loaded in ArtiaX.',
-            url='help:user/commands/artiax_close_tomo.html'
-        )
-        register('artiax close tomo', desc, artiax_close_tomo)
+    # def register_artiax_close_tomo():
+    #     desc = CmdDesc(
+    #         required=[("models", ModelsArg)],
+    #         synopsis='Close a tomogram currently loaded in ArtiaX.',
+    #         url='help:user/commands/artiax_close_tomo.html'
+    #     )
+    #     register('artiax close tomo', desc, artiax_close_tomo)
 
     def register_artiax_view():
         desc = CmdDesc(
@@ -206,14 +347,14 @@ def register_artiax(logger):
         )
         register('artiax save particles', desc, artiax_save_particlelist)
 
-    def register_artiax_particles_attach():
+    def register_artiax_attach():
         desc = CmdDesc(
-            required=[("index", IntArg),
-                      ("model", ModelArg)],
-            synopsis='Open a particle list in ArtiaX.',
+            required=[("model", ModelArg),
+                      ("toParticleList", ModelArg)],
+            synopsis='Set a surface for display at particle positions.',
             url='help:user/commands/artiax_particles_attach.html'
         )
-        register('artiax particles attach', desc, artiax_particles_attach)
+        register('artiax attach', desc, artiax_attach)
 
     def register_artiax_show():
         desc = CmdDesc(
@@ -251,18 +392,31 @@ def register_artiax(logger):
         )
         register('artiax unlock', desc, artiax_unlock)
 
+    def register_artiax_particles():
+        desc = CmdDesc(
+            optional=[("models", Or(ModelsArg, EmptyArg)),
+                      ("radius", FloatArg),
+                      ("axesSize", FloatArg),
+                      ("surfaceLevel", FloatArg),
+                      ("color", ColorArg)],
+            synopsis='Set particle list properties.',
+            url='help:user/commands/artiax_particles.html'
+        )
+        register('artiax particles', desc, artiax_particles)
+
     register_artiax_start()
     register_artiax_open_tomo()
     register_artiax_add_tomo()
-    register_artiax_close_tomo()
+    # register_artiax_close_tomo()
     register_artiax_view()
     register_artiax_open_particlelist()
     register_artiax_save_particlelist()
-    register_artiax_particles_attach()
+    register_artiax_attach()
     register_artiax_show()
     register_artiax_hide()
     register_artiax_lock()
     register_artiax_unlock()
+    register_artiax_particles()
 
 # Possible styles
 # for pl in models:

@@ -22,12 +22,14 @@ class LabelEditSlider(QWidget):
     """
 
     valueChanged = Signal(float)
+    editingFinished = Signal(float)
 
     def __init__(self, range, text='', slider_ratio=0.6, step_size=0.001, parent=None):
         super().__init__(parent=parent)
 
-        self._range = range
+        self._range = list(range)
         """The range of the slider, 2 element list."""
+        self._init_range = list(range)
         self._constant = False
         """Wheter or not the range is 0."""
         self._value = None
@@ -131,6 +133,7 @@ class LabelEditSlider(QWidget):
         """Connect child signals."""
         self._edit.editingFinished.connect(self._edit_changed)
         self._slider.valueChanged.connect(self._slider_changed)
+        self._slider.sliderReleased.connect(self._emit_editing_finished)
 
     def _edit_changed(self):
         """Callback for changing edit text."""
@@ -155,6 +158,7 @@ class LabelEditSlider(QWidget):
         self._slider.blockSignals(prev_slider)
 
         self._emit_value_changed()
+        self._emit_editing_finished()
 
     def _slider_changed(self):
         """Callback for changing slider."""
@@ -171,5 +175,8 @@ class LabelEditSlider(QWidget):
 
     def _emit_value_changed(self):
         self.valueChanged.emit(self._value)
+
+    def _emit_editing_finished(self):
+        self.editingFinished.emit(self._value)
 
 

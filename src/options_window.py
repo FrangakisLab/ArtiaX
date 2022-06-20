@@ -434,8 +434,13 @@ class OptionsWindow(ToolInstance):
 
         # Connect sliders
         ow.radius_widget.valueChanged.connect(ow._radius_changed)
+        ow.radius_widget.editingFinished.connect(partial(ow._radius_changed, log=True))
+
         ow.axes_size_widget.valueChanged.connect(ow._axes_size_changed)
+        ow.axes_size_widget.editingFinished.connect(partial(ow._axes_size_changed, log=True))
+
         ow.surface_level_widget.valueChanged.connect(ow._surface_level_changed)
+        ow.surface_level_widget.editingFinished.connect(partial(ow._surface_level_changed, log=True))
 
     def _update_tomo_ui(self):
         self._update_tomo_sliders()
@@ -901,22 +906,34 @@ class OptionsWindow(ToolInstance):
     #
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def _radius_changed(self, value):
+    def _radius_changed(self, value, log=False):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
         pl.radius = value
 
+        if log:
+            from chimerax.core.commands import log_equivalent_command
+            log_equivalent_command(self.session, "artiax particles #{} radius {}".format(pl.id_string, value))
+
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def _surface_level_changed(self, value):
+    def _surface_level_changed(self, value, log=False):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
         pl.surface_level = value
 
+        if log:
+            from chimerax.core.commands import log_equivalent_command
+            log_equivalent_command(self.session, "artiax particles #{} surfaceLevel {}".format(pl.id_string, value))
+
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def _axes_size_changed(self, value):
+    def _axes_size_changed(self, value, log=False):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
         pl.axes_size = value
+
+        if log:
+            from chimerax.core.commands import log_equivalent_command
+            log_equivalent_command(self.session, "artiax particles #{} axesSize {}".format(pl.id_string, value))
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _origin_pixelsize_changed(self):
@@ -980,10 +997,19 @@ class OptionsWindow(ToolInstance):
 
         vol = open_map(self.session, file)[0][0]
         self.session.models.add([vol])
+        temp_id = vol.id_string
         pl.attach_display_model(vol)
+
         # Make sure we are on top
         self._update_partlist_ui()
         run(self.session, 'ui tool show "ArtiaX Options"', log=False)
+
+        # Make sure the surfaces are visible
+        from chimerax.core.commands import log_equivalent_command
+        log_equivalent_command(self.session, 'open {}'.format(file))
+        log_equivalent_command(self.session, 'artiax attach #{} toParticleList #{}'.format(temp_id, pl.id_string))
+        run(self.session, 'artiax show #{} surfaces'.format(pl.id_string))
+
 
     def _enter_display_volume(self):
         file = self.browse_edit.text()

@@ -227,8 +227,8 @@ will be displayed without the ChimeraX- prefix.
     <ChimeraXClassifier>ChimeraX :: Command :: artiax add tomo :: General ::
       Add a volume loaded by ChimeraX to ArtiaX.</ChimeraXClassifier>
 
-    <ChimeraXClassifier>ChimeraX :: Command :: artiax close tomo :: General ::
-      Close a tomogram currently loaded in ArtiaX.</ChimeraXClassifier>
+<!--    <ChimeraXClassifier>ChimeraX :: Command :: artiax close tomo :: General ::-->
+<!--      Close a tomogram currently loaded in ArtiaX.</ChimeraXClassifier>-->
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax open particles :: General ::
       Open a particle list in ArtiaX</ChimeraXClassifier>
@@ -236,7 +236,7 @@ will be displayed without the ChimeraX- prefix.
     <ChimeraXClassifier>ChimeraX :: Command :: artiax close particles :: General ::
       Close a particle list currently loaded in ArtiaX</ChimeraXClassifier>
 
-    <ChimeraXClassifier>ChimeraX :: Command :: artiax particles attach :: General ::
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax attach :: General ::
       Attach a model to an ArtiaX particle list.</ChimeraXClassifier>
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax show :: General ::
@@ -249,6 +249,9 @@ will be displayed without the ChimeraX- prefix.
       Prevent types of movement for these particle lists.</ChimeraXClassifier>
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax unlock :: General ::
+      Allow types of movement for these particle lists.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax particles :: General ::
       Allow types of movement for these particle lists.</ChimeraXClassifier>
 
 
