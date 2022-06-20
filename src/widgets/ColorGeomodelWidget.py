@@ -5,9 +5,9 @@ import numpy as np
 from functools import partial
 
 # Qt
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import (
+from Qt.QtCore import Qt, Signal
+from Qt.QtGui import QColor
+from Qt.QtWidgets import (
     QWidget,
     QStackedLayout,
     QGridLayout,
@@ -19,13 +19,13 @@ from PyQt5.QtWidgets import (
     QToolButton,
     QGroupBox,
     QLabel,
-    QLineEdit
+    QLineEdit,
+    QLayout
 )
 
 # This package
-from . import LabelEditSlider
-from .IgnorantComboBox import IgnorantComboBox
-from .GradientRangeSlider import GradientRangeSlider
+from .LabelEditSlider import LabelEditSlider
+
 
 
 class ColorGeomodelWidget(QWidget):
@@ -43,8 +43,8 @@ class ColorGeomodelWidget(QWidget):
                       [(  0, 153, 143, 255), (224, 255, 102, 255), (116,  10, 255, 255)],
                       [(153,   0,   0, 255), (255, 255, 128, 255), (255,  80,   5, 255)]]
 
-    colorChanged = pyqtSignal(tuple, np.ndarray)
-    colormapChanged = pyqtSignal(tuple, str, str, float, float)
+    colorChanged = Signal(tuple, np.ndarray)
+    colormapChanged = Signal(tuple, str, str, float, float)
 
     def __init__(self, session, parent=None):
         super().__init__(parent=parent)
@@ -55,10 +55,9 @@ class ColorGeomodelWidget(QWidget):
 
         # The contents
         self._layout = QHBoxLayout()
+        self.group = QWidget()
 
         # Buttons
-        self.group = QWidget()
-        _layout = QHBoxLayout()
         _button_layout = QGridLayout()
         self.col_cols = 8
         self.col_rows = 3
@@ -83,9 +82,18 @@ class ColorGeomodelWidget(QWidget):
         _right_side_layout.addWidget(self.pick_color_button, alignment=Qt.AlignCenter)
         _right_side_layout.addStretch()
 
-        _layout.addLayout(_button_layout)
-        _layout.addLayout(_right_side_layout)
-        self.group.setLayout(_layout)
+        # Transparency slider
+        self.transparency_slider = LabelEditSlider((0, 100), 'Transparency [%]:')
+        self.transparency_slider.value = 0
+
+        _full_layout = QVBoxLayout()
+        _color_box_layout = QHBoxLayout()
+
+        _color_box_layout.addLayout(_button_layout)
+        _color_box_layout.addLayout(_right_side_layout)
+        _full_layout.addLayout(_color_box_layout)
+        _full_layout.addWidget(self.transparency_slider)
+        self.group.setLayout(_full_layout)
 
         self.color_group = QGroupBox("Color")
         self._color_group_layout = QStackedLayout()
@@ -98,9 +106,9 @@ class ColorGeomodelWidget(QWidget):
         self._connect()
 
     def set_geomodel(self, geomodel):
+        self.geomodel = geomodel
         self._color = np.array(geomodel.color, dtype=np.uint8)
         self._set_color()
-        self.geomodel = geomodel
 
         self._color_changed()
 
@@ -112,15 +120,19 @@ class ColorGeomodelWidget(QWidget):
                 self.buttons[col][row].clicked.connect(partial(self._col_clicked, self.green_armytage[col][row]))
         self.pick_color_button.clicked.connect(self._pick_color)
 
+        #Transparency
+        self.transparency_slider.valueChanged.connect(self._transparency_changed)
+
 
     def _col_clicked(self, color):
-        self._color = np.array(color, dtype=np.uint8)
+        self._color[:3] = np.array(color[:3], dtype=np.uint8)
         self._set_color()
 
         self._color_changed()
 
     def _set_color(self):
         self.current_color_label.setStyleSheet('background-color: rgba({},{},{},{});'.format(*tuple(self._color)))
+        self.transparency_slider.value = (255 - self._color[3]) * 100 / 255
 
     def _pick_color(self):
         from Qt.QtWidgets import QColorDialog
@@ -143,4 +155,9 @@ class ColorGeomodelWidget(QWidget):
         pass
 
     def _color_changed(self):
-        self.colorChanged.emit(self.geomodel.id, self._color[:3])
+        self.colorChanged.emit(self.geomodel.id, self._color)
+
+    def _transparency_changed(self, value):
+        alpha = round((100 - value) * 255 / 100)
+        self._color[3] = alpha
+        self._color_changed()

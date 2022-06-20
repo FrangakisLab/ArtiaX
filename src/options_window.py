@@ -140,7 +140,7 @@ class OptionsWindow(ToolInstance):
         # Add the Tabs
         self.tabs.addTab(self.tomo_widget, 'Tomogram Tools')
         self.tabs.addTab(self.motl_widget, 'Particle List Tools')
-        self.tabs.addTab(self.geomodel_widget, 'Geometric Model Tools')
+        self.tabs.addTab(self.geomodel_area, 'Geometric Model Tools')
         self.tabs.addTab(self.motl_area, 'Particle List Tools')
         self.tabs.widget(0).setEnabled(False)
         self.tabs.widget(1).setEnabled(False)
@@ -1017,8 +1017,10 @@ class OptionsWindow(ToolInstance):
     # ==============================================================================
 
     def _build_geomodel_widget(self):
-        # This window is a widget of the stacked layout
-        self.geomodel_widget = QScrollArea()
+        self.geomodel_area = QScrollArea()
+        self.geomodel_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.geomodel_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.geomodel_area.setWidgetResizable(True)
         # Define the overall layout
         geomodel_layout = QVBoxLayout()
         geomodel_layout.setAlignment(Qt.AlignTop)
@@ -1041,7 +1043,7 @@ class OptionsWindow(ToolInstance):
         # Define a group for the visualization sliders
         group_select = QGroupBox("Color Options:")
         group_select.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
-                                               QSizePolicy.MinimumExpanding))
+                                               QSizePolicy.Maximum))
         group_select.setFont(self.font)
         group_select.setCheckable(True)
 
@@ -1052,9 +1054,7 @@ class OptionsWindow(ToolInstance):
         self.geomodel_color_selection = ColorGeomodelWidget(self.session)
         self.geomodel_color_selection.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
                                                                 QSizePolicy.Maximum))
-        self.transparency_slider = LabelEditSlider((1, 255), 'Transparency', step_size=1)
         group_color_layout.addWidget(self.geomodel_color_selection)
-        group_color_layout.addWidget(self.transparency_slider)
         group_color_layout.addStretch()
 
         # Set layout of group
@@ -1063,7 +1063,10 @@ class OptionsWindow(ToolInstance):
         geomodel_layout.addWidget(group_select)
 
         # And finally set the layout of the widget
-        self.geomodel_widget.setLayout(geomodel_layout)
+        geomodel_widget = QWidget()
+        geomodel_widget.setContentsMargins(0, 0, 0, 0)
+        geomodel_widget.setLayout(geomodel_layout)
+        self.geomodel_area.setWidget(geomodel_widget)
 
     def _update_geomodel_ui(self):
         artia = self.session.ArtiaX
