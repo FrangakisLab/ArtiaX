@@ -22,6 +22,7 @@ class Line(GeoModel):
         self.end = end
 
         self.update()
+        print("Created linde starting at: {} and edning at: {}".format(start, end))
 
     def define_line(self):
         from chimerax.bild.bild import _BildFile

@@ -93,8 +93,6 @@ def fit_sphere(session):
     b, residules, rank, singval = np.linalg.lstsq(A, x, rcond=None)
     r = math.sqrt(b[3] + b[0] ** 2 + b[1] ** 2 + b[2] ** 2)
 
-    print("Created sphere with center: {} and radius: {}".format(b[:3], r))
-
     # Reorient selected particles so that Z-axis points towards center of sphere
     from chimerax.geometry import z_align
     for particle_list in session.ArtiaX.partlists.child_models():
