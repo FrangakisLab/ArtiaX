@@ -80,6 +80,13 @@ class ParticleList(Model):
                                    'minima': [],
                                    'maxima': []}
 
+        self.color_settings = {'mode': 'mono',
+                               'palette': '',
+                               'attribute': '',
+                               'minimum': 0,
+                               'maximum': 1,
+                               'transparency': 0}
+
 
         # Add the child models
         self.add([self.display_model])
@@ -204,6 +211,7 @@ class ParticleList(Model):
         self._axes_size = value
         scm = self.collection_model
         v, n, t, vc = get_axes_surface(self.session, self._axes_size)
+        vc[:, 3] = self.color[3]
         scm.set_surface('axes', v, n, t, vertex_colors=vc)
 
     @property
@@ -871,7 +879,7 @@ def get_axes_surface(session, size):
 
     return (d.vertices, d.normals, d.triangles, d.vertex_colors)
 
-def selected_collections(session):
+def selected_collections(session, exclude_rot_lock=False):
     artia = session.ArtiaX
 
     selected_drawings = []
@@ -881,7 +889,11 @@ def selected_collections(session):
     for plist in artia.partlists.iter():
         scm = plist.collection_model
         markers = plist.markers
-        if any(plist.selected_particles):#np.any(scm.highlighted_instances()) or np.any(markers.selected_markers):
+
+        if plist.rotation_locked and exclude_rot_lock:
+            continue
+
+        if any(plist.selected_particles):
             selected_drawings.append(scm)
             position_masks.append(np.logical_or(scm.position_mask(), markers.position_mask()))
 

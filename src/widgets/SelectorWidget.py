@@ -5,8 +5,8 @@ from functools import partial
 from superqt import QDoubleRangeSlider
 
 # Qt
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import (QWidget,
+from Qt.QtCore import Qt, Signal
+from Qt.QtWidgets import (QWidget,
                              QGridLayout,
                              QHBoxLayout,
                              QVBoxLayout,
@@ -23,8 +23,8 @@ from .IgnorantComboBox import IgnorantComboBox
 class SelectorWidget(QWidget):
     DEBUG = False
 
-    selectionChanged = pyqtSignal()
-    deleted = pyqtSignal(object)
+    selectionChanged = Signal()
+    deleted = Signal(object)
 
     def __init__(self, attributes, minima, maxima, constant, idx=0, mini=None, maxi=None, parent=None):
         super().__init__(parent=parent)
@@ -110,7 +110,7 @@ class SelectorWidget(QWidget):
         self.destroy_button.setSizePolicy(QSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum))
 
         # Separator
-        from PyQt5.QtWidgets import QFrame
+        from Qt.QtWidgets import QFrame
         self.line = QFrame()
         self.line.setFrameShape(QFrame.HLine)
         self.line.setFrameShadow(QFrame.Sunken)

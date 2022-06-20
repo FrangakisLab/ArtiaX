@@ -8,6 +8,7 @@ import csv
 from chimerax.core.errors import UserError
 
 # This package
+from ..formats import ArtiaXFormat
 from ..ParticleData import ParticleData, EulerRotation
 
 
@@ -99,7 +100,7 @@ class GenericParticleData(ParticleData):
                 for key in self._data_keys:
                     p[key] = float(row[key])
 
-    def write_file(self, file_name=None):
+    def write_file(self, file_name=None, additional_files=None):
         if file_name is None:
             file_name = self.file_name
 
@@ -119,3 +120,7 @@ class GenericParticleData(ParticleData):
             for _id, p in self:
                 writer.writerow(p.as_dict())
 
+
+GENERIC_PARTICLE_FORMAT = ArtiaXFormat(name='Generic Particle List',
+                                       nicks=['generic_particles'],
+                                       particle_data=GenericParticleData)

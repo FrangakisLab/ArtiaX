@@ -5,9 +5,9 @@ import numpy as np
 from functools import partial
 
 # Qt
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import (
+from Qt.QtCore import Qt, Signal
+from Qt.QtGui import QColor
+from Qt.QtWidgets import (
     QWidget,
     QStackedLayout,
     QGridLayout,
@@ -19,13 +19,14 @@ from PyQt5.QtWidgets import (
     QToolButton,
     QGroupBox,
     QLabel,
-    QLineEdit
+    QLineEdit,
+    QLayout
 )
 
 # This package
 from .IgnorantComboBox import IgnorantComboBox
 from .GradientRangeSlider import GradientRangeSlider
-
+from .LabelEditSlider import LabelEditSlider
 
 class ColorRangeWidget(QWidget):
 
@@ -42,8 +43,8 @@ class ColorRangeWidget(QWidget):
                       [(  0, 153, 143, 255), (224, 255, 102, 255), (116,  10, 255, 255)],
                       [(153,   0,   0, 255), (255, 255, 128, 255), (255,  80,   5, 255)]]
 
-    colorChanged = pyqtSignal(tuple, np.ndarray)
-    colormapChanged = pyqtSignal(tuple, str, str, float, float)
+    colorChanged = Signal(tuple, np.ndarray)
+    colormapChanged = Signal(tuple, str, str, float, float, float)
 
     def __init__(self, session, parent=None):
         super().__init__(parent=parent)
@@ -59,7 +60,8 @@ class ColorRangeWidget(QWidget):
         self._mode = "mono"
 
         # The contents
-        self._layout = QHBoxLayout()
+        self._layout = QVBoxLayout()
+        self._layout.setSizeConstraint(QLayout.SetMinimumSize)
 
         # Mono/Gradient buttons
         _switch_layout = QVBoxLayout()
@@ -103,8 +105,10 @@ class ColorRangeWidget(QWidget):
         self.mono_group.setLayout(_mono_layout)
 
         # Assemble switch
+        _switch_layout.addStretch()
         _switch_layout.addWidget(self.mono_mode_switch)
         _switch_layout.addWidget(self.grad_mode_switch)
+        _switch_layout.addStretch()
 
         # Attribute Selector
         _attribute_layout = QVBoxLayout()
@@ -166,17 +170,28 @@ class ColorRangeWidget(QWidget):
         _cmap_group_layout.addLayout(_slider_layout)
         self.cmap_group.setLayout(_cmap_group_layout)
 
+        # Transparency slider
+        self.transparency_slider = LabelEditSlider((0, 100), 'Transparency [%]:')
+        self.transparency_slider.value = 0
+
         # Color settings box
         self.color_group = QGroupBox("Color Settings")
+        self._color_group_layout_upper = QHBoxLayout()
+        self._color_group_layout_full = QVBoxLayout()
         self._color_group_layout = QStackedLayout()
         self._color_group_layout.addWidget(self.mono_group)
         self._color_group_layout.addWidget(self.cmap_group)
-        self.color_group.setLayout(self._color_group_layout)
+
+        self._color_group_layout_upper.addLayout(_switch_layout)
+        self._color_group_layout_upper.addLayout(self._color_group_layout)
+        self._color_group_layout_full.addLayout(self._color_group_layout_upper)
+        self._color_group_layout_full.addWidget(self.transparency_slider)
+        self.color_group.setLayout(self._color_group_layout_full)
 
         # Assemble self
-        self._layout.addLayout(_switch_layout)
         self._layout.addWidget(self.color_group)
 
+        # Layout
         self.setLayout(self._layout)
 
         # Populate palettes
@@ -192,9 +207,40 @@ class ColorRangeWidget(QWidget):
 
     def set_partlist(self, partlist):
 
-        self._color = np.array(partlist.color, dtype=np.uint8)
-        self._set_color()
+        if partlist.color_settings['mode'] == 'mono':
+            # Set mode
+            self._mode = 'mono'
 
+            # Set Check state
+            prev = self.mono_mode_switch.blockSignals(True)
+            self.mono_mode_switch.setChecked(True)
+            self.mono_mode_switch.blockSignals(prev)
+
+            # Switch layout
+            self._mode_switched(emit=False)
+
+            # Set color
+            self._color = np.array(partlist.color, dtype=np.uint8)
+            self._set_color()
+
+        elif partlist.color_settings['mode'] == 'gradient':
+            # Set mode
+            self._mode = 'gradient'
+
+            # Set Check state
+            prev = self.grad_mode_switch.blockSignals(True)
+            self.grad_mode_switch.setChecked(True)
+            self.grad_mode_switch.blockSignals(prev)
+
+            # Transparency
+            prev = self.transparency_slider.blockSignals(True)
+            self.transparency_slider.value = partlist.color_settings['transparency']
+            self.transparency_slider.blockSignals(prev)
+
+            # Switch layout
+            self._mode_switched(emit=False)
+
+        # Get the attributes
         self.partlist = partlist
         self.attributes = partlist.get_main_attributes()
         self.minima = partlist.get_attribute_min(self.attributes)
@@ -205,33 +251,42 @@ class ColorRangeWidget(QWidget):
             if mini == self.maxima[idx]:
                 self.attribute_constant[idx] = True
 
-        # Populate attributes
+        # Populate attribute box and set previous idx
         prev = self.attribute_box.blockSignals(True)
         self.attribute_box.clear()
-        for a in self.attributes:
+        att_idx = 0
+        for idx, a in enumerate(self.attributes):
+            if partlist.color_settings['attribute'] == a:
+                att_idx = idx
             self.attribute_box.addItem(a)
 
-        self._att_idx = 0
+        self._att_idx = att_idx
         self.attribute_box.setCurrentIndex(self._att_idx)
         self.attribute_box.blockSignals(prev)
 
+        # Enable widgets
         self._enable_widgets()
-        self._set_min_max()
 
+        # Set old values if gradient mode
+        if self._mode == 'gradient':
+            # Range selection
+            # Particles may have been deleted, invalidating the old set values. Clamp by min/max.
+            curr_min = max(self.partlist.color_settings['minimum'], self.minimum)
+            curr_max = min(self.partlist.color_settings['maximum'], self.maximum)
+            r = (curr_min, curr_max)
+            self._set_min_max(current_range=r)
+
+            # Palette
+            p_idx = 0
+            for idx, p in enumerate(self._palettes):
+                if self.partlist.color_settings['palette'] == p:
+                    p_idx = idx
+            self._pal_idx = p_idx
+        else:
+            self._set_min_max()
+
+        # Color changed signal
         self._color_changed()
-
-        # value_low = self.minimum
-        # value_high = self.maximum
-        #
-        # if self.constant:
-        #     self.slider.setMinimum(self.minimum)
-        #     self.slider.setMaximum(self.maximum+1)
-        #     self.slider.setValue((value_low, value_high+1))
-        #     self.slider.setEnabled(False)
-        # else:
-        #     self.slider.setMinimum(self.minimum)
-        #     self.slider.setMaximum(self.maximum)
-        #     self.slider.setValue((value_low, value_high))
 
     @property
     def minimum(self):
@@ -270,14 +325,17 @@ class ColorRangeWidget(QWidget):
         self.palette_box.currentIndexChanged.connect(partial(self._set_pal_idx))
         self.attribute_box.currentIndexChanged.connect(partial(self._set_att_idx))
 
-        # Slider
+        # Slider colormap
         self.slider.valueChanged.connect(partial(self._slider_changed))
+
+        # Slider Transparency
+        self.transparency_slider.valueChanged.connect(self._transparency_changed)
 
         # Edits
         self.lower_edit.returnPressed.connect(partial(self._edit_changed))
         self.upper_edit.returnPressed.connect(partial(self._edit_changed))
 
-    def _mode_switched(self):
+    def _mode_switched(self, emit=True):
         # Switch
         if self.mono_mode_switch.isChecked():
             self._mode = "mono"
@@ -285,7 +343,9 @@ class ColorRangeWidget(QWidget):
             self._mode = "gradient"
 
         self._show_layout()
-        self._color_changed()
+
+        if emit:
+            self._color_changed()
 
     def _show_layout(self):
         if self._mode == "mono":
@@ -301,6 +361,10 @@ class ColorRangeWidget(QWidget):
 
     def _set_color(self):
         self.current_color_label.setStyleSheet('background-color: rgba({},{},{},{});'.format(*tuple(self._color)))
+
+        prev = self.transparency_slider.blockSignals(True)
+        self.transparency_slider.value = (255 - self._color[3]) * 100/255
+        self.transparency_slider.blockSignals(prev)
 
     def _pick_color(self):
         from Qt.QtWidgets import QColorDialog
@@ -346,16 +410,20 @@ class ColorRangeWidget(QWidget):
             self.upper_edit.setEnabled(True)
             self.lower_edit.setEnabled(True)
 
-    def _set_min_max(self):
+    def _set_min_max(self, current_range=None):
+
+        if current_range is None:
+            current_range = (self.minimum, self.maximum)
+
         prev = self.slider.blockSignals(True)
         if self.constant:
             self.slider.setMinimum(self.minimum)
             self.slider.setMaximum(self.maximum+1)
-            self.slider.setValue((self.minimum, self.maximum+1))
+            self.slider.setValue((current_range[0], current_range[1]+1))
         else:
             self.slider.setMinimum(self.minimum)
             self.slider.setMaximum(self.maximum)
-            self.slider.setValue((self.minimum, self.maximum))
+            self.slider.setValue((current_range[0], current_range[1]))
         self.slider.blockSignals(prev)
 
         self.min_label.setText("{:.4f}".format(self.minimum))
@@ -363,8 +431,8 @@ class ColorRangeWidget(QWidget):
 
         prev = self.lower_edit.blockSignals(True)
         prev1 = self.upper_edit.blockSignals(True)
-        self.lower_edit.setText("{:.4f}".format(self.minimum))
-        self.upper_edit.setText("{:.4f}".format(self.maximum))
+        self.lower_edit.setText("{:.4f}".format(current_range[0]))
+        self.upper_edit.setText("{:.4f}".format(current_range[1]))
         self.lower_edit.blockSignals(prev)
         self.upper_edit.blockSignals(prev1)
 
@@ -377,6 +445,12 @@ class ColorRangeWidget(QWidget):
         self.upper_edit.blockSignals(prev1)
 
         self._color_changed()
+
+    def _transparency_changed(self, value):
+        alpha = round((100 - value) * 255/100)
+        self._color[3] = alpha
+        self._color_changed()
+
 
     def _edit_changed(self):
         lower = float(self.lower_edit.text())
@@ -416,11 +490,29 @@ class ColorRangeWidget(QWidget):
 
     def _color_changed(self):
         if self._mode == "mono":
+            self.partlist.color_settings = {'mode': 'mono',
+                                            'palette': '',
+                                            'attribute': '',
+                                            'minimum': 0,
+                                            'maximum': 1,
+                                            'transparency': 0}
+            
             self.colorChanged.emit(self.partlist.id, self._color)
+
         elif self._mode == "gradient":
             palette, attribute, minimum, maximum = self._get_selection()
+            transparency = self.transparency_slider.value
+            self.partlist.color_settings = {'mode': 'gradient',
+                                            'palette': palette,
+                                            'attribute': attribute,
+                                            'minimum': minimum,
+                                            'maximum': maximum,
+                                            'transparency': transparency}
+
             self.colormapChanged.emit(self.partlist.id,
                                       palette,
                                       attribute,
                                       minimum,
-                                      maximum)
+                                      maximum,
+                                      transparency)
+

@@ -11,9 +11,9 @@ from chimerax.core.tools import ToolInstance
 from chimerax.map import open_map
 
 # Qt
-from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtGui import QFont, QIcon
-from PyQt5.QtWidgets import (
+from Qt.QtCore import Qt, QSize
+from Qt.QtGui import QFont, QIcon
+from Qt.QtWidgets import (
     QFileDialog,
     QGridLayout,
     QGroupBox,
@@ -26,6 +26,8 @@ from PyQt5.QtWidgets import (
     QTabWidget,
     QScrollArea,
     QSizePolicy,
+    QLayout,
+    QWidget,
     QStackedLayout,
     QStackedWidget,
     QToolButton
@@ -65,15 +67,14 @@ def is_float(s):
 class OptionsWindow(ToolInstance):
     DEBUG = False
 
-    SESSION_ENDURING = False  # Does this instance persist when session closes
-    SESSION_SAVE = True  # We do save/restore in sessions
+    SESSION_ENDURING = False    # Does this instance persist when session closes
+    SESSION_SAVE = True         # We do save/restore in sessions
     help = "help:user/tools/tutorial.html"
+                            # Let ChimeraX know about our help page
 
-    # Let ChimeraX know about our help page
-
-    # ==============================================================================
-    # Instance Initialization ======================================================
-    # ==============================================================================
+# ==============================================================================
+# Instance Initialization ======================================================
+# ==============================================================================
 
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name)
@@ -127,9 +128,9 @@ class OptionsWindow(ToolInstance):
         artia.triggers.add_handler(OPTIONS_PARTLIST_CHANGED, self._update_partlist_options)
         artia.triggers.add_handler(OPTIONS_GEOMODEL_CHANGED, self._update_geomodel_options)
 
-    # ==============================================================================
-    # Show selected GUI ============================================================
-    # ==============================================================================
+# ==============================================================================
+# Show selected GUI ============================================================
+# ==============================================================================
 
     def _build_full_ui(self):
         # Define a stacked layout and only show the selected layout
@@ -140,6 +141,7 @@ class OptionsWindow(ToolInstance):
         self.tabs.addTab(self.tomo_widget, 'Tomogram Tools')
         self.tabs.addTab(self.motl_widget, 'Particle List Tools')
         self.tabs.addTab(self.geomodel_widget, 'Geometric Model Tools')
+        self.tabs.addTab(self.motl_area, 'Particle List Tools')
         self.tabs.widget(0).setEnabled(False)
         self.tabs.widget(1).setEnabled(False)
         self.tabs.widget(2).setEnabled(False)
@@ -148,12 +150,12 @@ class OptionsWindow(ToolInstance):
 
         # Volume open dialog
         caption = 'Choose a volume.'
-        self.volume_open_dialog = QFileDialog(caption=caption)
+        self.volume_open_dialog = QFileDialog(caption=caption, parent=self.session.ui.main_window)
         self.volume_open_dialog.setFileMode(QFileDialog.ExistingFiles)
         self.volume_open_dialog.setNameFilters(["Volume (*.em *.mrc *.mrcs *.rec *.map *.hdf)"])
         self.volume_open_dialog.setAcceptMode(QFileDialog.AcceptOpen)
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     # Callback for trigger OPTIONS_TOMO_CHANGED
     def _update_tomo_options(self, name, data):
@@ -225,9 +227,9 @@ class OptionsWindow(ToolInstance):
         # Make sure we are on top
         run(self.session, 'ui tool show "ArtiaX Options"', log=False)
 
-    # ==============================================================================
-    # Options Menu for Tomograms ===================================================
-    # ==============================================================================
+# ==============================================================================
+# Options Menu for Tomograms ===================================================
+# ==============================================================================
 
     def _build_tomo_widget(self):
         # This window is a widget of the stacked layout
@@ -383,8 +385,8 @@ class OptionsWindow(ToolInstance):
         # And finally set the layout of the widget
         self.tomo_widget.setLayout(tomo_layout)
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    # Tomo Window Functions ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# Tomo Window Functions ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     def _connect_ui(self):
         ow = self
@@ -503,7 +505,7 @@ class OptionsWindow(ToolInstance):
 
         self.group_pixelsize_edit.setText(str(tomo.pixelsize[0]))
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _set_tomo_pixelsize(self):
         ow = self
         artia = self.session.ArtiaX
@@ -658,13 +660,29 @@ class OptionsWindow(ToolInstance):
         command = "volume fourier #{} phase true".format(id)
         run(self.session, command)
 
-    # ==============================================================================
-    # Options Menu for Motivelists =================================================
-    # ==============================================================================
+# ==============================================================================
+# Options Menus for Motivelists =================================================
+# ==============================================================================
+
+    def _build_manipulation_widget(self):
+        # This widget is the Manipulate/Select lists tab
+        self.manip_area = QScrollArea()
+        self.manip_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.manip_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.manip_area.setWidgetResizable(True)
+
+        # Define the overall layout for group boxes
+        self.manip_layout = QVBoxLayout()
+        self.manip_layout.setAlignment(Qt.AlignTop)
+
+
 
     def _build_particlelist_widget(self):
         # This widget is the particle lists tab
-        self.motl_widget = QScrollArea()
+        self.motl_area = QScrollArea()
+        self.motl_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.motl_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.motl_area.setWidgetResizable(True)
 
         # Define the overall layout
         self.motl_layout = QVBoxLayout()
@@ -680,6 +698,7 @@ class OptionsWindow(ToolInstance):
                                                            QSizePolicy.Maximum))
         self.group_current_plist.setFont(self.font)
         current_plist_layout = QHBoxLayout()
+        current_plist_layout.setSizeConstraint(QLayout.SetMinimumSize)
         self.current_plist_label = QLabel("")
         self.current_plist_label.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
                                                            QSizePolicy.Minimum))
@@ -699,17 +718,6 @@ class OptionsWindow(ToolInstance):
                                                 tooltip_false='Rotation unlocked.',
                                                 init_state=False)
 
-        # self.translation_lock_button = QToolButton()
-        # ip = self.iconpath / 'unlock_translation.png'
-        # self.translation_lock_button.setIcon(QIcon(str(ip.resolve())))
-        # self.translation_lock_button.setIconSize(QSize(48, 48))
-        # self.translation_lock_button.setToolTip('Translation unlocked.')
-        #
-        # self.rotation_lock_button = QToolButton()
-        # ip = self.iconpath / 'unlock_rotation.png'
-        # self.rotation_lock_button.setIcon(QIcon(str(ip.resolve())))
-        # self.rotation_lock_button.setIconSize(QSize(48, 48))
-        # self.rotation_lock_button.setToolTip('Rotation unlocked.')
 
         self.top_layout.addWidget(self.group_current_plist, alignment=Qt.AlignLeft)
         self.top_layout.addStretch()
@@ -725,6 +733,7 @@ class OptionsWindow(ToolInstance):
 
         # Set the layout of the group
         self.group_select_layout = QGridLayout()
+        self.group_select_layout.setSizeConstraint(QLayout.SetMinimumSize)
 
         # Define the input of the GridLayout which includes some sliders and LineEdits
         self.partlist_selection = SelectionTableWidget()
@@ -803,7 +812,11 @@ class OptionsWindow(ToolInstance):
         self.motl_layout.addWidget(self.group_select)
 
         # And finally set the layout of the widget
+        self.motl_widget = QWidget()
+        self.motl_widget.setContentsMargins(0, 0, 0, 0)
         self.motl_widget.setLayout(self.motl_layout)
+        self.motl_area.setWidget(self.motl_widget)
+
 
     def _update_partlist_ui(self):
         artia = self.session.ArtiaX
@@ -849,29 +862,29 @@ class OptionsWindow(ToolInstance):
         if model is opl:
             self._update_partlist_ui()
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    # Motl Group Functions +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# Motl Group Functions +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     #
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _radius_changed(self, value):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
         pl.radius = value
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _surface_level_changed(self, value):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
         pl.surface_level = value
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _axes_size_changed(self, value):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
         pl.axes_size = value
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _origin_pixelsize_changed(self):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
@@ -883,7 +896,7 @@ class OptionsWindow(ToolInstance):
         value = float(self.pf_edit_ori.text())
         pl.origin_pixelsize = value
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _trans_pixelsize_changed(self):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
@@ -895,7 +908,7 @@ class OptionsWindow(ToolInstance):
         value = float(self.pf_edit_tra.text())
         pl.translation_pixelsize = value
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _delete_selected(self):
         from numpy import any
 
@@ -907,7 +920,7 @@ class OptionsWindow(ToolInstance):
             ids = pl.particle_ids[mask]
             pl.delete_data(ids)
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _reset_selected(self):
         from numpy import any
         artia = self.session.ArtiaX
@@ -918,14 +931,14 @@ class OptionsWindow(ToolInstance):
             ids = pl.particle_ids[mask]
             pl.reset_particles(ids)
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _reset_all(self):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
         pl.reset_all_particles()
         self._update_partlist_ui()
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     def _attach_display_model(self, file):
         artia = self.session.ArtiaX

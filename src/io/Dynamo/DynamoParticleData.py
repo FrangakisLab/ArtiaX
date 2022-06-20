@@ -8,6 +8,7 @@ import csv
 from chimerax.core.errors import UserError
 
 # This package
+from ..formats import ArtiaXFormat
 from ..ParticleData import ParticleData, EulerRotation
 
 
@@ -137,7 +138,7 @@ class DynamoParticleData(ParticleData):
                 for idx, key in enumerate(keys):
                     p[key] = float(row[idx])
 
-    def write_file(self, file_name=None):
+    def write_file(self, file_name=None, additional_files=None):
         if file_name is None:
             file_name = self.file_name
 
@@ -146,3 +147,7 @@ class DynamoParticleData(ParticleData):
 
             for _id, p in self:
                 writer.writerow(p.as_list())
+
+DYNAMO_FORMAT = ArtiaXFormat(name='Dynamo Table',
+                             nicks=['dynamo', 'tbl'],
+                             particle_data=DynamoParticleData)

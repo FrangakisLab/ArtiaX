@@ -5,23 +5,29 @@ import math
 from superqt import QDoubleSlider
 
 # Qt
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import QGridLayout, QLabel, QLineEdit, QWidget
+from Qt.QtCore import Qt, Signal
+from Qt.QtWidgets import QGridLayout, QLabel, QLineEdit, QWidget, QLayout
 
 
 class LabelEditSlider(QWidget):
     """
     Widget providing a labeled QDoubleSlider with a line edit to enter values. Has one signal, valueChanged, which is
     triggered by slider and edit and returns value. Values are clamped to range and widget is disabled if the range is 0.
+
+    Parameters
+    ----------
+    range : list of float
+        The minimum and maximum value of the slider.
+
     """
 
-    valueChanged = pyqtSignal(float)
+    valueChanged = Signal(float)
 
     def __init__(self, range, text='', slider_ratio=0.6, step_size=0.001, parent=None):
         super().__init__(parent=parent)
 
         self._range = range
-        """The range of the slider."""
+        """The range of the slider, 2 element list."""
         self._constant = False
         """Wheter or not the range is 0."""
         self._value = None
@@ -45,9 +51,15 @@ class LabelEditSlider(QWidget):
         self._layout.addWidget(self._edit, 0, label_size, 1, edit_size)
         self._layout.addWidget(self._slider, 0, label_size+edit_size, 1, slider_size)
 
+        self._layout.setSizeConstraint(QLayout.SetMinimumSize)
+
         self.setLayout(self._layout)
         self.set_range()
         self._connect()
+
+    # def minimumSizeHint(self):
+    #     print('asked for hint')
+    #     return self.sizeHint()
 
     @property
     def value(self):

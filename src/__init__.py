@@ -64,143 +64,169 @@ class _MyAPI(BundleAPI):
             run_provider(session, name)
 
         elif mgr == session.open_command:
-            from chimerax.open_command import OpenerInfo
-            from .io import open_particle_list, get_fmt_aliases
+            #from chimerax.open_command import OpenerInfo
+            from .io.formats import get_formats
 
-            # Artiatomi Particles
-            if name == "Artiatomi Motivelist":
-                class ArtiatomiMotivelistInfo(OpenerInfo):
-                    def open(self, session, data, file_name, **kw):
-                        from .cmd import get_singleton
-                        # Make sure plugin runs
-                        get_singleton(session)
-                        return open_particle_list(session, data, file_name, format_name=name, from_chimx=True)
+            # Make sure formats are known
+            formats = get_formats(session)
 
-                    @property
-                    def open_args(self):
-                        return {}
+            # If applicable, open the file
+            if name in formats:
+                return formats[name].opener_info
 
-                return ArtiatomiMotivelistInfo()
-
-            elif name == "Generic Particle List":
-                class GenericParticleListInfo(OpenerInfo):
-                    def open(self, session, data, file_name, **kw):
-                        from .cmd import get_singleton
-                        # Make sure plugin runs
-                        get_singleton(session)
-                        return open_particle_list(session, data, file_name, format_name=name, from_chimx=True)
-
-                    @property
-                    def open_args(self):
-                        return {}
-
-                return GenericParticleListInfo()
-
-            elif name == "Dynamo Table":
-                class DynamoTableInfo(OpenerInfo):
-                    def open(self, session, data, file_name, **kw):
-                        from .cmd import get_singleton
-                        # Make sure plugin runs
-                        get_singleton(session)
-                        return open_particle_list(session, data, file_name, format_name=name, from_chimx=True)
-
-                    @property
-                    def open_args(self):
-                        return {}
-
-                return DynamoTableInfo()
-
-            elif name == "RELION STAR file":
-                class RELIONInfo(OpenerInfo):
-                    def open(self, session, data, file_name, **kw):
-                        from .cmd import get_singleton
-                        # Make sure plugin runs
-                        get_singleton(session)
-                        return open_particle_list(session, data, file_name, format_name=name, from_chimx=True)
-
-                    @property
-                    def open_args(self):
-                        return {}
-
-                return RELIONInfo()
-
-            elif name == "Coords file":
-                class CoordsInfo(OpenerInfo):
-                    def open(self, session, data, file_name, **kw):
-                        from .cmd import get_singleton
-                        # Make sure plugin runs
-                        get_singleton(session)
-                        return open_particle_list(session, data, file_name, format_name=name, from_chimx=True)
-
-                    @property
-                    def open_args(self):
-                        return {}
-
-                return CoordsInfo()
+            # # Artiatomi Particles
+            # if name == "Artiatomi Motivelist":
+            #
+            #
+            #     return ArtiatomiMotivelistInfo()
+            #
+            # elif name == "Generic Particle List":
+            #     class GenericParticleListInfo(OpenerInfo):
+            #         def open(self, session, data, file_name, **kw):
+            #             from .cmd import get_singleton
+            #             # Make sure plugin runs
+            #             get_singleton(session)
+            #             return open_particle_list(session, data, file_name, format_name=name, from_chimx=True)
+            #
+            #         @property
+            #         def open_args(self):
+            #             return {}
+            #
+            #     return GenericParticleListInfo()
+            #
+            # elif name == "Dynamo Table":
+            #     class DynamoTableInfo(OpenerInfo):
+            #         def open(self, session, data, file_name, **kw):
+            #             from .cmd import get_singleton
+            #             # Make sure plugin runs
+            #             get_singleton(session)
+            #             return open_particle_list(session, data, file_name, format_name=name, from_chimx=True)
+            #
+            #         @property
+            #         def open_args(self):
+            #             return {}
+            #
+            #     return DynamoTableInfo()
+            #
+            # elif name == "RELION STAR file":
+            #     class RELIONInfo(OpenerInfo):
+            #         def open(self, session, data, file_name, **kw):
+            #             from .cmd import get_singleton
+            #             # Make sure plugin runs
+            #             get_singleton(session)
+            #             return open_particle_list(session, data, file_name, format_name=name, from_chimx=True)
+            #
+            #         @property
+            #         def open_args(self):
+            #             return {}
+            #
+            #     return RELIONInfo()
+            #
+            # elif name == "Coords file":
+            #     class CoordsInfo(OpenerInfo):
+            #         def open(self, session, data, file_name, **kw):
+            #             from .cmd import get_singleton
+            #             # Make sure plugin runs
+            #             get_singleton(session)
+            #             return open_particle_list(session, data, file_name, format_name=name, from_chimx=True)
+            #
+            #         @property
+            #         def open_args(self):
+            #             return {}
+            #
+            #     return CoordsInfo()
+            #
+            # elif name == "PEET mod/csv":
+            #     class PEETInfo(OpenerInfo):
+            #         def open(self, session, data, file_name, **kw):
+            #             from .cmd import get_singleton
+            #             # Make sure plugin runs
+            #             get_singleton(session)
+            #             return open_particle_list(session, data, file_name, format_name=name, from_chimx=True)
+            #
+            #         @property
+            #         def open_args(self):
+            #             return {}
+            #
+            #     return PEETInfo()
 
         elif mgr == session.save_command:
-            from chimerax.save_command import SaverInfo
-            from .io import save_particle_list
+            #from chimerax.save_command import SaverInfo
+            #from .io import save_particle_list
+            from .io.formats import get_formats
 
-            if name == "Artiatomi Motivelist":
-                class ArtiatomiMotivelistInfo(SaverInfo):
-                    def save(self, session, path, *, partlist=None):
-                        save_particle_list(session, path, partlist, format_name=name)
+            # Make sure formats are known
+            formats = get_formats(session)
 
-                    @property
-                    def save_args(self):
-                        from chimerax.core.commands import ModelArg
-                        return {'partlist': ModelArg}
+            # If applicable, save the file
+            if name in formats:
+                return formats[name].saver_info
 
-                return ArtiatomiMotivelistInfo()
-
-            elif name == "Generic Particle List":
-                class GenericParticleListInfo(SaverInfo):
-                    def save(self, session, path, *, partlist=None):
-                        save_particle_list(session, path, partlist, format_name=name)
-
-                    @property
-                    def save_args(self):
-                        from chimerax.core.commands import ModelArg
-                        return {'partlist': ModelArg}
-
-                return GenericParticleListInfo()
-
-            elif name == "Dynamo Table":
-                class DynamoTableInfo(SaverInfo):
-                    def save(self, session, path, *, partlist=None):
-                        save_particle_list(session, path, partlist, format_name=name)
-
-                    @property
-                    def save_args(self):
-                        from chimerax.core.commands import ModelArg
-                        return {'partlist': ModelArg}
-
-                return DynamoTableInfo()
-
-            elif name == "RELION STAR file":
-                class RELIONInfo(SaverInfo):
-                    def save(self, session, path, *, partlist=None):
-                        save_particle_list(session, path, partlist, format_name=name)
-
-                    @property
-                    def save_args(self):
-                        from chimerax.core.commands import ModelArg
-                        return {'partlist': ModelArg}
-
-                return RELIONInfo()
-
-            elif name == "Coords file":
-                class CoordsInfo(SaverInfo):
-                    def save(self, session, path, *, partlist=None):
-                        save_particle_list(session, path, partlist, format_name=name)
-
-                    @property
-                    def save_args(self):
-                        from chimerax.core.commands import ModelArg
-                        return {'partlist': ModelArg}
-
-                return CoordsInfo()
+            # if name == "Artiatomi Motivelist":
+            #
+            #     return ArtiatomiMotivelistInfo()
+            #
+            # elif name == "Generic Particle List":
+            #     class GenericParticleListInfo(SaverInfo):
+            #         def save(self, session, path, *, partlist=None):
+            #             save_particle_list(session, path, partlist, format_name=name)
+            #
+            #         @property
+            #         def save_args(self):
+            #             from chimerax.core.commands import ModelArg
+            #             return {'partlist': ModelArg}
+            #
+            #     return GenericParticleListInfo()
+            #
+            # elif name == "Dynamo Table":
+            #     class DynamoTableInfo(SaverInfo):
+            #         def save(self, session, path, *, partlist=None):
+            #             save_particle_list(session, path, partlist, format_name=name)
+            #
+            #         @property
+            #         def save_args(self):
+            #             from chimerax.core.commands import ModelArg
+            #             return {'partlist': ModelArg}
+            #
+            #     return DynamoTableInfo()
+            #
+            # elif name == "RELION STAR file":
+            #     class RELIONInfo(SaverInfo):
+            #         def save(self, session, path, *, partlist=None):
+            #             save_particle_list(session, path, partlist, format_name=name)
+            #
+            #         @property
+            #         def save_args(self):
+            #             from chimerax.core.commands import ModelArg
+            #             return {'partlist': ModelArg}
+            #
+            #     return RELIONInfo()
+            #
+            # elif name == "Coords file":
+            #     class CoordsInfo(SaverInfo):
+            #         def save(self, session, path, *, partlist=None):
+            #             save_particle_list(session, path, partlist, format_name=name)
+            #
+            #         @property
+            #         def save_args(self):
+            #             from chimerax.core.commands import ModelArg
+            #             return {'partlist': ModelArg}
+            #
+            #     return CoordsInfo()
+            #
+            # elif name == "PEET mod/csv":
+            #     class PEETInfo(SaverInfo):
+            #         def save(self, session, path, *, partlist=None, csvpath=None):
+            #             if csvpath:
+            #                 csvpath = [csvpath]
+            #             save_particle_list(session, path, partlist, format_name=name, additional_files=csvpath)
+            #
+            #         @property
+            #         def save_args(self):
+            #             from chimerax.core.commands import ModelArg, FileNameArg
+            #             return {'partlist': ModelArg, 'csvpath': FileNameArg}
+            #
+            #     return PEETInfo()
 
     @staticmethod
     def register_command(bi, ci, logger):

@@ -11,7 +11,8 @@ from pprint import pprint
 from .volume.Tomogram import Tomogram, orthoplane_cmd
 from .util import ManagerModel
 from .util.colors import add_colors, ARTIAX_COLORS
-from .io import ArtiatomiParticleData, open_particle_list, save_particle_list, get_fmt_aliases
+from .io import open_particle_list, save_particle_list, get_fmt_aliases
+from .io.formats import get_formats
 from .particle import ParticleList
 from .geometricmodel import GeoModel
 
@@ -70,9 +71,6 @@ class ArtiaX(Model):
         self.add([self.tomograms])
         self.add([self.partlists])
         self.add([self.geomodels])
-
-        #self.session.models.add([self.tomograms], parent=self)
-        #self.session.models.add([self.partlists], parent=self)
 
         # Triggers
         # Triggers when new tomo/partlist is added
@@ -334,9 +332,10 @@ class ArtiaX(Model):
 
     def create_partlist(self, pixelsize=1, format_name="Artiatomi Motivelist"):
         partlist = None
-        if format_name in get_fmt_aliases(self.session, "Artiatomi Motivelist"):
+        formats = get_formats(self.session)
+        if format_name in formats:
             name = "particles"
-            data = ArtiatomiParticleData(self.session, file_name=None, oripix=1, trapix=1)
+            data = formats[format_name].particle_data(self.session, file_name=None, oripix=1, trapix=1)
             partlist = ParticleList(name, self.session, data)
 
         if partlist is not None:
@@ -406,10 +405,10 @@ class ArtiaX(Model):
         from .util.select import color_cmd
         color_cmd(self.session, id, color)
 
-    def color_particles_byattribute(self, identifier, palette, attribute, minimum, maximum):
+    def color_particles_byattribute(self, identifier, palette, attribute, minimum, maximum, transparency):
         id = self.partlists.get(identifier).id
         from .util.select import colormap_cmd
-        colormap_cmd(self.session, id, palette, attribute, minimum, maximum)
+        colormap_cmd(self.session, id, palette, attribute, minimum, maximum, transparency)
 
     def color_geomodel(self, identifier, color):
         self.geomodels.get(identifier).color = color
@@ -469,8 +468,6 @@ class ArtiaX(Model):
 
     # Callback for trigger MODEL_DISPLAY_CHANGED
     def _model_display_changed(self, name, data):
-
-
         if isinstance(data, ParticleList):
             self.triggers.activate_trigger(PARTLIST_DISPLAY_CHANGED, data)
         elif isinstance(data, Tomogram):

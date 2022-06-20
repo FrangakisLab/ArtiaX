@@ -80,6 +80,13 @@ will be displayed without the ChimeraX- prefix.
               reference_url="https://bio3d.colorado.edu/imod/doc/man/model2point.html"
               synopsis="IMOD model2point output"/>
 
+    <Provider name="PEET mod/csv"
+              suffixes=".mod"
+              category="particle list"
+              nicknames="peet"
+              reference_url="https://bio3d.colorado.edu/PEET/PEETmanual.html"
+              synopsis="PEET model/csv"/>
+
   </Providers>
 
   <Providers manager="open command">
@@ -88,6 +95,7 @@ will be displayed without the ChimeraX- prefix.
     <Provider name="Dynamo Table" want_path="true"/>
     <Provider name="RELION STAR file" want_path="true"/>
     <Provider name="Coords file" want_path="true"/>
+    <Provider name="PEET mod/csv" want_path="true"/>
   </Providers>
 
   <Providers manager="save command">
@@ -96,6 +104,7 @@ will be displayed without the ChimeraX- prefix.
     <Provider name="Dynamo Table" />
     <Provider name="RELION STAR file" />
     <Provider name="Coords file"/>
+    <Provider name="PEET mod/csv"/>
   </Providers>
 
    <Providers manager="presets">

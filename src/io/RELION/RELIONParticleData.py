@@ -9,6 +9,7 @@ import pandas as pd
 from chimerax.core.errors import UserError
 
 # This package
+from ..formats import ArtiaXFormat
 from ..ParticleData import ParticleData, EulerRotation
 
 
@@ -72,9 +73,12 @@ class RELIONParticleData(ParticleData):
 
     ROT = RELIONEulerRotation
 
-    remaining_loops = {}
-    remaining_data = {}
-    loop_name = 0
+    def __init__(self, session, file_name, *kw):
+        super().__init__(session, file_name, *kw)
+
+        remaining_loops = {}
+        remaining_data = {}
+        loop_name = 0
 
     def read_file(self):
         content = starfile.read(self.file_name, always_dict=True)
@@ -233,3 +237,7 @@ class RELIONParticleData(ParticleData):
         full_dict[self.loop_name] = df
 
         starfile.write(full_dict, file_name, overwrite=True)
+
+RELION_FORMAT = ArtiaXFormat(name='RELION STAR file',
+                             nicks=['star', 'relion'],
+                             particle_data=RELIONParticleData)

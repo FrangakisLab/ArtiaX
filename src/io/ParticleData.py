@@ -366,24 +366,29 @@ class ParticleData:
     overridden to implement file format specific conversion rules.
     """
 
-    DATA_KEYS = None
-    DEFAULT_PARAMS = None
+    DATA_KEYS = {}
+    DEFAULT_PARAMS = {}
     ROT = None
 
-    def __init__(self, session, file_name, oripix=1, trapix=1):
+    def __init__(self, session, file_name, oripix=1, trapix=1, additional_files=None):
 
         self.session = session
         self.file_name = file_name
         """Filename of the associated file."""
+
+        self.additional_files = []
+        """Filename of other associated files (e.g. PEET csv, emClarity csv)."""
+        if additional_files is not None:
+            self.additional_files = additional_files
 
         self._particles = OrderedDict()
         """Dict mapping unique ids to particle instances."""
         self._orig_particles = OrderedDict()
         """Dict containing particles for reverting. Only set when reading from File."""
 
-        self._data_keys = self.DATA_KEYS
+        self._data_keys = self.DATA_KEYS.copy()
         """Dict mapping file format description to aliases."""
-        self._default_params = self.DEFAULT_PARAMS
+        self._default_params = self.DEFAULT_PARAMS.copy()
         """Dict mapping expected parameters to file format description."""
 
         self._rot = self.ROT
@@ -608,7 +613,7 @@ class ParticleData:
     def read_file(self):
         pass
 
-    def write_file(self, file_name=None):
+    def write_file(self, file_name=None, additional_files=None):
         pass
 
     def _register_keys(self):
