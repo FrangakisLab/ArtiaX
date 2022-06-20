@@ -36,6 +36,7 @@ class LabelEditSlider(QWidget):
         self._precision = round(abs(math.log10(step_size)))
 
         self._layout = QGridLayout()
+        self._layout.setContentsMargins(0, 0, 0, 0)
         self._label = QLabel(text)
         self._edit = QLineEdit()
         self._slider = QDoubleSlider(Qt.Horizontal)
@@ -56,10 +57,6 @@ class LabelEditSlider(QWidget):
         self.setLayout(self._layout)
         self.set_range()
         self._connect()
-
-    # def minimumSizeHint(self):
-    #     print('asked for hint')
-    #     return self.sizeHint()
 
     @property
     def value(self):

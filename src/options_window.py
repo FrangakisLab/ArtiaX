@@ -88,7 +88,9 @@ class OptionsWindow(ToolInstance):
 
         # Build the user interfaces
         self._build_tomo_widget()
-        self._build_particlelist_widget()
+        self._build_visualization_widget()
+        self._build_manipulation_widget()
+
         # Build the final gui
         self._build_full_ui()
         self._connect_ui()
@@ -135,10 +137,12 @@ class OptionsWindow(ToolInstance):
         self.tabs = QTabWidget()
 
         # Add the Tabs
-        self.tabs.addTab(self.tomo_widget, 'Tomogram Tools')
-        self.tabs.addTab(self.motl_area, 'Particle List Tools')
+        self.tabs.addTab(self.tomo_widget, 'Tomogram')
+        self.tabs.addTab(self.vis_area, 'Visualization')
+        self.tabs.addTab(self.manip_area, 'Select/Manipulate')
         self.tabs.widget(0).setEnabled(False)
         self.tabs.widget(1).setEnabled(False)
+        self.tabs.widget(2).setEnabled(False)
         self.tabs.setCurrentIndex(0)
         self.main_layout.addWidget(self.tabs)
 
@@ -162,8 +166,9 @@ class OptionsWindow(ToolInstance):
     # Callback for trigger OPTIONS_PARTLIST_CHANGED
     def _update_partlist_options(self, name, data):
         if data is None:
-            self.tabs.widget(0).setEnabled(False)
-            self.current_plist_label.setText('')
+            self.tabs.widget(1).setEnabled(False)
+            self.tabs.widget(2).setEnabled(False)
+            self.part_toolbar_1.set_name(None)
         else:
             self._show_tab("partlist")
 
@@ -189,10 +194,9 @@ class OptionsWindow(ToolInstance):
 
         elif type == "partlist":
             cpl = artia.partlists.get(artia.options_partlist)
-            text = '#{} -- {}'.format(cpl.id_string, cpl.name)
-            self.current_plist_label.setText(text)
             self.tabs.setCurrentIndex(1)
             self.tabs.widget(1).setEnabled(True)
+            self.tabs.widget(2).setEnabled(True)
 
             # Update the ui
             self._update_partlist_ui()
@@ -402,8 +406,10 @@ class OptionsWindow(ToolInstance):
 
         ## Partlist Tab
         # Connect lock buttons
-        ow.translation_lock_button.stateChanged.connect(ow._lock_translation)
-        ow.rotation_lock_button.stateChanged.connect(ow._lock_rotation)
+        ow.translation_lock_button_1.stateChanged.connect(ow._lock_translation)
+        ow.translation_lock_button_2.stateChanged.connect(ow._lock_translation)
+        ow.rotation_lock_button_1.stateChanged.connect(ow._lock_rotation)
+        ow.rotation_lock_button_2.stateChanged.connect(ow._lock_rotation)
 
         # Connect partlist pixelsize
         ow.pf_edit_ori.editingFinished.connect(ow._origin_pixelsize_changed)
@@ -636,7 +642,7 @@ class OptionsWindow(ToolInstance):
 # ==============================================================================
 
     def _build_manipulation_widget(self):
-        # This widget is the Manipulate/Select lists tab
+        # This widget is the Select/Manipulate lists tab
         self.manip_area = QScrollArea()
         self.manip_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.manip_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -646,94 +652,36 @@ class OptionsWindow(ToolInstance):
         self.manip_layout = QVBoxLayout()
         self.manip_layout.setAlignment(Qt.AlignTop)
 
-
-
-    def _build_particlelist_widget(self):
-        # This widget is the particle lists tab
-        self.motl_area = QScrollArea()
-        self.motl_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        self.motl_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.motl_area.setWidgetResizable(True)
-
-        # Define the overall layout
-        self.motl_layout = QVBoxLayout()
-        self.motl_layout.setAlignment(Qt.AlignTop)
-
-        # Top row with lock/unlock buttons
-        self.top_layout = QHBoxLayout()
-        #self.top_layout.setAlignment(Qt.AlignCenter)
-
-        # Display current particle list name and id
-        self.group_current_plist = QGroupBox("Current Particle List")
-        self.group_current_plist.setSizePolicy(QSizePolicy(QSizePolicy.Maximum,
-                                                           QSizePolicy.Maximum))
-        self.group_current_plist.setFont(self.font)
-        current_plist_layout = QHBoxLayout()
-        current_plist_layout.setSizeConstraint(QLayout.SetMinimumSize)
-        self.current_plist_label = QLabel("")
-        self.current_plist_label.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
-                                                           QSizePolicy.Minimum))
-        current_plist_layout.addWidget(self.current_plist_label)
-        self.group_current_plist.setLayout(current_plist_layout)
-
+        #### Top bar with label and tool buttons ####
         from .widgets import StateButton
-        self.translation_lock_button = StateButton(icon_true='lock_translation.png',
-                                                   icon_false='unlock_translation.png',
-                                                   tooltip_true='Translation locked.',
-                                                   tooltip_false='Translation unlocked.',
-                                                   init_state=False)
+        self.translation_lock_button_2 = StateButton(icon_true='lock_translation.png',
+                                                     icon_false='unlock_translation.png',
+                                                     tooltip_true='Translation locked.',
+                                                     tooltip_false='Translation unlocked.',
+                                                     init_state=False)
 
-        self.rotation_lock_button = StateButton(icon_true='lock_rotation.png',
-                                                icon_false='unlock_rotation.png',
-                                                tooltip_true='Rotation locked.',
-                                                tooltip_false='Rotation unlocked.',
-                                                init_state=False)
+        self.rotation_lock_button_2 = StateButton(icon_true='lock_rotation.png',
+                                                  icon_false='unlock_rotation.png',
+                                                  tooltip_true='Rotation locked.',
+                                                  tooltip_false='Rotation unlocked.',
+                                                  init_state=False)
 
+        buttons = [self.translation_lock_button_2, self.rotation_lock_button_2]
 
-        self.top_layout.addWidget(self.group_current_plist, alignment=Qt.AlignLeft)
-        self.top_layout.addStretch()
-        self.top_layout.addWidget(self.translation_lock_button, alignment=Qt.AlignRight)
-        self.top_layout.addWidget(self.rotation_lock_button, alignment=Qt.AlignRight)
+        from .widgets import PartlistToolbarWidget
+        self.part_toolbar_2 = PartlistToolbarWidget(self.font, buttons)
+        #### Top bar with label and tool buttons ####
 
-        # Define a group for the visualization sliders
-        self.group_select = QGroupBox("Visualization Options:")
-        self.group_select.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
-                                                    QSizePolicy.MinimumExpanding))
-        self.group_select.setFont(self.font)
-        self.group_select.setCheckable(True)
-
-        # Set the layout of the group
-        self.group_select_layout = QGridLayout()
-        self.group_select_layout.setSizeConstraint(QLayout.SetMinimumSize)
-
-        # Define the input of the GridLayout which includes some sliders and LineEdits
-        self.partlist_selection = SelectionTableWidget()
-        self.color_selection = ColorRangeWidget(self.session)
-        self.radius_widget = LabelEditSlider((0.1, 200), 'Marker Radius')
-        self.surface_level_widget = LabelEditSlider((0, 1), 'Surface Level')
-        self.axes_size_widget = LabelEditSlider((0.1, 200), 'Axes Size')
-
-        self.group_select_layout.addWidget(self.partlist_selection, 0, 0, 9, 6)
-        self.group_select_layout.addWidget(self.color_selection, 9, 0, 3, 6)
-        self.group_select_layout.addWidget(self.radius_widget, 12, 0, 1, 6)
-        self.group_select_layout.addWidget(self.axes_size_widget, 13, 0, 1, 6)
-        self.group_select_layout.addWidget(self.surface_level_widget, 14, 0, 1, 6)
-
-        # Set layout of group
-        self.group_select.setLayout(self.group_select_layout)
-
-        # Define a group for the maniulation buttons
-        self.group_manipulation = QGroupBox("Manipulation Options:")
-        self.group_manipulation.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+        #### Scaling group box ####
+        self.group_scale = QGroupBox("Scaling:")
+        self.group_scale.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
                                                           QSizePolicy.Maximum))
-        self.group_manipulation.setFont(self.font)
-        self.group_manipulation.setCheckable(True)
-        self.group_manipulation.setChecked(False)
 
-        # Define layout of the group
-        self.group_manipulation_layout = QVBoxLayout()
+        self.group_scale.setFont(self.font)
+        self.group_scale.setCheckable(True)
+        self.group_scale.setChecked(True)
+
         # Pixelsize
-
         self.pixel_factor_layout = QHBoxLayout()
         self.pf_label_both = QLabel("Pixelsize Factors:")
         self.pf_label_ori = QLabel("Origin")
@@ -746,21 +694,131 @@ class OptionsWindow(ToolInstance):
         self.pixel_factor_layout.addWidget(self.pf_label_tra)
         self.pixel_factor_layout.addWidget(self.pf_edit_tra)
 
-        # Add another row of buttons
-        self.group_manipulation_buttons_2 = QHBoxLayout()
+        self.group_scale.setLayout(self.pixel_factor_layout)
+        #### Scaling group box ####
+
+        #### Manipulation group box ####
+        self.group_manipulation = QGroupBox("Manipulation:")
+        self.group_manipulation.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+                                                          QSizePolicy.Maximum))
+        self.group_manipulation.setFont(self.font)
+        self.group_manipulation.setCheckable(True)
+        self.group_manipulation.setChecked(False)
+
+        # First row of buttons
+        self.manipulation_buttons_1 = QHBoxLayout()
         self.group_manipulation_delete_button = QPushButton("Delete selected")
         self.group_manipulation_delete_button.setFont(self.font)
         self.group_manipulation_reset_selected_button = QPushButton("Reset selected")
         self.group_manipulation_reset_selected_button.setFont(self.font)
         self.group_manipulation_reset_all_button = QPushButton("Reset all")
         self.group_manipulation_reset_all_button.setFont(self.font)
-        self.group_manipulation_buttons_2.addWidget(self.group_manipulation_delete_button)
-        self.group_manipulation_buttons_2.addWidget(self.group_manipulation_reset_selected_button)
-        self.group_manipulation_buttons_2.addWidget(self.group_manipulation_reset_all_button)
+        self.manipulation_buttons_1.addWidget(self.group_manipulation_delete_button)
+        self.manipulation_buttons_1.addWidget(self.group_manipulation_reset_selected_button)
+        self.manipulation_buttons_1.addWidget(self.group_manipulation_reset_all_button)
+
+        self.group_manipulation.setLayout(self.manipulation_buttons_1)
+        #### Manipulation group box ####
+
+        #### Selection group box ####
+        self.group_select = QGroupBox("Selection/Display:")
+        self.group_select.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+                                                    QSizePolicy.MinimumExpanding))
+        self.group_select.setFont(self.font)
+        self.group_select.setCheckable(True)
+
+        # Set the layout of the group
+        self.group_select_layout = QGridLayout()
+        self.group_select_layout.setSizeConstraint(QLayout.SetMinimumSize)
+
+        # SelectionTable
+        self.partlist_selection = SelectionTableWidget()
+
+        self.group_select_layout.addWidget(self.partlist_selection, 0, 0, 9, 6)
+        self.group_select.setLayout(self.group_select_layout)
+        #### Selection group box ####
+
+        # Add groups to layout
+        self.manip_layout.addWidget(self.part_toolbar_2)
+        self.manip_layout.addWidget(self.group_scale)
+        self.manip_layout.addWidget(self.group_manipulation)
+        self.manip_layout.addWidget(self.group_select)
+
+        # And finally set the layout of the widget
+        self.manip_widget = QWidget()
+        self.manip_widget.setFont(self.font)
+        self.manip_widget.setContentsMargins(0, 0, 0, 0)
+        self.manip_widget.setLayout(self.manip_layout)
+        self.manip_area.setWidget(self.manip_widget)
+
+
+    #def _build_particlelist_widget(self):
+    def _build_visualization_widget(self):
+        # This widget is the Visualize particle lists tab
+        self.vis_area = QScrollArea()
+        self.vis_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.vis_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.vis_area.setWidgetResizable(True)
+
+        # Define the overall layout
+        self.vis_layout = QVBoxLayout()
+        self.vis_layout.setAlignment(Qt.AlignTop)
+
+        #### Top bar with label and tool buttons ####
+        from .widgets import StateButton
+        self.translation_lock_button_1 = StateButton(icon_true='lock_translation.png',
+                                                   icon_false='unlock_translation.png',
+                                                   tooltip_true='Translation locked.',
+                                                   tooltip_false='Translation unlocked.',
+                                                   init_state=False)
+
+        self.rotation_lock_button_1 = StateButton(icon_true='lock_rotation.png',
+                                                icon_false='unlock_rotation.png',
+                                                tooltip_true='Rotation locked.',
+                                                tooltip_false='Rotation unlocked.',
+                                                init_state=False)
+
+        buttons = [self.translation_lock_button_1, self.rotation_lock_button_1]
+
+        from .widgets import PartlistToolbarWidget
+        self.part_toolbar_1 = PartlistToolbarWidget(self.font, buttons)
+        #### Top bar with label and tool buttons ####
+
+        #### Color Group box ####
+        self.color_selection = ColorRangeWidget(self.session)
+        self.color_selection.setFont(self.font)
+        #### Color Group box ####
+
+        #### Marker/Axes Group box ####
+        self.group_marker_axes = QGroupBox("Marker/Axes Display:")
+        self.group_marker_axes.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+                                                         QSizePolicy.Maximum))
+        self.group_marker_axes.setFont(self.font)
+        self.group_marker_axes.setCheckable(True)
+
+        self.group_marker_axes_layout = QVBoxLayout()
+        self.radius_widget = LabelEditSlider((0.1, 200), 'Marker Radius')
+        self.axes_size_widget = LabelEditSlider((0.1, 200), 'Axes Size')
+
+        self.group_marker_axes_layout.addWidget(self.radius_widget)
+        self.group_marker_axes_layout.addWidget(self.axes_size_widget)
+
+        self.group_marker_axes.setLayout(self.group_marker_axes_layout)
+        #### Marker/Axes Group box ####
+
+        #### Surface Group box ####
+        self.group_surf = QGroupBox("Surface Display:")
+        self.group_surf.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+                                                  QSizePolicy.Maximum))
+        self.group_surf.setFont(self.font)
+        self.group_surf.setCheckable(True)
+
+        self.group_surf_layout = QVBoxLayout()
+        self.group_surf_layout.setSizeConstraint(QLayout.SetMinimumSize)
 
         # Add a browse row
         self.browse_layout = QHBoxLayout()
-        self.browse_label = QLabel("Filepath of object:")
+        self.browse_label = QLabel("Volume filename:")
         self.browse_label.setFont(self.font)
         self.browse_edit = QLineEdit("")
         self.browse_edit.setFont(self.font)
@@ -769,33 +827,38 @@ class OptionsWindow(ToolInstance):
         self.browse_layout.addWidget(self.browse_edit)
         self.browse_layout.addWidget(self.browse_button)
 
-        # Add to the grid layout
-        self.group_manipulation_layout.addLayout(self.pixel_factor_layout)
-        self.group_manipulation_layout.addLayout(self.group_manipulation_buttons_2)
-        self.group_manipulation_layout.addLayout(self.browse_layout)
+        self.surface_level_widget = LabelEditSlider((0, 1), 'Surface Level')
 
-        # Set layout of group
-        self.group_manipulation.setLayout(self.group_manipulation_layout)
+        self.group_surf_layout.addLayout(self.browse_layout)
+        self.group_surf_layout.addWidget(self.surface_level_widget)
+
+        self.group_surf.setLayout(self.group_surf_layout)
+        #### Surface Group box ####
 
         # Add groups to layout
-        self.motl_layout.addLayout(self.top_layout)
-        self.motl_layout.addWidget(self.group_manipulation)
-        self.motl_layout.addWidget(self.group_select)
+        self.vis_layout.addWidget(self.part_toolbar_1)
+        self.vis_layout.addWidget(self.color_selection)
+        self.vis_layout.addWidget(self.group_marker_axes)
+        self.vis_layout.addWidget(self.group_surf)
 
         # And finally set the layout of the widget
-        self.motl_widget = QWidget()
-        self.motl_widget.setContentsMargins(0, 0, 0, 0)
-        self.motl_widget.setLayout(self.motl_layout)
-        self.motl_area.setWidget(self.motl_widget)
+        self.vis_widget = QWidget()
+        self.vis_widget.setContentsMargins(0, 0, 0, 0)
+        self.vis_widget.setLayout(self.vis_layout)
+        self.vis_area.setWidget(self.vis_widget)
 
 
     def _update_partlist_ui(self):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
 
-        # Lock buttons
-        self.translation_lock_button.setState(pl.translation_locked)
-        self.rotation_lock_button.setState(pl.rotation_locked)
+        # Toolbar
+        self.part_toolbar_1.set_name(pl)
+        self.part_toolbar_2.set_name(pl)
+        self.translation_lock_button_1.setState(pl.translation_locked)
+        self.translation_lock_button_2.setState(pl.translation_locked)
+        self.rotation_lock_button_1.setState(pl.rotation_locked)
+        self.rotation_lock_button_2.setState(pl.rotation_locked)
 
         # Set new list
         self.partlist_selection.clear(trigger_update=False)

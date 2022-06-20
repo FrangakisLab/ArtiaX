@@ -11,3 +11,4 @@ from .SelectionTableWidget import SelectionTableWidget
 from .ColorRangeWidget import ColorRangeWidget
 from .StateButton import StateButton
 from .SaveArgsWidget import SaveArgsWidget
+from .PartlistToolbarWidget import PartlistToolbarWidget

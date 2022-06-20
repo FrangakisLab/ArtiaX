@@ -80,6 +80,7 @@ class ParticleList(Model):
                                    'minima': [],
                                    'maxima': []}
 
+        # Initial color settings (for color range widget)
         self.color_settings = {'mode': 'mono',
                                'palette': '',
                                'attribute': '',
