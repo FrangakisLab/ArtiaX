@@ -137,12 +137,6 @@ class ArtiaX(Model):
         self.session.ui.mouse_modes.add_mode(self.delete_selected)
         self.session.ui.mouse_modes.add_mode(self.delete_picked)
 
-    def redraw_needed(self, **kw):
-        if self.DEBUG:
-            print('redraw!')
-            print(kw)
-        super().redraw_needed(**kw)
-
     @property
     def selected_tomogram(self):
         return self._selected_tomogram

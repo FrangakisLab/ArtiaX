@@ -6,15 +6,18 @@ from superqt import QDoubleRangeSlider
 
 # Qt
 from Qt.QtCore import Qt, Signal
-from Qt.QtWidgets import (QWidget,
-                             QGridLayout,
-                             QHBoxLayout,
-                             QVBoxLayout,
-                             QPushButton,
-                             QCheckBox,
-                             QLabel,
-                             QLineEdit,
-                             QSizePolicy)
+from Qt.QtWidgets import (
+    QWidget,
+    QGridLayout,
+    QHBoxLayout,
+    QVBoxLayout,
+    QPushButton,
+    QCheckBox,
+    QLabel,
+    QLineEdit,
+    QSizePolicy,
+    QLayout
+)
 
 # This package
 from .IgnorantComboBox import IgnorantComboBox
@@ -108,6 +111,7 @@ class SelectorWidget(QWidget):
         # Destroy self button
         self.destroy_button = QPushButton('x')
         self.destroy_button.setSizePolicy(QSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum))
+        self.destroy_button.setMaximumSize(20, 20)
 
         # Separator
         from Qt.QtWidgets import QFrame
@@ -120,6 +124,7 @@ class SelectorWidget(QWidget):
         self._layout.addLayout(self._slider_layout, 0, 6, 1, 13)
         self._layout.addWidget(self.destroy_button, 0, 19, 1, 1)
         self._layout.addWidget(self.line, 1, 0, 1, 20)
+        self._layout.setSizeConstraint(QLayout.SetMinimumSize)
 
         self._connect()
 
