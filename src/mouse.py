@@ -130,6 +130,22 @@ class RotateSelectedParticlesMode(MoveParticlesMode):
         MoveParticlesMode.__init__(self, session)
         self.mouse_action = 'rotate'
 
+    # Workaround for particle lists with locked rotation
+    def mouse_down(self, event):
+        MouseMode.mouse_down(self, event)
+        self._vr = False
+        if self.action(event) == 'rotate':
+            self._set_z_rotation(event)
+
+        from .particle.ParticleList import selected_collections
+        self._collections, self._masks = selected_collections(self.session, exclude_rot_lock=True)
+
+    # Workaround for particle lists with locked rotation
+    def vr_press(self, event):
+        from .particle.ParticleList import selected_collections
+        self._collections, self._masks = selected_collections(self.session, exclude_rot_lock=True)
+        self._vr = True
+
 class MovePickedParticleMode(MoveParticlesMode):
 
     def mouse_down(self, event):
@@ -229,8 +245,6 @@ class DeleteSelectedParticlesMode(MouseMode):
             pl = col.parent
             ids = col.child_ids[ma]
             pl.delete_data(list(ids))
-            # for idx, m in enumerate(ma):
-            #     pl.delete_data(col.get_id(idx))
 
     def vr_press(self, event):
         from .particle.ParticleList import selected_collections

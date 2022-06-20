@@ -4,8 +4,8 @@
 from functools import partial
 
 # Qt
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QTableWidget, QAbstractItemView, QHeaderView, QButtonGroup
+from Qt.QtCore import Qt
+from Qt.QtWidgets import QTableWidget, QAbstractItemView, QHeaderView, QButtonGroup
 
 # This package
 from .CenteredCheckBox import CenteredCheckBox
@@ -159,8 +159,8 @@ class ManagerTableWidget(QTableWidget):
             b.deleteLater()
 
         # Add new Buttons and connections
-        from PyQt5.QtWidgets import QTableWidgetItem
-        from PyQt5.QtCore import Qt
+        from Qt.QtWidgets import QTableWidgetItem
+        from Qt.QtCore import Qt
 
         for idx, m in enumerate(self.model.iter()):
             # Define table items

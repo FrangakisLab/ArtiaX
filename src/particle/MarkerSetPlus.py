@@ -103,7 +103,7 @@ class MarkerSetPlus(MarkerSet):
 
     def get_all_markers(self):
         # Return state array instead of creating instances again
-        return self._markers
+        return list(self.atoms)
 
     def _markerset_set_position(self, pos):
         """MarkerSetPlus has static position at the origin."""
@@ -139,6 +139,7 @@ class MarkerSetPlus(MarkerSet):
             deleted = self._deleted_atoms()
             self.triggers.activate_trigger(MARKER_DELETED, deleted)
             self._remove_atoms(deleted)
+
 
         if 'coord changed' in changes.atom_reasons():
             self.triggers.activate_trigger(MARKER_MOVED, changes.modified_atoms().instances())

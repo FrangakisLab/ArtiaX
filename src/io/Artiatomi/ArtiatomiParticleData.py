@@ -8,6 +8,7 @@ from chimerax.map import open_map
 from chimerax.core.errors import UserError
 
 # This package
+from ..formats import ArtiaXFormat
 from ..ParticleData import ParticleData, EulerRotation
 from .emwrite import emwrite
 
@@ -143,7 +144,7 @@ class ArtiatomiParticleData(ParticleData):
                 p['the'] = arr[18, i]
                 p['class_number'] = arr[19, i]
 
-    def write_file(self, file_name=None):
+    def write_file(self, file_name=None, additional_files=None):
         if file_name is None:
             file_name = self.file_name
 
@@ -175,4 +176,9 @@ class ArtiatomiParticleData(ParticleData):
 
         arr = np.moveaxis(arr, (1, 0), (0, 1))
         emwrite(arr, file_name)
+
+
+ARTIATOMI_FORMAT = ArtiaXFormat(name='Artiatomi Motivelist',
+                                nicks=['motl', 'motivelist'],
+                                particle_data=ArtiatomiParticleData)
 

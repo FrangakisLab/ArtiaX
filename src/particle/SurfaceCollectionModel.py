@@ -462,6 +462,11 @@ class SurfaceCollectionDrawing(Drawing):
 
     def _scd_set_color(self, rgba):
         if self.color_locked:
+            from numpy import any
+            vc = self.vertex_colors
+            if any(vc[:, 3] != rgba[3]):
+                vc[:, 3] = rgba[3]
+                self.vertex_colors = vc
             return
 
         Drawing.set_color(self, rgba)
@@ -470,6 +475,11 @@ class SurfaceCollectionDrawing(Drawing):
 
     def _scd_set_colors(self, rgba):
         if self.color_locked:
+            from numpy import any
+            vc = self.vertex_colors
+            if any(vc[:, 3] != rgba[0, 3]):
+                vc[:, 3] = rgba[0, 3]
+                self.vertex_colors = vc
             return
 
         Drawing.set_colors(self, rgba)

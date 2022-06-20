@@ -4,15 +4,18 @@
 from functools import partial
 
 # Qt
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import (QWidget,
-                             QHBoxLayout,
-                             QVBoxLayout,
-                             QPushButton,
-                             QRadioButton,
-                             QButtonGroup,
-                             QScrollArea,
-                             QSizePolicy)
+from Qt.QtCore import Qt, Signal
+from Qt.QtWidgets import (
+    QWidget,
+    QHBoxLayout,
+    QVBoxLayout,
+    QPushButton,
+    QRadioButton,
+    QButtonGroup,
+    QScrollArea,
+    QSizePolicy,
+    QLayout
+)
 
 # This package
 from .SelectorWidget import SelectorWidget
@@ -24,8 +27,8 @@ class SelectionTableWidget(QWidget):
     """
     DEBUG = False
 
-    selectionChanged = pyqtSignal(tuple, list, list, list)
-    displayChanged = pyqtSignal(tuple, list, list, list)
+    selectionChanged = Signal(tuple, list, list, list)
+    displayChanged = Signal(tuple, list, list, list)
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -40,6 +43,7 @@ class SelectionTableWidget(QWidget):
 
         # General layout
         self._layout = QVBoxLayout()
+        self._layout.setSizeConstraint(QLayout.SetMinimumSize)
 
         # Radio buttons controlling task
         self._mode_layout = QHBoxLayout()

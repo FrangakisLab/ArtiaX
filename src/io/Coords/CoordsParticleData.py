@@ -8,6 +8,7 @@ import csv
 from chimerax.core.errors import UserError
 
 # This package
+from ..formats import ArtiaXFormat
 from ..ParticleData import ParticleData, EulerRotation
 
 
@@ -87,7 +88,7 @@ class CoordsParticleData(ParticleData):
                 p['pos_y'] = float(row[1])
                 p['pos_z'] = float(row[2])
 
-    def write_file(self, file_name=None):
+    def write_file(self, file_name=None, additional_files=None):
         if file_name is None:
             file_name = self.file_name
 
@@ -102,3 +103,8 @@ class CoordsParticleData(ParticleData):
                 row.append(p['pos_z'] + p['shift_z'])
 
                 writer.writerow(row)
+
+
+COORDS_FORMAT = ArtiaXFormat(name='Coords file',
+                             nicks=['coords', 'model2point'],
+                             particle_data=CoordsParticleData)

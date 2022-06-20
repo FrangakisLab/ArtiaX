@@ -8,9 +8,9 @@ from chimerax.core.tools import ToolInstance
 from chimerax.ui import MainToolWindow
 
 # Qt
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont, QKeySequence
-from PyQt5.QtWidgets import (
+from Qt.QtCore import Qt
+from Qt.QtGui import QFont, QKeySequence
+from Qt.QtWidgets import (
     QAction,
     QFileDialog,
     QGroupBox,
@@ -104,7 +104,7 @@ class ArtiaXUI(ToolInstance):
 
         # Volume open dialog
         caption = 'Choose a volume.'
-        self.volume_open_dialog = QFileDialog(caption=caption)
+        self.volume_open_dialog = QFileDialog(caption=caption, parent=self.session.ui.main_window)
         self.volume_open_dialog.setFileMode(QFileDialog.ExistingFiles)
         self.volume_open_dialog.setNameFilters(["Volume (*.em *.mrc *.mrcs *.rec *.map *.hdf)"])
         self.volume_open_dialog.setAcceptMode(QFileDialog.AcceptOpen)
@@ -116,13 +116,13 @@ class ArtiaXUI(ToolInstance):
             self.partlist_filters[self.session.data_formats.qt_file_filter(fmt)] = fmt.name
 
         caption = 'Choose a particle list.'
-        self.particle_open_dialog = QFileDialog(caption=caption)
+        self.particle_open_dialog = QFileDialog(caption=caption, parent=self.session.ui.main_window)
         self.particle_open_dialog.setFileMode(QFileDialog.ExistingFiles)
         self.particle_open_dialog.setNameFilters(list(self.partlist_filters.keys()))
         self.particle_open_dialog.setAcceptMode(QFileDialog.AcceptOpen)
 
         caption = 'Choose a name to save the particle list.'
-        self.particle_save_dialog = QFileDialog(caption=caption)
+        self.particle_save_dialog = QFileDialog(caption=caption, parent=self.session.ui.main_window)
         self.particle_save_dialog.setFileMode(QFileDialog.AnyFile)
         self.particle_save_dialog.setNameFilters(list(self.partlist_filters.keys()))
         self.particle_save_dialog.setAcceptMode(QFileDialog.AcceptSave)

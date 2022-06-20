@@ -1,8 +1,8 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # Qt
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QCheckBox, QHBoxLayout
+from Qt.QtCore import Qt
+from Qt.QtWidgets import QWidget, QCheckBox, QHBoxLayout
 
 
 class CenteredCheckBox(QWidget):

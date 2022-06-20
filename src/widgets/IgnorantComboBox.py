@@ -1,9 +1,9 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # Qt
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QWheelEvent
-from PyQt5.QtWidgets import QComboBox
+from Qt.QtCore import Qt
+from Qt.QtGui import QWheelEvent
+from Qt.QtWidgets import QComboBox
 
 
 class IgnorantComboBox(QComboBox):

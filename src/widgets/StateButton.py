@@ -4,13 +4,13 @@
 from pathlib import Path
 
 # Qt
-from PyQt5.QtCore import pyqtSignal, QSize
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QToolButton
+from Qt.QtCore import Signal, QSize
+from Qt.QtGui import QIcon
+from Qt.QtWidgets import QToolButton
 
 class StateButton(QToolButton):
 
-    stateChanged = pyqtSignal(bool)
+    stateChanged = Signal(bool)
 
     def __init__(self, icon_false, icon_true, tooltip_true, tooltip_false, init_state):
         super().__init__()

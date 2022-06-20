@@ -11,9 +11,9 @@ from chimerax.core.tools import ToolInstance
 from chimerax.map import open_map
 
 # Qt
-from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtGui import QFont, QIcon
-from PyQt5.QtWidgets import (
+from Qt.QtCore import Qt, QSize
+from Qt.QtGui import QFont, QIcon
+from Qt.QtWidgets import (
     QFileDialog,
     QGridLayout,
     QGroupBox,
@@ -26,7 +26,8 @@ from PyQt5.QtWidgets import (
     QTabWidget,
     QScrollArea,
     QSizePolicy,
-    QToolButton
+    QLayout,
+    QWidget
 )
 
 # This package
@@ -135,7 +136,7 @@ class OptionsWindow(ToolInstance):
 
         # Add the Tabs
         self.tabs.addTab(self.tomo_widget, 'Tomogram Tools')
-        self.tabs.addTab(self.motl_widget, 'Particle List Tools')
+        self.tabs.addTab(self.motl_area, 'Particle List Tools')
         self.tabs.widget(0).setEnabled(False)
         self.tabs.widget(1).setEnabled(False)
         self.tabs.setCurrentIndex(0)
@@ -143,7 +144,7 @@ class OptionsWindow(ToolInstance):
 
         # Volume open dialog
         caption = 'Choose a volume.'
-        self.volume_open_dialog = QFileDialog(caption=caption)
+        self.volume_open_dialog = QFileDialog(caption=caption, parent=self.session.ui.main_window)
         self.volume_open_dialog.setFileMode(QFileDialog.ExistingFiles)
         self.volume_open_dialog.setNameFilters(["Volume (*.em *.mrc *.mrcs *.rec *.map *.hdf)"])
         self.volume_open_dialog.setAcceptMode(QFileDialog.AcceptOpen)
@@ -631,12 +632,28 @@ class OptionsWindow(ToolInstance):
         run(self.session, command)
 
 # ==============================================================================
-# Options Menu for Motivelists =================================================
+# Options Menus for Motivelists =================================================
 # ==============================================================================
+
+    def _build_manipulation_widget(self):
+        # This widget is the Manipulate/Select lists tab
+        self.manip_area = QScrollArea()
+        self.manip_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.manip_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.manip_area.setWidgetResizable(True)
+
+        # Define the overall layout for group boxes
+        self.manip_layout = QVBoxLayout()
+        self.manip_layout.setAlignment(Qt.AlignTop)
+
+
 
     def _build_particlelist_widget(self):
         # This widget is the particle lists tab
-        self.motl_widget = QScrollArea()
+        self.motl_area = QScrollArea()
+        self.motl_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.motl_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.motl_area.setWidgetResizable(True)
 
         # Define the overall layout
         self.motl_layout = QVBoxLayout()
@@ -652,6 +669,7 @@ class OptionsWindow(ToolInstance):
                                                            QSizePolicy.Maximum))
         self.group_current_plist.setFont(self.font)
         current_plist_layout = QHBoxLayout()
+        current_plist_layout.setSizeConstraint(QLayout.SetMinimumSize)
         self.current_plist_label = QLabel("")
         self.current_plist_label.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
                                                            QSizePolicy.Minimum))
@@ -671,17 +689,6 @@ class OptionsWindow(ToolInstance):
                                                 tooltip_false='Rotation unlocked.',
                                                 init_state=False)
 
-        # self.translation_lock_button = QToolButton()
-        # ip = self.iconpath / 'unlock_translation.png'
-        # self.translation_lock_button.setIcon(QIcon(str(ip.resolve())))
-        # self.translation_lock_button.setIconSize(QSize(48, 48))
-        # self.translation_lock_button.setToolTip('Translation unlocked.')
-        #
-        # self.rotation_lock_button = QToolButton()
-        # ip = self.iconpath / 'unlock_rotation.png'
-        # self.rotation_lock_button.setIcon(QIcon(str(ip.resolve())))
-        # self.rotation_lock_button.setIconSize(QSize(48, 48))
-        # self.rotation_lock_button.setToolTip('Rotation unlocked.')
 
         self.top_layout.addWidget(self.group_current_plist, alignment=Qt.AlignLeft)
         self.top_layout.addStretch()
@@ -697,6 +704,7 @@ class OptionsWindow(ToolInstance):
 
         # Set the layout of the group
         self.group_select_layout = QGridLayout()
+        self.group_select_layout.setSizeConstraint(QLayout.SetMinimumSize)
 
         # Define the input of the GridLayout which includes some sliders and LineEdits
         self.partlist_selection = SelectionTableWidget()
@@ -775,7 +783,11 @@ class OptionsWindow(ToolInstance):
         self.motl_layout.addWidget(self.group_select)
 
         # And finally set the layout of the widget
+        self.motl_widget = QWidget()
+        self.motl_widget.setContentsMargins(0, 0, 0, 0)
         self.motl_widget.setLayout(self.motl_layout)
+        self.motl_area.setWidget(self.motl_widget)
+
 
     def _update_partlist_ui(self):
         artia = self.session.ArtiaX
