@@ -20,7 +20,8 @@ from Qt.QtWidgets import (
     QGroupBox,
     QLabel,
     QLineEdit,
-    QLayout
+    QLayout,
+    QSizePolicy
 )
 
 # This package
@@ -61,6 +62,7 @@ class ColorRangeWidget(QWidget):
 
         # The contents
         self._layout = QVBoxLayout()
+        self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSizeConstraint(QLayout.SetMinimumSize)
 
         # Mono/Gradient buttons
@@ -176,6 +178,10 @@ class ColorRangeWidget(QWidget):
 
         # Color settings box
         self.color_group = QGroupBox("Color Settings")
+        self.color_group.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+                                                   QSizePolicy.Maximum))
+        self.color_group.setCheckable(True)
+
         self._color_group_layout_upper = QHBoxLayout()
         self._color_group_layout_full = QVBoxLayout()
         self._color_group_layout = QStackedLayout()
@@ -204,6 +210,7 @@ class ColorRangeWidget(QWidget):
             self._set_cmap()
 
         self._connect()
+        self.setContentsMargins(0, 0, 0, 0)
 
     def set_partlist(self, partlist):
 

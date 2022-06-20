@@ -12,3 +12,4 @@ from .ColorRangeWidget import ColorRangeWidget
 from .StateButton import StateButton
 from .SaveArgsWidget import SaveArgsWidget
 from .ColorGeomodelWidget import ColorGeomodelWidget
+from .PartlistToolbarWidget import PartlistToolbarWidget

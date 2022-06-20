@@ -124,6 +124,8 @@ class SelectorWidget(QWidget):
         self._connect()
 
         self.setLayout(self._layout)
+        self.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+                                       QSizePolicy.Maximum))
 
         self._to_enable = [self.attribute_box,
                            self.slider,

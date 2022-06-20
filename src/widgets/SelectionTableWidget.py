@@ -66,6 +66,7 @@ class SelectionTableWidget(QWidget):
         self.selectors.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
                                                  QSizePolicy.MinimumExpanding))
         self.selectors_vbox = QVBoxLayout()
+        self.selectors_vbox.setAlignment(Qt.AlignTop)
         self.selectors.setLayout(self.selectors_vbox)
 
         self.selector_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
@@ -216,7 +217,7 @@ class SelectionTableWidget(QWidget):
                                 maxi=maxi)
 
         self._selectors.append(widget)
-        self.selectors_vbox.addWidget(widget)
+        self.selectors_vbox.addWidget(widget, alignment=Qt.AlignTop)
         widget.selectionChanged.connect(self._selector_modified)
         widget.deleted.connect(self._selector_deleted)
 

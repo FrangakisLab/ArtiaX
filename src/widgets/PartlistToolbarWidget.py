@@ -12,9 +12,6 @@ from Qt.QtWidgets import (
     QLabel
 )
 
-# This package
-from .StateButton import StateButton
-
 class PartlistToolbarWidget(QWidget):
 
     def __init__(self, font, buttons, parent=None):
@@ -24,6 +21,7 @@ class PartlistToolbarWidget(QWidget):
 
         # Top row with lock/unlock buttons
         self._layout = QHBoxLayout()
+        self._layout.setContentsMargins(0, 0, 0, 0)
 
         # Display current particle list name and id
         self.group_current_plist = QGroupBox("Current Particle List")
@@ -38,20 +36,19 @@ class PartlistToolbarWidget(QWidget):
         current_plist_layout.addWidget(self.current_plist_label)
         self.group_current_plist.setLayout(current_plist_layout)
 
-        self.translation_lock_button = StateButton(icon_true='lock_translation.png',
-                                                   icon_false='unlock_translation.png',
-                                                   tooltip_true='Translation locked.',
-                                                   tooltip_false='Translation unlocked.',
-                                                   init_state=False)
-
-        self.rotation_lock_button = StateButton(icon_true='lock_rotation.png',
-                                                icon_false='unlock_rotation.png',
-                                                tooltip_true='Rotation locked.',
-                                                tooltip_false='Rotation unlocked.',
-                                                init_state=False)
-
         # Groupbox, Tool, Tool
         self._layout.addWidget(self.group_current_plist, alignment=Qt.AlignLeft)
         self._layout.addStretch()
         for button in buttons:
-            self.top_layout.addWidget(button, alignment=Qt.AlignRight)
+            self._layout.addWidget(button, alignment=Qt.AlignRight)
+
+        self.setLayout(self._layout)
+        self.setContentsMargins(0, 0, 0, 0)
+
+    def set_name(self, pl):
+        if pl is None:
+            text = ''
+        else:
+            text = '#{} -- {}'.format(pl.id_string, pl.name)
+
+        self.current_plist_label.setText(text)
