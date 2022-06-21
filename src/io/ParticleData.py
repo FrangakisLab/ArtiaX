@@ -14,10 +14,11 @@ from chimerax.core.attributes import type_attrs
 
 class EulerRotation:
 
-    def __init__(self, axis_1, axis_2, axis_3):
+    def __init__(self, axis_1, axis_2, axis_3, invert_dir=False):
         self.axis_1 = axis_1
         self.axis_2 = axis_2
         self.axis_3 = axis_3
+        self.invert_dir = invert_dir
 
     def rot1_from_matrix(self, matrix):
         """
@@ -41,6 +42,11 @@ class EulerRotation:
         pass
 
     def as_place(self, ang_1, ang_2, ang_3):
+        if self.invert_dir:
+            ang_1 *= -1
+            ang_2 *= -1
+            ang_3 *= -1
+
         rot1 = rotation(self.axis_1, ang_1)
         rot2 = rotation(self.axis_2, ang_2)
         rot3 = rotation(self.axis_3, ang_3)

@@ -18,7 +18,7 @@ EPSILON16 = 16 * EPSILON
 class RELIONEulerRotation(EulerRotation):
 
     def __init__(self):
-        super().__init__(axis_1=(0, 0, 1), axis_2=(0, 1, 0), axis_3=(0, 0, 1))
+        super().__init__(axis_1=(0, 0, 1), axis_2=(0, 1, 0), axis_3=(0, 0, 1), invert_dir=True)
 
     def rot1_from_matrix(self, matrix):
         """rlnAngleRot -- Phi"""
@@ -27,6 +27,8 @@ class RELIONEulerRotation(EulerRotation):
         #     angle = 0
         # else:
         #     angle = np.arctan2(matrix[2, 1], matrix[2, 0]) * 180.0 / np.pi
+
+        #matrix = np.linalg.inv(matrix[0:3, 0:3])
 
         abs_sb = self._abs_sb(matrix)
 
