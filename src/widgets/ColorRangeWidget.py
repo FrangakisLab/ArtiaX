@@ -97,9 +97,9 @@ class ColorRangeWidget(QWidget):
         self.current_color_label.setMinimumSize(50, 30)
 
         _mono_display_layout.addStretch()
-        _mono_display_layout.addWidget(self._mono_display_label, alignment=Qt.AlignCenter)
-        _mono_display_layout.addWidget(self.current_color_label, alignment=Qt.AlignCenter)
-        _mono_display_layout.addWidget(self.pick_color_button, alignment=Qt.AlignCenter)
+        _mono_display_layout.addWidget(self._mono_display_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        _mono_display_layout.addWidget(self.current_color_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        _mono_display_layout.addWidget(self.pick_color_button, alignment=Qt.AlignmentFlag.AlignCenter)
         _mono_display_layout.addStretch()
 
         _mono_layout.addLayout(_mono_button_layout)
@@ -116,9 +116,9 @@ class ColorRangeWidget(QWidget):
         _attribute_layout = QVBoxLayout()
         _attribute_label = QLabel("Attribute")
         self.attribute_box = IgnorantComboBox()
-        self.attribute_box.setFocusPolicy(Qt.StrongFocus)
+        self.attribute_box.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         _attribute_layout.addStretch()
-        _attribute_layout.addWidget(_attribute_label, alignment=Qt.AlignCenter)
+        _attribute_layout.addWidget(_attribute_label, alignment=Qt.AlignmentFlag.AlignCenter)
         _attribute_layout.addWidget(self.attribute_box)
         _attribute_layout.addStretch()
 
@@ -126,9 +126,9 @@ class ColorRangeWidget(QWidget):
         _palette_layout = QVBoxLayout()
         _palette_label = QLabel("Palette")
         self.palette_box = IgnorantComboBox()
-        self.palette_box.setFocusPolicy(Qt.StrongFocus)
+        self.palette_box.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         _palette_layout.addStretch()
-        _palette_layout.addWidget(_palette_label, alignment=Qt.AlignCenter)
+        _palette_layout.addWidget(_palette_label, alignment=Qt.AlignmentFlag.AlignCenter)
         _palette_layout.addWidget(self.palette_box)
         _palette_layout.addStretch()
 
@@ -139,14 +139,14 @@ class ColorRangeWidget(QWidget):
         _slider_min_max_layout = QHBoxLayout()
         self.min_label = QLabel("{:.4f}".format(0))
         self.max_label = QLabel("{:.4f}".format(1))
-        _slider_min_max_layout.addWidget(self.min_label, alignment=Qt.AlignLeft)
-        _slider_min_max_layout.addWidget(self.max_label, alignment=Qt.AlignRight)
+        _slider_min_max_layout.addWidget(self.min_label, alignment=Qt.AlignmentFlag.AlignLeft)
+        _slider_min_max_layout.addWidget(self.max_label, alignment=Qt.AlignmentFlag.AlignRight)
 
         # Slider Line 2
         self.slider = GradientRangeSlider()
         self.slider._singleStep = 0.001
         self.slider._pageStep = 0.01
-        self.slider.setOrientation(Qt.Horizontal)
+        self.slider.setOrientation(Qt.Orientation.Horizontal)
 
         self.slider.setMinimum(0)
         self.slider.setMaximum(1)
@@ -157,8 +157,8 @@ class ColorRangeWidget(QWidget):
         _slider_edit_layout = QHBoxLayout()
         self.lower_edit = QLineEdit("{:.4f}".format(0))
         self.upper_edit = QLineEdit("{:.4f}".format(1))
-        _slider_edit_layout.addWidget(self.lower_edit, alignment=Qt.AlignCenter)
-        _slider_edit_layout.addWidget(self.upper_edit, alignment=Qt.AlignCenter)
+        _slider_edit_layout.addWidget(self.lower_edit, alignment=Qt.AlignmentFlag.AlignCenter)
+        _slider_edit_layout.addWidget(self.upper_edit, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Assemble slider
         _slider_layout.addLayout(_slider_min_max_layout)

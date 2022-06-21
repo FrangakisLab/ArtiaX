@@ -555,8 +555,8 @@ class ParticleList(Model):
             #     val = particle[attr].angle
             # else:
             val = particle[attr]
-
             setattr(marker, attr, val)
+
             if attr in self.selection_settings["names"]:
                 idx = self.selection_settings["names"].index(attr)
                 if val < self.selection_settings["minima"][idx]:

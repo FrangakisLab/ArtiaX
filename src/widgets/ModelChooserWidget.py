@@ -38,9 +38,9 @@ class ModelChooserWidget(QWidget):
         self.combo.setSizePolicy(QSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Maximum))
         self.button = QPushButton(buttontext)
 
-        self._layout.addWidget(self.label, alignment=Qt.AlignLeft)
+        self._layout.addWidget(self.label, alignment=Qt.AlignmentFlag.AlignLeft)
         self._layout.addWidget(self.combo)
-        self._layout.addWidget(self.button, alignment=Qt.AlignRight)
+        self._layout.addWidget(self.button, alignment=Qt.AlignmentFlag.AlignRight)
 
         self.setLayout(self._layout)
 

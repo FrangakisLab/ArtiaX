@@ -179,8 +179,8 @@ class PEETSaveArgsWidget(SaveArgsWidget):
         self._suffix_edit = QLineEdit('_motl_artiax')
 
         from Qt.QtCore import Qt
-        self._suffix_layout.addWidget(self._suffix_label, alignment=Qt.AlignLeft)
-        self._suffix_layout.addWidget(self._suffix_edit, alignment=Qt.AlignLeft)
+        self._suffix_layout.addWidget(self._suffix_label, alignment=Qt.AlignmentFlag.AlignLeft)
+        self._suffix_layout.addWidget(self._suffix_edit, alignment=Qt.AlignmentFlag.AlignLeft)
 
         return [self._suffix_layout], []
 

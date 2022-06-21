@@ -37,10 +37,10 @@ class PartlistToolbarWidget(QWidget):
         self.group_current_plist.setLayout(current_plist_layout)
 
         # Groupbox, Tool, Tool
-        self._layout.addWidget(self.group_current_plist, alignment=Qt.AlignLeft)
+        self._layout.addWidget(self.group_current_plist, alignment=Qt.AlignmentFlag.AlignLeft)
         self._layout.addStretch()
         for button in buttons:
-            self._layout.addWidget(button, alignment=Qt.AlignRight)
+            self._layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignRight)
 
         self.setLayout(self._layout)
         self.setContentsMargins(0, 0, 0, 0)

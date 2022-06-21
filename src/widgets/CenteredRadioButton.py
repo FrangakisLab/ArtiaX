@@ -16,6 +16,6 @@ class CenteredRadioButton(QWidget):
         self.radiobutton = QRadioButton()
         self._layout = QHBoxLayout()
         self._layout.addWidget(self.radiobutton)
-        self._layout.setAlignment(Qt.AlignCenter)
+        self._layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self._layout)

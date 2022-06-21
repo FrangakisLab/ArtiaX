@@ -47,7 +47,7 @@ class LabeledVectorEdit(QWidget):
 
         self._button = QPushButton(button)
 
-        self._layout.addWidget(self._mainlabel, alignment=Qt.AlignLeft)
+        self._layout.addWidget(self._mainlabel, alignment=Qt.AlignmentFlag.AlignLeft)
         self._layout.addStretch()
         self._layout.addWidget(self._label1)
         self._layout.addWidget(self._edit1)
@@ -56,7 +56,7 @@ class LabeledVectorEdit(QWidget):
         self._layout.addWidget(self._label3)
         self._layout.addWidget(self._edit3)
         self._layout.addStretch()
-        self._layout.addWidget(self._button, alignment=Qt.AlignRight)
+        self._layout.addWidget(self._button, alignment=Qt.AlignmentFlag.AlignRight)
 
         self.setLayout(self._layout)
 

@@ -223,14 +223,14 @@ class OptionsWindow(ToolInstance):
     def _build_tomo_widget(self):
         # This widget is the Select/Manipulate lists tab
         self.tomo_area = QScrollArea()
-        self.tomo_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        self.tomo_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.tomo_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        self.tomo_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.tomo_area.setWidgetResizable(True)
 
         #self.tomo_widget = QScrollArea()
         # Define the overall layout
         tomo_layout = QVBoxLayout()
-        tomo_layout.setAlignment(Qt.AlignTop)
+        tomo_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         #### Current Tomogram Box ####
         group_current_tomo = QGroupBox("Current Tomogram")
@@ -357,9 +357,13 @@ class OptionsWindow(ToolInstance):
 
         group_slices_second_row = QHBoxLayout()
         self.group_slices_previous_10 = QPushButton("<<")
+        self.group_slices_previous_10.setToolTip("-10 [F7]")
         self.group_slices_previous_1 = QPushButton("<")
+        self.group_slices_previous_10.setToolTip("-1 [F3]")
         self.group_slices_next_1 = QPushButton(">")
+        self.group_slices_previous_10.setToolTip("+1 [F4]")
         self.group_slices_next_10 = QPushButton(">>")
+        self.group_slices_previous_10.setToolTip("+10 [F8]")
 
         group_slices_second_row.addWidget(self.group_slices_previous_10)
         group_slices_second_row.addWidget(self.group_slices_previous_1)
@@ -418,6 +422,19 @@ class OptionsWindow(ToolInstance):
         ow.normal_vector_widget.valueChanged.connect(ow._normal_changed)
         ow.slice_widget.valueChanged.connect(ow._slice_changed)
         ow.slice_widget.editingFinished.connect(partial(ow._slice_changed, log=True))
+
+        # Define the shortcuts
+        from Qt.QtGui import QKeySequence
+        from Qt.QtWidgets import QShortcut
+        ua = ow.tool_window.ui_area
+        self.jump_1_forwards = QShortcut(QKeySequence(Qt.Key.Key_F4), ua)
+        self.jump_10_forwards = QShortcut(QKeySequence(Qt.Key.Key_F8), ua)
+        self.jump_1_backwards = QShortcut(QKeySequence(Qt.Key.Key_F3), ua)
+        self.jump_10_backwards = QShortcut(QKeySequence(Qt.Key.Key_F7), ua)
+        self.jump_1_forwards.activated.connect(partial(ow._skip_planes, 1))
+        self.jump_10_forwards.activated.connect(partial(ow._skip_planes, 10))
+        self.jump_1_backwards.activated.connect(partial(ow._skip_planes, -1))
+        self.jump_10_backwards.activated.connect(partial(ow._skip_planes, -10))
 
         # Slices buttons
         ow.group_slices_previous_10.clicked.connect(partial(ow._skip_planes, -10))
@@ -642,13 +659,13 @@ class OptionsWindow(ToolInstance):
     def _build_manipulation_widget(self):
         # This widget is the Select/Manipulate lists tab
         self.manip_area = QScrollArea()
-        self.manip_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        self.manip_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.manip_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        self.manip_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.manip_area.setWidgetResizable(True)
 
         # Define the overall layout for group boxes
         self.manip_layout = QVBoxLayout()
-        self.manip_layout.setAlignment(Qt.AlignTop)
+        self.manip_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         #### Top bar with label and tool buttons ####
         from .widgets import StateButton
@@ -754,13 +771,13 @@ class OptionsWindow(ToolInstance):
     def _build_visualization_widget(self):
         # This widget is the Visualize particle lists tab
         self.vis_area = QScrollArea()
-        self.vis_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        self.vis_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.vis_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        self.vis_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.vis_area.setWidgetResizable(True)
 
         # Define the overall layout
         self.vis_layout = QVBoxLayout()
-        self.vis_layout.setAlignment(Qt.AlignTop)
+        self.vis_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         #### Top bar with label and tool buttons ####
         from .widgets import StateButton
@@ -851,7 +868,7 @@ class OptionsWindow(ToolInstance):
         self.group_surf_layout.addWidget(self.current_surface_label)
         self.group_surf_layout.addWidget(self.surface_level_widget)
         self.group_surf_layout.addWidget(line)
-        self.group_surf_layout.addWidget(new_surface_label, alignment=Qt.AlignCenter)
+        self.group_surf_layout.addWidget(new_surface_label, alignment=Qt.AlignmentFlag.AlignCenter)
         self.group_surf_layout.addWidget(self.add_from_session)
         self.group_surf_layout.addLayout(self.browse_layout)
 

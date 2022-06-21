@@ -41,7 +41,7 @@ class LabelEditSlider(QWidget):
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._label = QLabel(text)
         self._edit = QLineEdit()
-        self._slider = QDoubleSlider(Qt.Horizontal)
+        self._slider = QDoubleSlider(Qt.Orientation.Horizontal)
         self._slider._singleStep = step_size
         self._slider._pageStep = 10*step_size
 

@@ -150,24 +150,6 @@ class ArtiaXUI(ToolInstance):
         # ChimeraX main window
         self.tool_window.manage("left")
 
-
-# ==============================================================================
-# Set shortcuts =============================================
-# ==============================================================================
-
-    def _define_shortcuts(self, session):
-        # Define the shortcuts
-        self.jump_1_forwards = QShortcut(QKeySequence(Qt.Key_F4), self.options_window.group_slices_next_1)
-        self.jump_10_forwards = QShortcut(QKeySequence(Qt.Key_F8), self.options_window.group_slices_next_10)
-        self.jump_1_backwards = QShortcut(QKeySequence(Qt.Key_F3), self.options_window.group_slices_previous_1)
-        self.jump_10_backwards = QShortcut(QKeySequence(Qt.Key_F7), self.options_window.group_slices_previous_10)
-        # Connect actions to functions
-        # self.jump_1_forwards.activated.connect(partial(self.skip_planes, session, 1))
-        # self.jump_10_forwards.activated.connect(partial(self.skip_planes, session, 10))
-        # self.jump_1_backwards.activated.connect(partial(self.skip_planes, session, -1))
-        # self.jump_10_backwards.activated.connect(partial(self.skip_planes, session, -10))
-
-
 # ==============================================================================
 # Prepare GUI functions ========================================================
 # ==============================================================================
@@ -461,9 +443,9 @@ class ArtiaXUI(ToolInstance):
         artia = self.session.ArtiaX
         artia.selected_tomogram = artia.tomograms.get_id(idx)
 
-        if state == Qt.Checked:
+        if state == Qt.CheckState.Checked.value:
             artia.show_tomogram(idx)
-        elif state == Qt.Unchecked:
+        elif state == Qt.CheckState.Unchecked.value:
             artia.hide_tomogram(idx)
 
     def _show_tomo_options(self, idx, state):
@@ -472,8 +454,6 @@ class ArtiaXUI(ToolInstance):
         if state:
             artia.options_tomogram = artia.tomograms.get_id(idx)
 
-        #if state:
-        #    self.ow._show_tab("tomogram")
 
     def _partlist_table_selected(self, item):
         artia = self.session.ArtiaX
@@ -492,9 +472,12 @@ class ArtiaXUI(ToolInstance):
         artia = self.session.ArtiaX
         artia.selected_partlist = artia.partlists.get_id(idx)
 
-        if state == Qt.Checked:
+        print(idx)
+        print(state)
+
+        if state == Qt.CheckState.Checked.value:
             artia.show_partlist(idx)
-        elif state == Qt.Unchecked:
+        elif state == Qt.CheckState.Unchecked.value:
             artia.hide_partlist(idx)
 
     def _show_partlist_options(self, idx, state):
