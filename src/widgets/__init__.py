@@ -12,3 +12,5 @@ from .ColorRangeWidget import ColorRangeWidget
 from .StateButton import StateButton
 from .SaveArgsWidget import SaveArgsWidget
 from .PartlistToolbarWidget import PartlistToolbarWidget
+from .ModelChooserWidget import ModelChooserWidget
+from .LabeledVectorEdit import LabeledVectorEdit

@@ -57,6 +57,16 @@ def color_cmd(session, list_id, color):
     # Just one color
     pl.color = color
 
+    from chimerax.core.commands import log_equivalent_command
+    from chimerax.core.colors import Color
+    c = Color(color)
+    color = c.rgba * 100
+    log_equivalent_command(session, "artiax particles #{} color {},{},{},{}".format(pl.id_string,
+                                                                                    round(color[0]),
+                                                                                    round(color[1]),
+                                                                                    round(color[2]),
+                                                                                    round(color[3])))
+
 
 def colormap_cmd(session, list_id, palette, attribute, minimum, maximum, transparency=100):
     markers = session.ArtiaX.partlists.get(list_id).markers

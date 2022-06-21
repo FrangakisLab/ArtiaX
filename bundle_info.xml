@@ -252,7 +252,10 @@ will be displayed without the ChimeraX- prefix.
       Allow types of movement for these particle lists.</ChimeraXClassifier>
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax particles :: General ::
-      Allow types of movement for these particle lists.</ChimeraXClassifier>
+      Set particle list properties.</ChimeraXClassifier>
+
+     <ChimeraXClassifier>ChimeraX :: Command :: artiax tomo :: General ::
+      Set tomogram properties.</ChimeraXClassifier>
 
 
 

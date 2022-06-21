@@ -1,11 +1,13 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+# General
+from pprint import pprint
+
 # ChimeraX
 from chimerax.core import errors
 from chimerax.core.commands import run
 from chimerax.core.models import Model, ADD_MODELS, REMOVE_MODELS, MODEL_DISPLAY_CHANGED
 from chimerax.map import Volume, open_map
-from pprint import pprint
 
 # This package
 from .volume.Tomogram import Tomogram, orthoplane_cmd
@@ -30,13 +32,6 @@ SEL_PARTLIST_CHANGED = 'selected partlist changed'
 
 TOMO_DISPLAY_CHANGED = 'tomo display changed'
 PARTLIST_DISPLAY_CHANGED = 'partlist display changed'
-
-def print_trigger(trigger, trigger_data):
-    print(trigger)
-    print(trigger_data)
-    print(type(trigger_data))
-    pprint(vars(trigger_data))
-    print(trigger_data.drawing)
 
 
 class ArtiaX(Model):
@@ -220,7 +215,8 @@ class ArtiaX(Model):
 
         # TODO: Do this in pure python?
         run(self.session, "volume #{} capFaces false".format(tomo.id_string), log=False)
-        run(self.session, orthoplane_cmd(tomo, 'xy'))
+        #run(self.session, orthoplane_cmd(tomo, 'xy'))
+        run(self.session, 'artiax tomo #{} sliceDirection 0,0,1'.format(tomo.id_string))
         run(self.session, 'artiax view xy')
 
     def import_tomogram(self, model):
@@ -233,7 +229,8 @@ class ArtiaX(Model):
 
         # TODO: Do this in pure python?
         run(self.session, "volume #{} capFaces false".format(tomo.id_string), log=False)
-        run(self.session, orthoplane_cmd(tomo, 'xy'))
+        #run(self.session, orthoplane_cmd(tomo, 'xy'))
+        run(self.session, 'artiax tomo #{} sliceDirection 0,0,1'.format(tomo.id_string))
         run(self.session, 'artiax view xy')
 
     def close_tomogram(self, identifier):

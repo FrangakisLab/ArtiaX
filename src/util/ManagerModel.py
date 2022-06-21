@@ -46,6 +46,8 @@ class ManagerModel(Model):
             func = self._get_by_idx
         elif isinstance(identifier, tuple):
             func = self._get_by_model_id
+        elif isinstance(identifier, Model):
+            func = lambda x: x
         else:
             raise UserError("Unknown Model identifier type {}.".format(type(identifier)))
 

@@ -40,13 +40,7 @@ def artiax_add_tomo(session, models=None):
         return
 
     # Filter by class
-    ms = []
-    for model in models:
-        if not isinstance(model, Volume):
-            session.logger.warning("artiax add tomo: Cannot import data of type {} to ArtiaX as a tomogram.".format(type(model)))
-            continue
-
-        ms.append(model)
+    ms = [m for m in models if isinstance(m, Volume)]
 
     # Make sure it's running
     get_singleton(session)
@@ -185,10 +179,17 @@ def artiax_lock(session, models=None, type=None):
     # Filter models
     ms = []
     for model in models:
-        if not session.ArtiaX.partlists.has_id(model.id):
-            session.logger.warning(
-                'artiax lock: Model #{} - "{}" is not managed by ArtiaX'.format(model.id_string, model.name))
-            continue
+        # Is it a particle list?
+        from ..particle import ParticleList
+        if not isinstance(model, ParticleList):
+            # Is it a model that likely belongs to a particle list?
+            from chimerax.core.models import ancestor_models
+            if session.ArtiaX in ancestor_models([model]):
+                continue
+            else:
+                session.logger.warning(
+                    'artiax lock: Model #{} - "{}" is not a particle list'.format(model.id_string, model.name))
+                continue
 
         ms.append(model)
 
@@ -218,17 +219,31 @@ def artiax_unlock(session, models=None, type=None):
     # Filter models
     ms = []
     for model in models:
-        if not session.ArtiaX.partlists.has_id(model.id):
-            session.logger.warning(
-                'artiax unlock: Model #{} - "{}" is not managed by ArtiaX'.format(model.id_string, model.name))
-            continue
+        # Is it a particle list?
+        from ..particle import ParticleList
+        if not isinstance(model, ParticleList):
+            # Is it a model that likely belongs to a particle list?
+            from chimerax.core.models import ancestor_models
+            if session.ArtiaX in ancestor_models([model]):
+                continue
+            else:
+                session.logger.warning(
+                    'artiax unlock: Model #{} - "{}" is not a particle list'.format(model.id_string, model.name))
+                continue
 
         ms.append(model)
 
     from ..particle.ParticleList import lock_particlelist
     lock_particlelist(ms, False, type)
 
-def artiax_particles(session, models=None, radius=None, axes_size=None, surface_level=None, color=None):
+def artiax_particles(session,
+                     models=None,
+                     radius=None,
+                     axesSize=None,
+                     surfaceLevel=None,
+                     color=None,
+                     originScaleFactor=None,
+                     transScaleFactor=None):
     # No ArtiaX
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running.")
@@ -240,41 +255,131 @@ def artiax_particles(session, models=None, radius=None, axes_size=None, surface_
 
     set_radius = False
     if radius is not None:
-        set_radius = True
+        if radius >= 0.1:
+            set_radius = True
+        else:
+            raise errors.UserError("artiax particles: radius required to be larger than 0.1")
 
     set_axes_size = False
-    if axes_size is not None:
-        set_axes_size = True
+    if axesSize is not None:
+        if axesSize >= 0.1:
+            set_axes_size = True
+        else:
+            raise errors.UserError("artiax particles: axesSize required to be larger than 0.1")
 
     set_surface_level = False
-    if surface_level is not None:
+    if surfaceLevel is not None:
         set_surface_level = True
 
     set_color = False
     if color is not None:
         set_color = True
 
+    set_ori_scale = False
+    if originScaleFactor is not None:
+        if originScaleFactor > 0:
+            set_ori_scale = True
+        else:
+            raise errors.UserError("artiax particles: originScaleFactor required to be a positive, non-zero number.")
+
+    set_trans_scale = False
+    if transScaleFactor is not None:
+        if transScaleFactor > 0:
+            set_trans_scale = True
+        else:
+            raise errors.UserError("artiax particles: transScaleFactor required to be a positive, non-zero number.")
+
     # Filter models and work
     for model in models:
-        if not session.ArtiaX.partlists.has_id(model.id):
-            session.logger.warning(
-                'artiax particles: Model #{} - "{}" is not managed by ArtiaX'.format(model.id_string, model.name))
-            continue
+        # Is it a particle list?
+        from ..particle import ParticleList
+        if not isinstance(model, ParticleList):#session.ArtiaX.partlists.has_id(model.id):
+            # Is it a model that likely belongs to a particle list?
+            from chimerax.core.models import ancestor_models
+            if session.ArtiaX in ancestor_models([model]):
+                continue
+            else:
+                session.logger.warning(
+                    'artiax particles: Model #{} - "{}" is not a particle list'.format(model.id_string, model.name))
+                continue
 
         if set_radius:
             model.radius = radius
 
         if set_axes_size:
-            model.axes_size = axes_size
+            model.axes_size = axesSize
 
         if set_surface_level:
-            model.surface_level = surface_level
+            # Clamp by range
+            surfaceLevel = min(model.surface_range[1], surfaceLevel)
+            surfaceLevel = max(model.surface_range[0], surfaceLevel)
+
+            model.surface_level = surfaceLevel
 
         if set_color:
-            model.color = color
+            model.color = color.uint8x4()
+
+        if set_ori_scale:
+            model.origin_pixelsize = originScaleFactor
+
+        if set_trans_scale:
+            model.translation_pixelsize = transScaleFactor
+
+def artiax_tomo(session,
+                model,
+                contrastCenter=None,
+                contrastWidth=None,
+                slice=None,
+                sliceDirection=None,
+                pixelSize=None):
+    # No ArtiaX
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running.")
+        return
+
+    # No Models
+    if model is None:
+        raise errors.UserError('artiax tomo: A model needs to be specified.')
+
+    # Model not Tomo
+    from ..volume import Tomogram
+    if not isinstance(model, Tomogram):
+        raise errors.UserError('artiax tomo: Specified model needs to be of type Tomogram, not {}.'.format(type(model)))
+
+    if contrastCenter is not None:
+        # Clamp to range
+        contrastCenter = min(contrastCenter, model.max)
+        contrastCenter = max(contrastCenter, model.min)
+        model.contrast_center = contrastCenter
+
+    if contrastWidth is not None:
+        # Clamp to range
+        contrastWidth = min(contrastWidth, model.range)
+        contrastWidth = max(contrastWidth, 0)
+        model.contrast_width = contrastWidth
+
+    if sliceDirection is not None:
+        model.normal = sliceDirection
+        if slice is None:
+            slice = model.slab_count/2+1
+
+    if slice is not None:
+        # Clamp to range
+        slice = min(slice, model.slab_count - 1)
+        slice = max(slice, 0)
+        model.integer_slab_position = round(slice)
+
+    if pixelSize is not None:
+        if pixelSize <= 0:
+            raise errors.UserError('artiax tomo: pixelSize needs to be positive and non-zero.')
+        model.pixelsize = pixelSize
+        model.integer_slab_position = model.slab_count / 2 + 1
+        run(session, 'artiax view xy')
+
 
 
 def register_artiax(logger):
+    """Register all commands with ChimeraX, and specify expected arguments."""
     from chimerax.core.commands import (
         register,
         CmdDesc,
@@ -286,7 +391,8 @@ def register_artiax(logger):
         EmptyArg,
         FileNameArg,
         FloatArg,
-        ColorArg
+        ColorArg,
+        Float3Arg
     )
 
     def register_artiax_start():
@@ -349,8 +455,8 @@ def register_artiax(logger):
 
     def register_artiax_attach():
         desc = CmdDesc(
-            required=[("model", ModelArg),
-                      ("toParticleList", ModelArg)],
+            required=[("model", ModelArg)],
+            keyword=[("toParticleList", ModelArg)],
             synopsis='Set a surface for display at particle positions.',
             url='help:user/commands/artiax_particles_attach.html'
         )
@@ -394,15 +500,29 @@ def register_artiax(logger):
 
     def register_artiax_particles():
         desc = CmdDesc(
-            optional=[("models", Or(ModelsArg, EmptyArg)),
-                      ("radius", FloatArg),
-                      ("axesSize", FloatArg),
-                      ("surfaceLevel", FloatArg),
-                      ("color", ColorArg)],
+            optional=[("models", Or(ModelsArg, EmptyArg))],
+            keyword=[("radius", FloatArg),
+                     ("axesSize", FloatArg),
+                     ("surfaceLevel", FloatArg),
+                     ("color", ColorArg),
+                     ("originScaleFactor", FloatArg),
+                     ("transScaleFactor", FloatArg)],
             synopsis='Set particle list properties.',
             url='help:user/commands/artiax_particles.html'
         )
         register('artiax particles', desc, artiax_particles)
+
+    def register_artiax_tomo():
+        desc = CmdDesc(
+            required=[("model", ModelArg)],
+            keyword=[("contrastCenter", FloatArg),
+                      ("contrastWidth", FloatArg),
+                      ("slice", IntArg),
+                      ('sliceDirection', Float3Arg)],
+            synopsis='Set tomogram properties.',
+            url='help:user/commands/artiax_tomo.html'
+        )
+        register('artiax tomo', desc, artiax_tomo)
 
     register_artiax_start()
     register_artiax_open_tomo()
@@ -417,6 +537,7 @@ def register_artiax(logger):
     register_artiax_lock()
     register_artiax_unlock()
     register_artiax_particles()
+    register_artiax_tomo()
 
 # Possible styles
 # for pl in models:

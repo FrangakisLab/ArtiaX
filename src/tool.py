@@ -5,6 +5,7 @@ from functools import partial
 
 # ChimeraX
 from chimerax.core.tools import ToolInstance
+from chimerax.core.commands import run
 from chimerax.ui import MainToolWindow
 
 # Qt
@@ -101,7 +102,6 @@ class ArtiaXUI(ToolInstance):
 # ==============================================================================
 
     def _build_ui(self):
-
         # Volume open dialog
         caption = 'Choose a volume.'
         self.volume_open_dialog = QFileDialog(caption=caption, parent=self.session.ui.main_window)
@@ -227,9 +227,19 @@ class ArtiaXUI(ToolInstance):
 
         # Contents
         self.group_tomo_open_button = QPushButton("Open tomogram ...")
+
+        from .widgets import ModelChooserWidget
+        from chimerax.map import Volume
+        self.tomo_from_session = ModelChooserWidget(self.session,
+                                                   labeltext='Add Model: ',
+                                                   buttontext='Add!',
+                                                   type=Volume,
+                                                   exclude=self.session.ArtiaX)
+
         self.group_tomo_close_button = QPushButton("Close selected tomogram")
 
         group_tomo_layout.addWidget(self.group_tomo_open_button)
+        group_tomo_layout.addWidget(self.tomo_from_session)
         group_tomo_layout.addWidget(self.table_tomo)
         group_tomo_layout.addWidget(self.group_tomo_close_button)
 
@@ -283,6 +293,8 @@ class ArtiaXUI(ToolInstance):
         ui.group_tomo_open_button.clicked.connect(self._open_volume)
         ui.group_tomo_close_button.clicked.connect(self._close_volume)
 
+        ui.tomo_from_session.clicked.connect(self._add_volume)
+
 
     def _connect_part_ui(self):
         ui = self
@@ -310,6 +322,11 @@ class ArtiaXUI(ToolInstance):
 
         if file is not None and len(file):
             artia.open_tomogram(file[0])
+
+    def _add_volume(self, model):
+        artia = self.session.ArtiaX
+
+        run(self.session, "artiax add tomo #{}".format(model.id_string))
 
     def _choose_volume(self):
         if self.volume_open_dialog.exec():

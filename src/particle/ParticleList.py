@@ -171,6 +171,8 @@ class ParticleList(Model):
 
         self._data.pixelsize_ori = value
 
+        self.radius = 4 * value
+        self.axes_size = 15 * value
         self._update_places()
 
     @property
@@ -383,13 +385,14 @@ class ParticleList(Model):
         self.triggers.activate_trigger(PARTLIST_CHANGED, self)
 
     def store_marker_information(self):
+        print('stored information model {}'.format(self))
         self.session._marker_settings = {
             'marker set': self.markers,
             'next_marker_num': None,
             'marker_chain_id': 'M',
             'marker color': self.color,
             'marker radius': self.radius,
-            'link color': (101, 156, 239, 255),  # cornflowerblue
+            'link color': self.color,
             'link radius': 0.5,
             'link_new_markers': False,
         }

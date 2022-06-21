@@ -69,6 +69,17 @@ class VolumePlus(Volume):
                        default_rgba=None,
                        **rendering_options):
 
+        super().set_parameters(surface_levels,
+                               surface_colors,
+                               transparency,
+                               brightness,
+                               image_levels,
+                               image_colors,
+                               transparency_depth,
+                               image_brightness_factor,
+                               default_rgba,
+                               **rendering_options)
+
         if surface_levels:
             self.triggers.activate_trigger(SURFACE_LEVELS_CHANGED, self)
         if surface_colors:
@@ -90,16 +101,6 @@ class VolumePlus(Volume):
         if rendering_options:
             self.triggers.activate_trigger(RENDERING_OPTIONS_CHANGED, self)
 
-        super().set_parameters(surface_levels,
-                               surface_colors,
-                               transparency,
-                               brightness,
-                               image_levels,
-                               image_colors,
-                               transparency_depth,
-                               image_brightness_factor,
-                               default_rgba,
-                               **rendering_options)
 
     def _compute_stats(self):
         arr = self.data.matrix(ijk_size=self.data.size)

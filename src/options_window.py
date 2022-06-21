@@ -64,7 +64,7 @@ class OptionsWindow(ToolInstance):
     DEBUG = False
 
     SESSION_ENDURING = False    # Does this instance persist when session closes
-    SESSION_SAVE = True         # We do save/restore in sessions
+    SESSION_SAVE = False        # We do save/restore in sessions
     help = "help:user/tools/tutorial.html"
                             # Let ChimeraX know about our help page
 
@@ -104,9 +104,12 @@ class OptionsWindow(ToolInstance):
         from chimerax.log.tool import Log
         from chimerax.model_panel.tool import ModelPanel
         from chimerax.map.volume_viewer import VolumeViewer
+        from chimerax.markers.markergui import MarkerModeSettings
 
         # Make sure volume viewer is there
         run(self.session, 'ui tool show "Volume Viewer"', log=False)
+        # Make sure marker tool is there (also workaround for it overwriting marker_settings on launch)
+        run(self.session, 'ui tool show "Marker Placement"', log=False)
 
         if len(self.session.tools.find_by_class(Log)) > 0:
             log_window = self.session.tools.find_by_class(Log)[0].tool_window
@@ -120,11 +123,16 @@ class OptionsWindow(ToolInstance):
             vol_viewer = self.session.tools.find_by_class(VolumeViewer)[0].tool_window
             vol_viewer.manage(self.tool_window)
 
+        if len(self.session.tools.find_by_class(MarkerModeSettings)) > 0:
+            vol_viewer = self.session.tools.find_by_class(MarkerModeSettings)[0].tool_window
+            vol_viewer.manage(self.tool_window)
+
+        # We are on top
+        run(self.session, 'ui tool show "ArtiaX Options"', log=False)
+
         artia = self.session.ArtiaX
         artia.triggers.add_handler(OPTIONS_TOMO_CHANGED, self._update_tomo_options)
         artia.triggers.add_handler(OPTIONS_PARTLIST_CHANGED, self._update_partlist_options)
-
-
 
 
 # ==============================================================================
@@ -169,6 +177,7 @@ class OptionsWindow(ToolInstance):
             self.tabs.widget(1).setEnabled(False)
             self.tabs.widget(2).setEnabled(False)
             self.part_toolbar_1.set_name(None)
+            self.part_toolbar_2.set_name(None)
         else:
             self._show_tab("partlist")
 
@@ -218,7 +227,7 @@ class OptionsWindow(ToolInstance):
         tomo_layout = QVBoxLayout()
         tomo_layout.setAlignment(Qt.AlignTop)
 
-        # Display current tomogram name
+        #### Current Tomogram Box ####
         group_current_tomo = QGroupBox("Current Tomogram")
         group_current_tomo.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
                                                      QSizePolicy.Maximum))
@@ -229,12 +238,14 @@ class OptionsWindow(ToolInstance):
                                                           QSizePolicy.Minimum))
         current_tomo_layout.addWidget(self.current_tomo_label)
         group_current_tomo.setLayout(current_tomo_layout)
+        #### Current Tomogram Box ####
 
-        # Set the layout of the Pixel Size LineEdit
+        #### Physical coordinates Box ####
         group_pixelsize = QGroupBox("Physical Coordinates")
         group_pixelsize.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
                                                   QSizePolicy.Maximum))
         group_pixelsize.setFont(self.font)
+        group_pixelsize.setCheckable(True)
         group_pixelsize_layout = QGridLayout()
 
         group_pixelsize_label = QLabel("Pixel Size:")
@@ -248,43 +259,35 @@ class OptionsWindow(ToolInstance):
 
         # Add grid to group
         group_pixelsize.setLayout(group_pixelsize_layout)
+        #### Physical coordinates Box ####
 
-        # Define a group for the contrast sliders
+        #### Contrast Box ####
         group_contrast = QGroupBox("Contrast Settings")
         group_contrast.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
                                                   QSizePolicy.Maximum))
         group_contrast.setFont(self.font)
-        group_contrast_layout = QGridLayout()
+        group_contrast.setCheckable(True)
+
+        group_contrast_layout = QVBoxLayout()
 
         # Define two sliders that control the contrast
-        # Center Sliders
-        group_contrast_center_label = QLabel("Center:")
-        group_contrast_center_label.setFont(self.font)
-        self.group_contrast_center_edit = QLineEdit("")
-        self.group_contrast_center_edit.setFont(self.font)
-        self.group_contrast_center_slider = QSlider(Qt.Horizontal)
+        from .widgets import LabelEditSlider
+        self.contrast_center_widget = LabelEditSlider((-2, 2), 'Center:')
+        self.contrast_width_widget = LabelEditSlider((-2, 2), 'Width:')
 
-        # Width Slider
-        group_contrast_width_label = QLabel("Width:")
-        group_contrast_width_label.setFont(self.font)
-        self.group_contrast_width_edit = QLineEdit("")
-        self.group_contrast_width_edit.setFont(self.font)
-        self.group_contrast_width_slider = QSlider(Qt.Horizontal)
-        # Add to the grid layout
-        group_contrast_layout.addWidget(group_contrast_center_label, 0, 0)
-        group_contrast_layout.addWidget(self.group_contrast_center_edit, 0, 1)
-        group_contrast_layout.addWidget(self.group_contrast_center_slider, 0, 2)
-        group_contrast_layout.addWidget(group_contrast_width_label, 1, 0)
-        group_contrast_layout.addWidget(self.group_contrast_width_edit, 1, 1)
-        group_contrast_layout.addWidget(self.group_contrast_width_slider, 1, 2)
+        group_contrast_layout.addWidget(self.contrast_center_widget)
+        group_contrast_layout.addWidget(self.contrast_width_widget)
+
         # Add grid to group
         group_contrast.setLayout(group_contrast_layout)
+        #### Contrast Box ####
 
         # Define a group for different orthoplanes of a tomogram
         group_orthoplanes = QGroupBox("Orthoplanes")
         group_orthoplanes.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
                                                  QSizePolicy.Maximum))
         group_orthoplanes.setFont(self.font)
+        group_orthoplanes.setCheckable(True)
         # Set the layout of the group
         group_orthoplanes_layout = QGridLayout()
         # Define different buttons to press for the different orthoslices
@@ -316,43 +319,56 @@ class OptionsWindow(ToolInstance):
         # Add grid to group
         group_fourier_transform.setLayout(group_fourier_transform_layout)
 
-        # Define a group that jumps through the slices
-        group_slices = QGroupBox("Jump Through Slices")
+        #### Slice Box ####
+        group_slices = QGroupBox("Navigation")
         group_slices.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
                                                QSizePolicy.Maximum))
         group_slices.setFont(self.font)
+        group_slices.setCheckable(True)
+
         # Set the layout for the group
-        group_slices_layout = QGridLayout()
-        # Define a Slider and four jump buttons
+        group_slices_layout = QVBoxLayout()
+
         group_slices_label = QLabel("Slice:")
         group_slices_label.setFont(self.font)
 
-        group_slices_first_row = QHBoxLayout()
-        self.group_slices_edit = QLineEdit("")
-        self.group_slices_edit.setFont(self.font)
-        self.group_slices_slider = QSlider(Qt.Horizontal)
-        group_slices_first_row.addWidget(self.group_slices_edit)
-        group_slices_first_row.addWidget(self.group_slices_slider)
+        # Normal vector
+        from .widgets import LabeledVectorEdit
+        self.normal_vector_widget = LabeledVectorEdit(maintext='Slice Direction:',
+                                                      label_1='X:',
+                                                      label_2='Y:',
+                                                      label_3='Z:',
+                                                      button='Set',
+                                                      value=(0, 0, 1))
+
+        # Sep
+        from Qt.QtWidgets import QFrame
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setFrameShadow(QFrame.Sunken)
+
+        # Slider
+        self.slice_widget = LabelEditSlider((0, 100), 'Slice:', step_size=1)
 
         group_slices_second_row = QHBoxLayout()
         self.group_slices_previous_10 = QPushButton("<<")
-        self.group_slices_previous_10.setFont(self.font)
         self.group_slices_previous_1 = QPushButton("<")
-        self.group_slices_previous_1.setFont(self.font)
         self.group_slices_next_1 = QPushButton(">")
-        self.group_slices_next_1.setFont(self.font)
         self.group_slices_next_10 = QPushButton(">>")
-        self.group_slices_next_10.setFont(self.font)
+
         group_slices_second_row.addWidget(self.group_slices_previous_10)
         group_slices_second_row.addWidget(self.group_slices_previous_1)
         group_slices_second_row.addWidget(self.group_slices_next_1)
         group_slices_second_row.addWidget(self.group_slices_next_10)
         # Add to the grid layout
-        group_slices_layout.addWidget(group_slices_label, 0, 0)
-        group_slices_layout.addLayout(group_slices_first_row, 0, 1)
-        group_slices_layout.addLayout(group_slices_second_row, 1, 1)
+        group_slices_layout.addWidget(self.normal_vector_widget)
+        group_slices_layout.addWidget(line)
+        group_slices_layout.addWidget(self.slice_widget)
+        group_slices_layout.addLayout(group_slices_second_row)
+
         # Add grid to group
         group_slices.setLayout(group_slices_layout)
+        #### Slice Box ####
 
         # Add groups to layout
         tomo_layout.addWidget(group_current_tomo)
@@ -360,7 +376,7 @@ class OptionsWindow(ToolInstance):
         tomo_layout.addWidget(group_contrast)
         tomo_layout.addWidget(group_slices)
         tomo_layout.addWidget(group_orthoplanes)
-        tomo_layout.addWidget(group_fourier_transform)
+        #tomo_layout.addWidget(group_fourier_transform)
 
         # And finally set the layout of the widget
         self.tomo_widget.setLayout(tomo_layout)
@@ -375,19 +391,21 @@ class OptionsWindow(ToolInstance):
         ### Options window
         ## Tomo Tab
         # Pixel size
-        ow.group_pixelsize_button_apply.clicked.connect(partial(ow._set_tomo_pixelsize))
+        ow.group_pixelsize_button_apply.clicked.connect(ow._set_tomo_pixelsize)
+        ow.group_pixelsize_edit.editingFinished.connect(ow._set_tomo_pixelsize)
 
         # Center
-        ow.group_contrast_center_edit.editingFinished.connect(partial(ow._contrast_center_edited))
-        ow.group_contrast_center_slider.valueChanged.connect(partial(ow._contrast_center_slider))
+        ow.contrast_center_widget.valueChanged.connect(ow._contrast_center_changed)
+        ow.contrast_center_widget.editingFinished.connect(partial(ow._contrast_center_changed, log=True))
 
         # Width
-        ow.group_contrast_width_edit.editingFinished.connect(partial(ow._contrast_width_edited))
-        ow.group_contrast_width_slider.valueChanged.connect(partial(ow._contrast_width_slider))
+        ow.contrast_width_widget.valueChanged.connect(ow._contrast_width_changed)
+        ow.contrast_width_widget.editingFinished.connect(partial(ow._contrast_width_changed, log=True))
 
         # Slice
-        ow.group_slices_edit.editingFinished.connect(partial(ow._slice_edited))
-        ow.group_slices_slider.valueChanged.connect(partial(ow._slice_slider))
+        ow.normal_vector_widget.valueChanged.connect(ow._normal_changed)
+        ow.slice_widget.valueChanged.connect(ow._slice_changed)
+        ow.slice_widget.editingFinished.connect(partial(ow._slice_changed, log=True))
 
         # Slices buttons
         ow.group_slices_previous_10.clicked.connect(partial(ow._skip_planes, -10))
@@ -399,12 +417,12 @@ class OptionsWindow(ToolInstance):
         ow.group_orthoplanes_buttonxy.clicked.connect(partial(ow._set_xy_orthoplanes))
         ow.group_orthoplanes_buttonxz.clicked.connect(partial(ow._set_xz_orthoplanes))
         ow.group_orthoplanes_buttonyz.clicked.connect(partial(ow._set_yz_orthoplanes))
-        ow.group_orthoplanes_buttonxyz.clicked.connect(partial(ow.orthoplanes_buttonxyz_execute))
+        #ow.group_orthoplanes_buttonxyz.clicked.connect(partial(ow.orthoplanes_buttonxyz_execute))
 
         # Fourier transform
-        ow.group_fourier_transform_execute_button.clicked.connect(partial(ow._fourier_transform))
+        #ow.group_fourier_transform_execute_button.clicked.connect(partial(ow._fourier_transform))
 
-        ## Partlist Tab
+        ## Partlist Tabs
         # Connect lock buttons
         ow.translation_lock_button_1.stateChanged.connect(ow._lock_translation)
         ow.translation_lock_button_2.stateChanged.connect(ow._lock_translation)
@@ -423,6 +441,7 @@ class OptionsWindow(ToolInstance):
         # Adding an object
         ow.browse_edit.returnPressed.connect(ow._enter_display_volume)
         ow.browse_button.clicked.connect(ow._browse_display_volume)
+        ow.add_from_session.clicked.connect(ow._add_display_volume)
 
         # Connect selector
         ow.partlist_selection.displayChanged.connect(artia.show_particles)
@@ -459,27 +478,20 @@ class OptionsWindow(ToolInstance):
         idx = artia.options_tomogram
         tomo = artia.tomograms.get(idx)
 
-        self.group_contrast_center_slider.setMinimum(0)
-        self.group_contrast_center_slider.setMaximum(10000)
-        self.group_contrast_center_slider.setSingleStep(1)
+        prev = self.contrast_center_widget.blockSignals(True)
+        self.contrast_center_widget.set_range(range=[tomo.min, tomo.max], value=tomo.contrast_center)
+        self.contrast_center_widget.blockSignals(prev)
 
-        self.group_contrast_center_slider.setValue(value_to_slider(tomo.contrast_center, 10000, tomo.min, tomo.max))
-        self.group_contrast_center_edit.setText(str(tomo.contrast_center))
+        prev = self.contrast_width_widget.blockSignals(True)
+        self.contrast_width_widget.set_range(range=[0, tomo.range], value=tomo.contrast_width)
+        self.contrast_width_widget.blockSignals(prev)
 
-        # Width goes from negative distance between minimum and maximum to positive distance
-        self.group_contrast_width_slider.setMinimum(0)
-        self.group_contrast_width_slider.setMaximum(10000)
-        self.group_contrast_width_slider.setSingleStep(1)
+        prev = self.slice_widget.blockSignals(True)
+        self.slice_widget.set_range(range=[0, tomo.slab_count-1], value=tomo.integer_slab_position)
+        self.slice_widget.blockSignals(prev)
 
-        self.group_contrast_width_slider.setValue(value_to_slider(tomo.contrast_width, 10000, 0, tomo.range))
-        self.group_contrast_width_edit.setText(str(tomo.contrast_width))
+        self.normal_vector_widget.set_value(tomo.normal)
 
-        self.group_slices_slider.setMinimum(0)
-        self.group_slices_slider.setMaximum(tomo.slab_count-1)
-        self.group_contrast_width_slider.setSingleStep(1)
-
-        self.group_slices_slider.setValue(tomo.integer_slab_position)
-        self.group_slices_edit.setText(str(tomo.integer_slab_position))
 
     def _update_pixelsize_edit(self):
         artia = self.session.ArtiaX
@@ -493,100 +505,67 @@ class OptionsWindow(ToolInstance):
         artia = self.session.ArtiaX
         tomo = artia.tomograms.get(artia.options_tomogram)
 
+        if not is_float(self.group_pixelsize_edit.text()):
+            self.group_pixelsize_edit.setText(str(tomo.pixelsize))
+            raise UserError('Please enter a valid number for the pixelsize.')
+
         pixel_size = float(self.group_pixelsize_edit.text())
 
         if pixel_size <= 0:
-            raise UserError("{} is not a valid pixel size".format(pixel_size))
+            raise UserError("Pixelsize needs to be positive and non-zero.")
 
         tomo.pixelsize = pixel_size
+        tomo.integer_slab_position = tomo.slab_count / 2 + 1
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        from chimerax.core.commands import log_equivalent_command
+        log_equivalent_command(self.session, "artiax tomo #{} pixelSize {}".format(tomo.id_string, pixel_size))
+        run(self.session, 'artiax view xy')
 
-    def _contrast_center_edited(self):
-        try:
-            artia = self.session.ArtiaX
-            tomo = artia.tomograms.get(artia.options_tomogram)
-            # Get text from edit
-            value = float(self.group_contrast_center_edit.text())
-            # Set value in slider
-            self.group_contrast_center_slider.setValue(value_to_slider(value, 10000, tomo.min, tomo.max))
-            # Execute the center function
-            tomo.contrast_center = value
-        except:
-            print("Error: Please insert a number.")
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    def _contrast_center_slider(self, session):
+    def _contrast_center_changed(self, value, log=False):
         artia = self.session.ArtiaX
         tomo = artia.tomograms.get(artia.options_tomogram)
-
-        # Get the value from the slider
-        value = slider_to_value(self.group_contrast_center_slider.value(), 10000, tomo.min, tomo.max)
-        # Set value in edit
-        self.group_contrast_center_edit.setText(str(value))
-        # Execute the center function
         tomo.contrast_center = value
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        if log:
+            from chimerax.core.commands import log_equivalent_command
+            log_equivalent_command(self.session, 'artiax tomo #{} contrastCenter {}'.format(tomo.id_string, value))
 
-    def _contrast_width_edited(self):
-        try:
-            artia = self.session.ArtiaX
-            tomo = artia.tomograms.get(artia.options_tomogram)
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-            # Get text from edit
-            value = float(self.group_contrast_width_edit.text())
-            # Set value in slider
-            self.group_contrast_width_slider.setValue(value_to_slider(value, 10000, 0, tomo.range))
-            # Execute the width function
-            tomo.contrast_width = value
-        except:
-            print("Error: Please insert a number")
-
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    def _contrast_width_slider(self):
+    def _contrast_width_changed(self, value, log=False):
         artia = self.session.ArtiaX
         tomo = artia.tomograms.get(artia.options_tomogram)
-
-        # Get the value from the slider
-        value = slider_to_value(self.group_contrast_width_slider.value(), 10000, 0, tomo.range)
-        # Set value in edit
-        self.group_contrast_width_edit.setText(str(value))
-        # Execute the width function
         tomo.contrast_width = value
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        if log:
+            from chimerax.core.commands import log_equivalent_command
+            log_equivalent_command(self.session, 'artiax tomo #{} contrastWidth {}'.format(tomo.id_string, value))
 
-    def _slice_edited(self):
-        try:
-            artia = self.session.ArtiaX
-            tomo = artia.tomograms.get(artia.options_tomogram)
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-            # Get text from edit
-            value = float(self.group_slices_edit.text())
-            # Set value in slider
-            self.group_slices_slider.setValue(int(value))
-            # Execute the slice function
-            tomo.integer_slab_position = value
-        except:
-            print("Error: Please insert a number.")
-
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    def _slice_slider(self):
+    def _slice_changed(self, value, log=False):
         artia = self.session.ArtiaX
         tomo = artia.tomograms.get(artia.options_tomogram)
-
-        # Get the value from the slider
-        value = self.group_slices_slider.value()
-        # Set value in edit
-        self.group_slices_edit.setText(str(value))
-        # Execute the slice function
         tomo.integer_slab_position = value
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        if log:
+            from chimerax.core.commands import log_equivalent_command
+            log_equivalent_command(self.session, 'artiax tomo #{} slice {}'.format(tomo.id_string, round(value)))
+
+    def _normal_changed(self, value):
+        artia = self.session.ArtiaX
+        tomo = artia.tomograms.get(artia.options_tomogram)
+        tomo.normal = value
+
+        from chimerax.core.commands import log_equivalent_command
+        log_equivalent_command(self.session, 'artiax tomo #{} sliceDirection {},{},{}'.format(tomo.id_string,
+                                                                                              value[0],
+                                                                                              value[1],
+                                                                                              value[2]))
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     def _skip_planes(self, number):
         artia = self.session.ArtiaX
@@ -598,14 +577,16 @@ class OptionsWindow(ToolInstance):
         tomo.integer_slab_position = tomo_slice
         self._update_tomo_sliders()
 
+        from chimerax.core.commands import log_equivalent_command
+        log_equivalent_command(self.session, 'artiax tomo #{} slice {}'.format(tomo.id_string, round(tomo_slice)))
+
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     def _set_xy_orthoplanes(self):
         artia = self.session.ArtiaX
         tomo = artia.tomograms.get(artia.options_tomogram)
 
-        cmd = orthoplane_cmd(tomo, 'xy')
-        run(self.session, cmd)
+        run(self.session, 'artiax tomo #{} sliceDirection 0,0,1'.format(tomo.id_string))
         run(self.session, 'artiax view xy')
         run(self.session, 'mousemode rightMode "move planes"')
         self._update_tomo_sliders()
@@ -614,8 +595,7 @@ class OptionsWindow(ToolInstance):
         artia = self.session.ArtiaX
         tomo = artia.tomograms.get(artia.options_tomogram)
 
-        cmd = orthoplane_cmd(tomo, 'xz')
-        run(self.session, cmd)
+        run(self.session, 'artiax tomo #{} sliceDirection 0,1,0'.format(tomo.id_string))
         run(self.session, 'artiax view xz')
         run(self.session, 'mousemode rightMode "move planes"')
         self._update_tomo_sliders()
@@ -624,8 +604,7 @@ class OptionsWindow(ToolInstance):
         artia = self.session.ArtiaX
         tomo = artia.tomograms.get(artia.options_tomogram)
 
-        cmd = orthoplane_cmd(tomo, 'yz')
-        run(self.session, cmd)
+        run(self.session, 'artiax tomo #{} sliceDirection 1,0,0'.format(tomo.id_string))
         run(self.session, 'artiax view yz')
         run(self.session, 'mousemode rightMode "move planes"')
         self._update_tomo_sliders()
@@ -821,11 +800,32 @@ class OptionsWindow(ToolInstance):
         self.group_surf_layout = QVBoxLayout()
         self.group_surf_layout.setSizeConstraint(QLayout.SetMinimumSize)
 
+        # Current surface
+        self.current_surface_label = QLabel("Current Surface: ")
+
+        # New surface
+        from Qt.QtWidgets import QFrame
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setFrameShadow(QFrame.Sunken)
+
+        new_surface_label = QLabel('Add new surface')
+
+        # Add from session row
+        from .widgets import ModelChooserWidget
+        from chimerax.map import Volume
+        self.add_from_session = ModelChooserWidget(self.session,
+                                                   labeltext='Use Model: ',
+                                                   buttontext='Attach Model',
+                                                   type=Volume,
+                                                   exclude=self.session.ArtiaX)
+
         # Add a browse row
         self.browse_layout = QHBoxLayout()
-        self.browse_label = QLabel("Volume filename:")
+        self.browse_label = QLabel("Load file:")
         self.browse_label.setFont(self.font)
         self.browse_edit = QLineEdit("")
+        self.browse_edit.setPlaceholderText('volume filename')
         self.browse_edit.setFont(self.font)
         self.browse_button = QPushButton("Browse")
         self.browse_layout.addWidget(self.browse_label)
@@ -834,8 +834,13 @@ class OptionsWindow(ToolInstance):
 
         self.surface_level_widget = LabelEditSlider((0, 1), 'Surface Level')
 
-        self.group_surf_layout.addLayout(self.browse_layout)
+        self.group_surf_layout.addWidget(self.current_surface_label)
         self.group_surf_layout.addWidget(self.surface_level_widget)
+        self.group_surf_layout.addWidget(line)
+        self.group_surf_layout.addWidget(new_surface_label, alignment=Qt.AlignCenter)
+        self.group_surf_layout.addWidget(self.add_from_session)
+        self.group_surf_layout.addLayout(self.browse_layout)
+
 
         self.group_surf.setLayout(self.group_surf_layout)
         #### Surface Group box ####
@@ -890,6 +895,7 @@ class OptionsWindow(ToolInstance):
             if dpm.data.path is None:
                 self.browse_edit.setText('')
             else:
+                self.current_surface_label.setText('Current Surface: #{} - {}'.format(dpm.id_string, dpm.name))
                 self.browse_edit.setText(dpm.data.path)
         else:
             self.browse_edit.setText('')
@@ -947,6 +953,10 @@ class OptionsWindow(ToolInstance):
         value = float(self.pf_edit_ori.text())
         pl.origin_pixelsize = value
 
+        from chimerax.core.commands import log_equivalent_command
+        log_equivalent_command(self.session, "artiax particles #{} originScaleFactor {}".format(pl.id_string, value))
+        run(self.session, "artiax view xy")
+
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _trans_pixelsize_changed(self):
         artia = self.session.ArtiaX
@@ -958,6 +968,10 @@ class OptionsWindow(ToolInstance):
 
         value = float(self.pf_edit_tra.text())
         pl.translation_pixelsize = value
+
+        from chimerax.core.commands import log_equivalent_command
+        log_equivalent_command(self.session, "artiax particles #{} transScaleFactor {}".format(pl.id_string, value))
+        run(self.session, "artiax view xy")
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _delete_selected(self):
@@ -995,21 +1009,24 @@ class OptionsWindow(ToolInstance):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
 
+        from chimerax.core.commands import log_equivalent_command
+
+        #TODO: ChimeraX bug? Doesn't log this.
+        log_equivalent_command(self.session, 'open {}'.format(file))
+
         vol = open_map(self.session, file)[0][0]
         self.session.models.add([vol])
         temp_id = vol.id_string
+
+        log_equivalent_command(self.session, 'artiax attach #{} toParticleList #{}'.format(temp_id, pl.id_string))
         pl.attach_display_model(vol)
+
+        # Make sure the surfaces are visible
+        run(self.session, 'artiax show #{} surfaces'.format(pl.id_string))
 
         # Make sure we are on top
         self._update_partlist_ui()
         run(self.session, 'ui tool show "ArtiaX Options"', log=False)
-
-        # Make sure the surfaces are visible
-        from chimerax.core.commands import log_equivalent_command
-        log_equivalent_command(self.session, 'open {}'.format(file))
-        log_equivalent_command(self.session, 'artiax attach #{} toParticleList #{}'.format(temp_id, pl.id_string))
-        run(self.session, 'artiax show #{} surfaces'.format(pl.id_string))
-
 
     def _enter_display_volume(self):
         file = self.browse_edit.text()
@@ -1034,6 +1051,12 @@ class OptionsWindow(ToolInstance):
     def _choose_volume(self):
         if self.volume_open_dialog.exec():
             return self.volume_open_dialog.selectedFiles()
+
+    def _add_display_volume(self, model):
+        artia = self.session.ArtiaX
+        pl = artia.partlists.get(artia.options_partlist)
+
+        run(self.session, 'artiax attach #{} toParticleList #{}'.format(model.id_string, pl.id_string))
 
     def _lock_translation(self, state):
         artia = self.session.ArtiaX
