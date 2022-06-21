@@ -14,3 +14,4 @@ from .SaveArgsWidget import SaveArgsWidget
 from .PartlistToolbarWidget import PartlistToolbarWidget
 from .ModelChooserWidget import ModelChooserWidget
 from .LabeledVectorEdit import LabeledVectorEdit
+from .ArtiaXSaveDialog import ArtiaXSaveDialog

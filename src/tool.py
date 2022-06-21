@@ -333,13 +333,15 @@ class ArtiaXUI(ToolInstance):
             return self.volume_open_dialog.selectedFiles()
 
     def _open_partlist(self):
-        artia = self.session.ArtiaX
-
-        file, format = self._choose_partlist()
-
-        if file is not None and len(file):
-            fmt_name = self.partlist_filters[format]
-            artia.open_partlist(file[0], fmt_name)
+        from .widgets.ArtiaxOpenDialog import show_open_file_dialog
+        show_open_file_dialog(self.session)
+        # artia = self.session.ArtiaX
+        #
+        # file, format = self._choose_partlist()
+        #
+        # if file is not None and len(file):
+        #     fmt_name = self.partlist_filters[format]
+        #     artia.open_partlist(file[0], fmt_name)
 
     def _choose_partlist(self):
         if self.particle_open_dialog.exec():
@@ -352,13 +354,15 @@ class ArtiaXUI(ToolInstance):
         artia.create_partlist()
 
     def _save_partlist(self):
-        artia = self.session.ArtiaX
-
-        file, format = self._choose_partlist_save()
-
-        if file is not None and len(file):
-            fmt_name = self.partlist_filters[format]
-            artia.save_partlist(artia.selected_partlist, file[0], fmt_name)
+        from .widgets.ArtiaXSaveDialog import show_save_file_dialog
+        show_save_file_dialog(self.session)
+        # artia = self.session.ArtiaX
+        #
+        # file, format = self._choose_partlist_save()
+        #
+        # if file is not None and len(file):
+        #     fmt_name = self.partlist_filters[format]
+        #     artia.save_partlist(artia.selected_partlist, file[0], fmt_name)
 
     def _choose_partlist_save(self):
         if self.particle_save_dialog.exec():

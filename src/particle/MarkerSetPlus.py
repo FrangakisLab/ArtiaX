@@ -41,6 +41,7 @@ class MarkerSetPlus(MarkerSet):
 
         # Handlers
         self.triggers.add_handler("changes", self._handle_changes)
+        #self.session.triggers.add_handler('mouse hover', self._catch_hover)
 
     def delete(self):
         MarkerSet.delete(self)
@@ -165,6 +166,20 @@ class MarkerSetPlus(MarkerSet):
         if self.DEBUG:
             print(self._markers)
         return [atom for atom in self._markers if atom.deleted]
+
+    # def _catch_hover(self, name, pick):
+    #     if pick is None:
+    #         return
+    #
+    #     from chimerax.atomic import PickedAtom
+    #     if isinstance(pick, PickedAtom):
+    #         if isinstance(pick.atom, MarkerSetPlus):
+    #             ui = self.session.ui
+    #             pu = ui.main_window.graphics_window.popup
+    #             model = '#{}, '.format(pick.atom.structure.parent.parent.id_string) #Ooooof
+    #             particle = 'particle {}/{}, '.format(pick.atom.id + 1, self._position_mask.shape[0])
+    #             pu.show_text
+
 
 # class PickedParticle(PickedAtom):
 #

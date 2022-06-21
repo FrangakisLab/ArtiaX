@@ -70,7 +70,7 @@ class Tomogram(VolumePlus):
     def normal(self, value):
         from chimerax.geometry import normalize_vector
         value = normalize_vector(value)
-        self.set_parameters(tilted_slab_axis=value)
+        self.set_parameters(tilted_slab_axis=value, color_mode='opaque8')
 
     @property
     def min_offset(self):
@@ -150,7 +150,7 @@ class Tomogram(VolumePlus):
                             tilted_slab_offset=offset,
                             tilted_slab_plane_count=1,
                             image_mode='tilted slab',
-                            color_mode='l16')
+                            color_mode='opaque8')
 
         self.set_display_style('image')
 
@@ -214,7 +214,7 @@ def orthoplane_cmd(tomogram, axes, offset=None):
 
     size = tomogram.size
     spacing = tomogram.pixelsize[0]
-    cmd = 'volume #{} region {},{},{},{},{},{} step 1 style image imageMode "tilted slab" tiltedSlabAxis {},{},{} tiltedSlabPlaneCount 1 tiltedSlabOffset {} tilted_slab_spacing {} colorMode l16'
+    cmd = 'volume #{} region {},{},{},{},{},{} step 1 style image imageMode "tilted slab" tiltedSlabAxis {},{},{} tiltedSlabPlaneCount 1 tiltedSlabOffset {} tilted_slab_spacing {} colorMode opaque8'
 
     if offset is None:
         offset = tomogram.center_offset

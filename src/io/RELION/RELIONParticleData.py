@@ -12,6 +12,8 @@ from chimerax.core.errors import UserError
 from ..formats import ArtiaXFormat
 from ..ParticleData import ParticleData, EulerRotation
 
+EPSILON = np.finfo(np.float32).eps
+EPSILON16 = 16 * EPSILON
 
 class RELIONEulerRotation(EulerRotation):
 
@@ -21,28 +23,76 @@ class RELIONEulerRotation(EulerRotation):
     def rot1_from_matrix(self, matrix):
         """rlnAngleRot -- Phi"""
         # Singularity check
-        if matrix[2, 2] > 0.9999:
-            angle = 0
-        else:
-            angle = np.arctan2(matrix[2, 1], matrix[2, 0]) * 180.0 / np.pi
+        # if matrix[2, 2] > 0.9999:
+        #     angle = 0
+        # else:
+        #     angle = np.arctan2(matrix[2, 1], matrix[2, 0]) * 180.0 / np.pi
 
-        return angle
+        abs_sb = self._abs_sb(matrix)
+
+        if abs_sb is not None:
+            angle = np.arctan2(matrix[2, 1], matrix[2, 0])
+        else:
+            angle = 0
+
+        return angle * 180.0 / np.pi
 
     def rot2_from_matrix(self, matrix):
         """rlnAngleTilt -- Theta"""
-        angle = np.arccos(matrix[2, 2]) * 180.0 / np.pi
+        #angle = np.arccos(matrix[2, 2]) * 180.0 / np.pi
 
-        return angle
+        abs_sb = self._abs_sb(matrix)
+
+        if abs_sb is not None:
+            sign_sb = self._sign_rot2(matrix)
+            angle = np.arctan2(sign_sb * abs_sb, matrix[2, 2])
+        else:
+            if np.sign(matrix[2, 2]) > 0:
+                angle = 0
+            else:
+                angle = np.pi
+
+        return angle * 180.0 / np.pi
 
     def rot3_from_matrix(self, matrix):
         """Psi"""
         # Singularity check
-        if matrix[2, 2] > 0.9999:
-            angle = np.arctan2(-matrix[1, 0], matrix[0, 0]) * 180.0 / np.pi
-        else:
-            angle = np.arctan2(matrix[1, 2], -matrix[0, 2]) * 180.0 / np.pi
+        # if matrix[2, 2] > 0.9999:
+        #     angle = np.arctan2(-matrix[1, 0], matrix[0, 0]) * 180.0 / np.pi
+        # else:
+        #     angle = np.arctan2(matrix[1, 2], -matrix[0, 2]) * 180.0 / np.pi
 
-        return angle
+        abs_sb = self._abs_sb(matrix)
+
+        if abs_sb is not None:
+            angle = np.arctan2(matrix[1, 2], -matrix[0, 2])
+        else:
+            if np.sign(matrix[2, 2]) > 0:
+                angle = np.arctan2(-matrix[1, 0], matrix[0, 0])
+            else:
+                angle = np.arctan2(matrix[1, 0], -matrix[0, 0])
+
+        return angle * 180.0 / np.pi
+
+    def _abs_sb(self, matrix):
+        abs_sb = np.sqrt(matrix[0, 2] * matrix[0, 2] + matrix[1, 2] * matrix[1, 2])
+
+        if abs_sb > EPSILON16:
+            return abs_sb
+        else:
+            return None
+
+    def _sign_rot2(self, matrix):
+        rot3 = np.arctan2(matrix[1, 2], -matrix[0, 2])
+
+        if np.abs(np.sin(rot3)) < EPSILON:
+            sign_sb = np.sign(-matrix(0, 2) / np.cos(rot3))
+        else:
+            sign_sb = np.sign(matrix[1, 2]) if (np.sin(rot3) > 0) else -np.sign(matrix[1, 2])
+
+        return sign_sb
+
+
 
 
 class RELIONParticleData(ParticleData):
@@ -73,12 +123,12 @@ class RELIONParticleData(ParticleData):
 
     ROT = RELIONEulerRotation
 
-    def __init__(self, session, file_name, *kw):
-        super().__init__(session, file_name, *kw)
+    def __init__(self, session, file_name, oripix=1, trapix=1, additional_files=None):
+        self.remaining_loops = {}
+        self.remaining_data = {}
+        self.loop_name = 0
 
-        remaining_loops = {}
-        remaining_data = {}
-        loop_name = 0
+        super().__init__(session, file_name, oripix=oripix, trapix=trapix, additional_files=additional_files)
 
     def read_file(self):
         content = starfile.read(self.file_name, always_dict=True)

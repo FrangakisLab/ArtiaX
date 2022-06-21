@@ -63,9 +63,6 @@ class LabeledVectorEdit(QWidget):
         self._connect()
 
     def _connect(self):
-        #self._edit1.editingFinished.connect(self._value_changed)
-        #self._edit2.editingFinished.connect(self._value_changed)
-        #self._edit3.editingFinished.connect(self._value_changed)
         self._button.clicked.connect(self._value_changed)
 
     def set_value(self, value):

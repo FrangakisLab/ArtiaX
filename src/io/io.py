@@ -10,7 +10,7 @@ from chimerax.core.errors import UserError
 from ..particle import ParticleList
 
 
-def open_particle_list(session, stream, file_name, format_name=None, from_chimx=False):
+def open_particle_list(session, stream, file_name, format_name=None, from_chimx=False, additional_files=None):
 
     if format_name is None:
         raise UserError("open_particle_list: Format name must be set.")
@@ -32,7 +32,7 @@ def open_particle_list(session, stream, file_name, format_name=None, from_chimx=
     # Read file if possible
     if format_name in formats:
         modelname = os.path.basename(file_name)
-        data = formats[format_name].particle_data(session, file_name, oripix=1, trapix=1)
+        data = formats[format_name].particle_data(session, file_name, oripix=1, trapix=1, additional_files=additional_files)
         model = ParticleList(modelname, session, data)
 
     # # MOTL

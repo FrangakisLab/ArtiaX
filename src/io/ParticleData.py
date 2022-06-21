@@ -366,8 +366,8 @@ class ParticleData:
     overridden to implement file format specific conversion rules.
     """
 
-    DATA_KEYS = {}
-    DEFAULT_PARAMS = {}
+    DATA_KEYS = None
+    DEFAULT_PARAMS = None
     ROT = None
 
     def __init__(self, session, file_name, oripix=1, trapix=1, additional_files=None):
@@ -386,9 +386,9 @@ class ParticleData:
         self._orig_particles = OrderedDict()
         """Dict containing particles for reverting. Only set when reading from File."""
 
-        self._data_keys = self.DATA_KEYS.copy()
+        self._data_keys = self.DATA_KEYS
         """Dict mapping file format description to aliases."""
-        self._default_params = self.DEFAULT_PARAMS.copy()
+        self._default_params = self.DEFAULT_PARAMS
         """Dict mapping expected parameters to file format description."""
 
         self._rot = self.ROT

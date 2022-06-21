@@ -145,7 +145,7 @@ class OptionsWindow(ToolInstance):
         self.tabs = QTabWidget()
 
         # Add the Tabs
-        self.tabs.addTab(self.tomo_widget, 'Tomogram')
+        self.tabs.addTab(self.tomo_area, 'Tomogram')
         self.tabs.addTab(self.vis_area, 'Visualization')
         self.tabs.addTab(self.manip_area, 'Select/Manipulate')
         self.tabs.widget(0).setEnabled(False)
@@ -221,8 +221,13 @@ class OptionsWindow(ToolInstance):
 # ==============================================================================
 
     def _build_tomo_widget(self):
-        # This window is a widget of the stacked layout
-        self.tomo_widget = QScrollArea()
+        # This widget is the Select/Manipulate lists tab
+        self.tomo_area = QScrollArea()
+        self.tomo_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.tomo_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.tomo_area.setWidgetResizable(True)
+
+        #self.tomo_widget = QScrollArea()
         # Define the overall layout
         tomo_layout = QVBoxLayout()
         tomo_layout.setAlignment(Qt.AlignTop)
@@ -379,7 +384,14 @@ class OptionsWindow(ToolInstance):
         #tomo_layout.addWidget(group_fourier_transform)
 
         # And finally set the layout of the widget
+        self.tomo_widget = QWidget()
+        self.tomo_widget.setFont(self.font)
+        self.tomo_widget.setContentsMargins(0, 0, 0, 0)
         self.tomo_widget.setLayout(tomo_layout)
+        self.tomo_area.setWidget(self.tomo_widget)
+
+        # And finally set the layout of the widget
+        # self.tomo_widget.setLayout(tomo_layout)
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Tomo Window Functions ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -526,11 +538,13 @@ class OptionsWindow(ToolInstance):
     def _contrast_center_changed(self, value, log=False):
         artia = self.session.ArtiaX
         tomo = artia.tomograms.get(artia.options_tomogram)
+        #run(self.session, 'volume #{} step 4'.format(tomo.id_string))
         tomo.contrast_center = value
 
         if log:
             from chimerax.core.commands import log_equivalent_command
             log_equivalent_command(self.session, 'artiax tomo #{} contrastCenter {}'.format(tomo.id_string, value))
+            #run(self.session, 'volume #{} step 1'.format(tomo.id_string))
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

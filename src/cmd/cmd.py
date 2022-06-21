@@ -518,7 +518,8 @@ def register_artiax(logger):
             keyword=[("contrastCenter", FloatArg),
                       ("contrastWidth", FloatArg),
                       ("slice", IntArg),
-                      ('sliceDirection', Float3Arg)],
+                      ('sliceDirection', Float3Arg),
+                      ('pixelSize', FloatArg)],
             synopsis='Set tomogram properties.',
             url='help:user/commands/artiax_tomo.html'
         )
