@@ -316,11 +316,10 @@ class ArtiaX(Model):
         partlist = open_particle_list(self.session, [], path, format)[0][0]
         self.add_particlelist(partlist)
 
-    def create_partlist(self, pixelsize=1, format_name="Artiatomi Motivelist"):
+    def create_partlist(self, pixelsize=1, format_name="Artiatomi Motivelist", name="particles"):
         partlist = None
         formats = get_formats(self.session)
         if format_name in formats:
-            name = "particles"
             data = formats[format_name].particle_data(self.session, file_name=None, oripix=1, trapix=1)
             partlist = ParticleList(name, self.session, data)
 

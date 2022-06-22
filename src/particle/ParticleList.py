@@ -645,6 +645,44 @@ class ParticleList(Model):
         self.particle_colors = self.particle_colors[mask, :]
         self.triggers.activate_trigger(PARTLIST_CHANGED, self)
 
+    def new_particle(self, origin, translation, rotation):
+        particle = self._data.new_particle()
+        particle.origin = origin
+        particle.translation = translation
+        particle.rotation = rotation
+
+        marker = self.markers.create_marker(particle.coord, self.color, self.radius, trigger=False)
+
+        # Add to surface collection
+        self.collection_model.add_place(particle.id, particle.full_transform())
+
+        # Set custom attributes
+        self._attr_to_marker(marker, particle)
+
+        # To map
+        self._add_to_map(particle, marker)
+
+        # Now reset selection and so on to keep things consistent
+        from numpy import array, append, reshape
+
+        if self.selected_particles is None:
+            self.selected_particles = array([True])
+        else:
+            self.selected_particles = append(self.selected_particles, True)
+
+        if self.displayed_particles is None:
+            self.displayed_particles = array([True])
+        else:
+            self.displayed_particles = append(self.displayed_particles, True)
+
+        if self.particle_colors is None:
+            self.particle_colors = array(self.color)
+        else:
+            pc = self.particle_colors
+            self.particle_colors = append(pc, reshape(pc[-1, :], (1, 4)), axis=0)
+
+        self.update_position_selectors()
+
     def _marker_created(self, name, data):
         """Create Particle instances and add position to SurfaceCollection when new Marker was placed.
 

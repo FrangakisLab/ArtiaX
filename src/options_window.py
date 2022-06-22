@@ -183,7 +183,6 @@ class OptionsWindow(ToolInstance):
             self.tabs.widget(3).setEnabled(False)
             self.current_geomodel_label.setText('')
         else:
-
             self._show_tab("geomodel")
 
     def _show_tab(self, obj):
@@ -1114,7 +1113,7 @@ class OptionsWindow(ToolInstance):
 
         # Display current geomodel name
         group_current_geomodel = QGroupBox("Current Geometric Model")
-        group_current_geomodel.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+        group_current_geomodel.setSizePolicy(QSizePolicy(QSizePolicy.Maximum,
                                                          QSizePolicy.Maximum))
         group_current_geomodel.setFont(self.font)
         current_geomodel_layout = QHBoxLayout()
@@ -1145,13 +1144,13 @@ class OptionsWindow(ToolInstance):
         # Define the model specific options
         self.models = {"Sphere": 0, "Line": 1}
         self.model_options = QStackedWidget()
-        self.model_options.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+        self.model_options.setSizePolicy(QSizePolicy(QSizePolicy.Maximum,
                                                      QSizePolicy.Maximum))
         sphere_options = QWidget()
-        line_options = LineOptions(self.session)
+        self.line_options = LineOptions(self.session)
 
         self.model_options.addWidget(sphere_options)
-        self.model_options.addWidget(line_options)
+        self.model_options.addWidget(self.line_options)
 
         geomodel_layout.addWidget(group_current_geomodel)
         geomodel_layout.addWidget(color_select)
@@ -1167,13 +1166,16 @@ class OptionsWindow(ToolInstance):
         artia = self.session.ArtiaX
         geomodel = artia.geomodels.get(artia.options_geomodel)
 
-        # Set new list
+        # Set new model
         self.geomodel_color_selection.set_geomodel(geomodel)
+        if type(geomodel).__name__ == "Line":
+            self.line_options.set_line(geomodel)
+
         self.model_options.setCurrentIndex(self.models[self.curr_model])
 
     def _geomodel_changed(self, name, model):
         artia = self.session.ArtiaX
-        opl = artia.geomodels.get(artia.options_geomodel)
+        opgm = artia.geomodels.get(artia.options_geomodel)
 
-        if model is opl:
+        if model is opgm:
             self._update_geomodel_ui()
