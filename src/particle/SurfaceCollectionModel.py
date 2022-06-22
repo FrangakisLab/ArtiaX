@@ -156,6 +156,9 @@ class SurfaceCollectionModel(Model):
 
     def set_places(self, place_ids, places):
         """Set multiple positions by id. Update graphics only once for speed."""
+        if len(place_ids) == 0:
+            return
+
         for pid, p in zip(place_ids, places):
             self._gl_instances[pid] = p
 
@@ -320,6 +323,7 @@ class SurfaceCollectionModel(Model):
     #         if col.active:
     #             col.display_positions = copy(mask)
 
+    @line_profile
     def move_children(self, tf, pm):
         pos = self.child_positions
         scene_pos = self.child_scene_positions

@@ -41,7 +41,9 @@ class MarkerSetPlus(MarkerSet):
 
         # Handlers
         self.triggers.add_handler("changes", self._handle_changes)
-        #self.session.triggers.add_handler('mouse hover', self._catch_hover)
+
+        # Listening?
+        self._listening = True
 
     def delete(self):
         MarkerSet.delete(self)
@@ -127,6 +129,9 @@ class MarkerSetPlus(MarkerSet):
         if not data[0] == self:
             return
 
+        if not self._listening:
+            return
+
         #alt_loc aniso_u bfactor color coord display draw_mode element hide idatm_type name occupancy selected serial_number
         #structure_category
 
@@ -166,6 +171,11 @@ class MarkerSetPlus(MarkerSet):
         if self.DEBUG:
             print(self._markers)
         return [atom for atom in self._markers if atom.deleted]
+
+    def listen(self, state):
+        previous = self._listening
+        self._listening = state
+        return previous
 
     # def _catch_hover(self, name, pick):
     #     if pick is None:

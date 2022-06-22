@@ -4,13 +4,13 @@
 from __future__ import annotations
 from uuid import uuid4
 from collections import OrderedDict
+import numpy as np
 
 # ChimeraX
 from chimerax.core.errors import UserError
 from chimerax.geometry import translation, rotation, Place, Places
 from chimerax.atomic import Atom
 from chimerax.core.attributes import type_attrs
-
 
 class EulerRotation:
 
@@ -40,6 +40,13 @@ class EulerRotation:
         particle list file format definition.
         """
         pass
+
+    def rot_from_matrix(self, matrix):
+        a1 = self.rot1_from_matrix(matrix)
+        a2 = self.rot2_from_matrix(matrix)
+        a3 = self.rot3_from_matrix(matrix)
+
+        return a1, a2, a3
 
     def as_place(self, ang_1, ang_2, ang_3):
         if self.invert_dir:
@@ -84,16 +91,32 @@ class Particle:
         self.rot = self._rot()
         """Instance of type EulerRotation, describing conversion matrix->angle for 3 rotations."""
 
+        self._cached_position = None
+        self._cached_origin = None
+        self._cached_translation = None
+        self._cached_rotation = None
+
+        self._rot_names = []
+        self._orig_names = []
+        self._trans_names = []
+
+        self._attributes = []
+        self._position_attributes = []
+
         self._set_keys()
 
+    @line_profile
     def full_transform(self):
         """Compute and return the full transform to rotate and move an object centered at the global origin (0, 0, 0)
         to the location specified by this particles orientation and location data."""
-        return self.origin * self.translation * self.rotation
+        if self._cached_position is None:
+            self._cached_position = self.origin * self.translation * self.rotation
+
+        return self._cached_position
 
     def attributes(self):
         """List all available data entries and their aliases for this particle."""
-        return list(self._data.keys()) + list(self._alias.keys())
+        return self._attributes
 
     @property
     def coord(self):
@@ -110,15 +133,35 @@ class Particle:
         :setter: Sets this particles' translation (:class:`~chimerax.geometry.place.Place` object or 3-element
                  array/list/tuple).
         """
-        x, y, z = self._get_translation()
-        return translation((x, y, z))
+        if self._cached_translation is None:
+            x, y, z = self._get_translation()
+            self._cached_translation = translation((x, y, z))
+
+        return self._cached_translation
 
     @translation.setter
     def translation(self, value):
         if isinstance(value, Place):
-            self._set_translation(value.translation())
+            if self._cached_translation is None:
+                self._cached_translation = value.copy()
+                self._cached_translation._matrix[0:3, 0:3] = np.eye(3)
+            else:
+                self._cached_translation._matrix[0, 3] = value._matrix[0, 3]
+                self._cached_translation._matrix[1, 3] = value._matrix[1, 3]
+                self._cached_translation._matrix[2, 3] = value._matrix[2, 3]
+
+            self._set_translation(self._cached_translation._matrix[:, 3])
         else:
+            if self._cached_translation is None:
+                self._cached_translation = translation(value)
+            else:
+                self._cached_translation._matrix[0, 3] = value[0]
+                self._cached_translation._matrix[1, 3] = value[1]
+                self._cached_translation._matrix[2, 3] = value[2]
+
             self._set_translation(value)
+
+        self._cached_position = None
 
     @property
     def origin(self):
@@ -130,15 +173,36 @@ class Particle:
         :setter: Sets this particles' origin (:class:`~chimerax.geometry.place.Place` object or 3-element
                  array/list/tuple).
         """
-        x, y, z = self._get_origin()
-        return translation((x, y, z))
+        if self._cached_origin is None:
+            x, y, z = self._get_origin()
+            self._cached_origin = translation((x, y, z))
+
+        return self._cached_origin
 
     @origin.setter
     def origin(self, value):
         if isinstance(value, Place):
-            self._set_origin(value.translation())
+            if self._cached_origin is None:
+                self._cached_origin = value.copy()
+                self._cached_origin._matrix[0:3, 0:3] = np.eye(3)
+            else:
+                self._cached_origin._matrix[0, 3] = value._matrix[0, 3]
+                self._cached_origin._matrix[1, 3] = value._matrix[1, 3]
+                self._cached_origin._matrix[2, 3] = value._matrix[2, 3]
+
+            self._set_origin(self._cached_origin._matrix[:, 3])
         else:
+            if self._cached_origin is None:
+                self._cached_origin = translation(value)
+            else:
+                self._cached_origin._matrix[0, 3] = value[0]
+                self._cached_origin._matrix[1, 3] = value[1]
+                self._cached_origin._matrix[2, 3] = value[2]
+
             self._set_origin(value)
+
+        #self._cached_origin = None
+        self._cached_position = None
 
     @property
     def origin_coord(self):
@@ -148,7 +212,11 @@ class Particle:
     def origin_coord(self, value):
         self._set_origin(value)
 
+        self._cached_origin = None
+        self._cached_position = None
+
     @property
+    @line_profile
     def rotation(self):
         """
         Transformation describing the rotation of this particle around the global origin before any translation.
@@ -156,19 +224,34 @@ class Particle:
         :getter: Returns this particles' rotation as a :class:`~chimerax.geometry.place.Place` object.
         :setter: Sets this particles' rotation (:class:`~chimerax.geometry.place.Place` object or 3x4 affine matrix).
         """
-        ang_1, ang_2, ang_3 = self._get_rotation()
-        return self.rot.as_place(ang_1, ang_2, ang_3)
+        if self._cached_rotation is None:
+            ang_1, ang_2, ang_3 = self._get_rotation()
+            self._cached_rotation = self.rot.as_place(ang_1, ang_2, ang_3)
+
+        return self._cached_rotation
 
     @rotation.setter
+    @line_profile
     def rotation(self, value):
         if isinstance(value, Place):
-            self['ang_1'] = self.rot.rot1_from_matrix(value.matrix)
-            self['ang_2'] = self.rot.rot2_from_matrix(value.matrix)
-            self['ang_3'] = self.rot.rot3_from_matrix(value.matrix)
+            # For speed access protected member
+            if self._cached_rotation is None:
+                self._cached_rotation = value.copy()
+                self._cached_rotation._matrix[:, 3] = 0
+            else:
+                self._cached_rotation._matrix[0:3, 0:3] = value._matrix[0:3, 0:3]
+
+            self._set_rotation(self._cached_rotation._matrix)
         else:
-            self['ang_1'] = self.rot.rot1_from_matrix(value)
-            self['ang_2'] = self.rot.rot2_from_matrix(value)
-            self['ang_3'] = self.rot.rot3_from_matrix(value)
+            # For speed access protected member
+            if self._cached_rotation is None:
+                self._cached_rotation = Place(matrix=value)
+
+            self._cached_rotation._matrix[:, 3] = 0
+
+            self._set_rotation(self._cached_rotation._matrix)
+
+        self._cached_position = None
 
     def __getitem__(self, item):
         """
@@ -191,7 +274,26 @@ class Particle:
         value
             The value to set.
         """
-        self._data[self._alias.get(item, item)] = value
+        key = self._alias.get(item, item)
+
+        self._data[key] = value
+
+        rot_reset = key in self._rot_names
+        shift_reset = key in self._trans_names
+        orig_reset = key in self._orig_names
+
+        if rot_reset:
+            self._cached_rotation = None
+            self._cached_position = None
+
+        if shift_reset:
+            self._cached_translation = None
+            self._cached_position = None
+
+        if orig_reset:
+            self._cached_origin = None
+            self._cached_position = None
+
 
     def _add_alias(self, alias: str, key: str) -> None:
         """
@@ -237,6 +339,27 @@ class Particle:
         if len(expected_entries) > 0:
             raise UserError("Incomplete Particle List format definition for format {}.".format(type(self._data)))
 
+        # Rotation alias
+        default_rot = ['ang_1', 'ang_2', 'ang_3']
+        data_rot = [self._default_params[k] for k in default_rot]
+        alias_rot = sum([self._data_keys[k] for k in data_rot], [])
+        self._rot_names = default_rot + data_rot + alias_rot
+
+        # Translation alias
+        default_shift = ['shift_x', 'shift_y', 'shift_z']
+        data_shift = [self._default_params[k] for k in default_shift]
+        alias_shift = sum([self._data_keys[k] for k in data_shift], [])
+        self._trans_names = default_shift + data_shift + alias_shift
+
+        # Origin alias
+        default_pos = ['pos_x', 'pos_y', 'pos_z']
+        data_pos = [self._default_params[k] for k in default_pos]
+        alias_pos = sum([self._data_keys[k] for k in data_pos], [])
+        self._orig_names = default_pos + data_pos + alias_pos
+
+        # All attributes
+        self._attributes = list(self._data.keys()) + list(self._alias.keys())
+
     def _get_origin(self):
         """
         Returns the origin of this particle in the tomogram (x, y, z) in units of the particle list.
@@ -258,9 +381,10 @@ class Particle:
         data: three-element tuple, list or array
             The origin of the particle in physical coordinates.
         """
-        self['pos_x'] = data[0] / self.pixelsize_ori
-        self['pos_y'] = data[1] / self.pixelsize_ori
-        self['pos_z'] = data[2] / self.pixelsize_ori
+        self._data[self._alias.get('pos_x')] = data[0] / self.pixelsize_ori
+        self._data[self._alias.get('pos_y')] = data[1] / self.pixelsize_ori
+        self._data[self._alias.get('pos_z')] = data[2] / self.pixelsize_ori
+        self._cached_position = None
 
     def _get_translation(self):
         """
@@ -276,16 +400,17 @@ class Particle:
 
     def _set_translation(self, data):
         """
-        Sets the shift after rotation of this particle (x, y, z).
+        Sets the shift after rotation of this particle (x, y, z) without invalidating the cache.
 
         Parameters
         ----------
         data : three-element tuple, list or array
             The translation of the particle in physical coordinates.
         """
-        self['shift_x'] = data[0] / self.pixelsize_tra
-        self['shift_y'] = data[1] / self.pixelsize_tra
-        self['shift_z'] = data[2] / self.pixelsize_tra
+        self._data[self._alias.get('shift_x')] = data[0] / self.pixelsize_tra
+        self._data[self._alias.get('shift_y')] = data[1] / self.pixelsize_tra
+        self._data[self._alias.get('shift_z')] = data[2] / self.pixelsize_tra
+        self._cached_position = None
 
     def _get_rotation(self):
         """
@@ -306,17 +431,15 @@ class Particle:
 
         Parameters
         ----------
-        data : Place object or 3x4 affine matrix
+        data : 3x4 affine matrix
             The rotation transform of the particle.
         """
-        if isinstance(data, Place):
-            self['ang_1'] = self.rot.rot1_from_matrix(data.matrix)
-            self['ang_2'] = self.rot.rot2_from_matrix(data.matrix)
-            self['ang_3'] = self.rot.rot3_from_matrix(data.matrix)
-        else:
-            self['ang_1'] = self.rot.rot1_from_matrix(data)
-            self['ang_2'] = self.rot.rot2_from_matrix(data)
-            self['ang_3'] = self.rot.rot3_from_matrix(data)
+        # Don't use Particle.__setitem__ to avoid invalidating cache
+        self._data[self._alias.get('ang_1')] = self.rot.rot1_from_matrix(data)
+        self._data[self._alias.get('ang_2')] = self.rot.rot2_from_matrix(data)
+        self._data[self._alias.get('ang_3')] = self.rot.rot3_from_matrix(data)
+
+        self._cached_position = None
 
     def copy(self):
         new_part = Particle(self.id,
@@ -557,6 +680,22 @@ class ParticleData:
     def get_main_attributes(self):
         """Returns a list of the main attributes of a particle in this list."""
         return list(self._data_keys.keys())
+
+    def get_all_attributes(self):
+        """Returns a list of all attributes of a particle in this list."""
+
+        dat = self._data_keys
+        defs = self._default_params
+
+        attr = []
+
+        for key, val in dat.items():
+            attr.append(key)
+            attr += val
+
+        attr += list(defs.keys())
+
+        return attr
 
     def get_position_attributes(self):
         """Returns a list of all attributes related to position of a particle."""
