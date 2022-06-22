@@ -106,3 +106,57 @@ class Line(GeoModel):
         direction = direction / np.linalg.norm(direction)
         nr_particles = line_length / self.spacing
         return rotation, direction, nr_particles
+
+    def curve_line(self, third_point, step_length):
+        # Project points onto their plane
+        ts = self.start - third_point
+        u = ts / np.linalg.norm(ts)
+        w = np.cross(ts, self.end - third_point)
+        w = w / np.linalg.norm(w)
+        v = np.cross(w, u)
+
+        p1 = np.array([np.dot(self.start, u), np.dot(self.start, v)])
+        p2 = np.array([np.dot(self.end, u), np.dot(self.end, v)])
+        p3 = np.array([np.dot(third_point, u), np.dot(third_point, v)])
+
+        # Find center and radius by solving Ac = b with A = [[x1,y1,1], [x2,y2,1], [x3,y3,1]] and
+        # b = [x1² + y1², x2² + y2², x3² + y3²]. This gives c = [2x0,2y0,r² - x0² - y0²]
+        A = np.array([np.append(p1, 1), np.append(p2, 1), np.append(p3, 1)])
+        b = np.array([np.sum(np.multiply(p1,p1)), np.sum(np.multiply(p2,p2)), np.sum(np.multiply(p3,p3))])
+        c = np.linalg.solve(A, b)
+        center = [c[0] / 2, c[1] / 2]
+        #radius = c[2] + np.sum(np.multiply(center))
+
+        # Translate center back to euclidean
+        center = center[0]*u + center[1]*v
+
+
+        from chimerax.bild.bild import _BildFile
+        b = _BildFile(self.session, 'dummy')
+        b.transparency_command('.transparency {}'.format(self._color[3] / 255).split())
+        bild_color = np.multiply(self.color, 1 / 255)
+        b.color_command('.color {} {} {}'.format(*bild_color).split())
+        from chimerax.atomic import AtomicShapeDrawing
+        d = AtomicShapeDrawing('shapes')
+
+        curr_point = self.start
+        reached_end = False
+        print(self.start)
+        print(self.end)
+        while not reached_end:
+            along_circle_vector = np.cross(curr_point - center, w)
+            along_circle_vector = along_circle_vector / np.linalg.norm(along_circle_vector)
+            next_point = self.start + along_circle_vector * step_length
+            print(curr_point)
+            print(next_point)
+            if np.linalg.norm(next_point - self.end) < step_length:
+                next_point = self.end
+                reached_end = True
+
+            b.cylinder_command(".vector {} {} {} {} {} {} 1".format(*curr_point, *next_point).split())
+            curr_point = next_point
+
+        d.add_shapes(b.shapes)
+        self.set_geometry(d.vertices, d.normals, d.triangles)
+        self.vertex_colors = d.vertex_colors
+
