@@ -443,9 +443,11 @@ class ArtiaXUI(ToolInstance):
         artia = self.session.ArtiaX
         artia.selected_tomogram = artia.tomograms.get_id(idx)
 
-        if state == Qt.CheckState.Checked.value:
+        from .widgets import qt_enum_equal
+
+        if qt_enum_equal(Qt.CheckState.Checked, state):
             artia.show_tomogram(idx)
-        elif state == Qt.CheckState.Unchecked.value:
+        elif qt_enum_equal(Qt.CheckState.Unchecked, state):
             artia.hide_tomogram(idx)
 
     def _show_tomo_options(self, idx, state):
@@ -472,12 +474,11 @@ class ArtiaXUI(ToolInstance):
         artia = self.session.ArtiaX
         artia.selected_partlist = artia.partlists.get_id(idx)
 
-        print(idx)
-        print(state)
+        from .widgets import qt_enum_equal
 
-        if state == Qt.CheckState.Checked.value:
+        if qt_enum_equal(Qt.CheckState.Checked, state):
             artia.show_partlist(idx)
-        elif state == Qt.CheckState.Unchecked.value:
+        elif qt_enum_equal(Qt.CheckState.Unchecked, state):
             artia.hide_partlist(idx)
 
     def _show_partlist_options(self, idx, state):
@@ -534,3 +535,5 @@ class ArtiaXUI(ToolInstance):
         inst = class_obj(session, "Tomo Bundle")
         inst.line_edit.setText(data['current text'])
         return inst
+
+

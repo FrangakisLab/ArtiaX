@@ -301,15 +301,16 @@ class ArtiaX(Model):
         from .util.select import selection_cmd
         selection_cmd(self.session, id, attributes, minima, maxima)
 
-    def color_particles(self, identifier, color):
+    def color_particles(self, identifier, color, log=False):
         id = self.partlists.get(identifier).id
         from .util.select import color_cmd
-        color_cmd(self.session, id, color)
+        color_cmd(self.session, id, color, log=log)
 
-    def color_particles_byattribute(self, identifier, palette, attribute, minimum, maximum, transparency):
+    def color_particles_byattribute(self, identifier, palette, attribute, minimum, maximum, transparency, log=False):
         id = self.partlists.get(identifier).id
         from .util.select import colormap_cmd
-        colormap_cmd(self.session, id, palette, attribute, minimum, maximum, transparency)
+        colormap_cmd(self.session, id, palette, attribute, minimum, maximum, transparency, log=log)
+
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Callbacks
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

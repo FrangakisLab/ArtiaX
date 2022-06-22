@@ -151,8 +151,8 @@ class SelectorWidget(QWidget):
         self.slider.valueChanged.connect(partial(self._slider_changed))
 
         # Edits
-        self.lower_edit.returnPressed.connect(partial(self._edit_changed))
-        self.upper_edit.returnPressed.connect(partial(self._edit_changed))
+        self.lower_edit.editingFinished.connect(partial(self._edit_changed))
+        self.upper_edit.editingFinished.connect(partial(self._edit_changed))
 
     @property
     def minimum(self):
@@ -182,9 +182,10 @@ class SelectorWidget(QWidget):
         return name, minimum, maximum
 
     def _toggled(self, state):
-        if state == Qt.CheckState.Checked.value:
+        from ..widgets import qt_enum_equal
+        if qt_enum_equal(Qt.CheckState.Checked, state):
             self.active = True
-        elif state == Qt.CheckState.Unchecked.value:
+        elif qt_enum_equal(Qt.CheckState.Unchecked, state):
             self.active = False
 
         self._enable_widgets()

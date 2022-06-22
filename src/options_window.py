@@ -480,6 +480,9 @@ class OptionsWindow(ToolInstance):
         ow.color_selection.colorChanged.connect(artia.color_particles)
         ow.color_selection.colormapChanged.connect(artia.color_particles_byattribute)
 
+        ow.color_selection.colorChangeFinished.connect(partial(artia.color_particles, log=True))
+        ow.color_selection.colormapChangeFinished.connect(partial(artia.color_particles_byattribute, log=True))
+
         # Connect sliders
         ow.radius_widget.valueChanged.connect(ow._radius_changed)
         ow.radius_widget.editingFinished.connect(partial(ow._radius_changed, log=True))
