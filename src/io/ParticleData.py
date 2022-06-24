@@ -5,6 +5,7 @@ from __future__ import annotations
 from uuid import uuid4
 from collections import OrderedDict
 import numpy as np
+import array
 
 # ChimeraX
 from chimerax.core.errors import UserError
@@ -12,13 +13,29 @@ from chimerax.geometry import translation, rotation, Place, Places
 from chimerax.atomic import Atom
 from chimerax.core.attributes import type_attrs
 
+from .cython._euler import rot_x, rot_y, rot_z
+from chimerax.geometry import _geometry
+
+class MutableFloat:
+    def __init__(self, val):
+        self.val = val
+
+    def __repr__(self):
+        return repr()
+
 class EulerRotation:
+
+    funcs = {(1, 0, 0): rot_x, (0, 1, 0): rot_y, (0, 0, 1): rot_z}
 
     def __init__(self, axis_1, axis_2, axis_3, invert_dir=False):
         self.axis_1 = axis_1
         self.axis_2 = axis_2
         self.axis_3 = axis_3
         self.invert_dir = invert_dir
+
+        self._mat1 = self.funcs[axis_1]
+        self._mat2 = self.funcs[axis_2]
+        self._mat3 = self.funcs[axis_3]
 
     def rot1_from_matrix(self, matrix):
         """
@@ -59,6 +76,29 @@ class EulerRotation:
         rot3 = rotation(self.axis_3, ang_3)
 
         return rot3 * rot2 * rot1
+
+    def as_place_c(self, ang_1, ang_2, ang_3):
+        if self.invert_dir:
+            ang_1 *= -1
+            ang_2 *= -1
+            ang_3 *= -1
+
+        p = Place()
+
+        wm = np.zeros((3, 4), np.float64, order='C')
+
+        # M2 * M1
+        self._mat2(ang_2, p._matrix)
+        self._mat1(ang_1, wm)
+        _geometry.multiply_matrices(p._matrix, wm, p._matrix)
+
+        # M3 * (M2 * M1)
+        self._mat1(ang_3, wm)
+        _geometry.multiply_matrices(wm, p._matrix, p._matrix)
+
+        return p
+
+
 
 
 class Particle:
@@ -103,6 +143,19 @@ class Particle:
         self._attributes = []
         self._position_attributes = []
 
+        # References for fast access
+        self._pos_x = None
+        self._pos_y = None
+        self._pos_z = None
+
+        self._shift_x = None
+        self._shift_y = None
+        self._shift_z = None
+
+        self._ang_1 = None
+        self._ang_2 = None
+        self._ang_3 = None
+
         self._set_keys()
 
     @line_profile
@@ -140,24 +193,27 @@ class Particle:
         return self._cached_translation
 
     @translation.setter
+    @line_profile
     def translation(self, value):
         if isinstance(value, Place):
             if self._cached_translation is None:
                 self._cached_translation = value.copy()
                 self._cached_translation._matrix[0:3, 0:3] = np.eye(3)
             else:
-                self._cached_translation._matrix[0, 3] = value._matrix[0, 3]
-                self._cached_translation._matrix[1, 3] = value._matrix[1, 3]
-                self._cached_translation._matrix[2, 3] = value._matrix[2, 3]
+                self._cached_translation._matrix[:, 3] = value._matrix[:, 3]
+                # self._cached_translation._matrix[0, 3] = value._matrix[0, 3]
+                # self._cached_translation._matrix[1, 3] = value._matrix[1, 3]
+                # self._cached_translation._matrix[2, 3] = value._matrix[2, 3]
 
             self._set_translation(self._cached_translation._matrix[:, 3])
         else:
             if self._cached_translation is None:
                 self._cached_translation = translation(value)
             else:
-                self._cached_translation._matrix[0, 3] = value[0]
-                self._cached_translation._matrix[1, 3] = value[1]
-                self._cached_translation._matrix[2, 3] = value[2]
+                self._cached_translation._matrix[:, 3] = value
+                # self._cached_translation._matrix[0, 3] = value[0]
+                # self._cached_translation._matrix[1, 3] = value[1]
+                # self._cached_translation._matrix[2, 3] = value[2]
 
             self._set_translation(value)
 
@@ -186,18 +242,19 @@ class Particle:
                 self._cached_origin = value.copy()
                 self._cached_origin._matrix[0:3, 0:3] = np.eye(3)
             else:
-                self._cached_origin._matrix[0, 3] = value._matrix[0, 3]
-                self._cached_origin._matrix[1, 3] = value._matrix[1, 3]
-                self._cached_origin._matrix[2, 3] = value._matrix[2, 3]
+                self._cached_origin._matrix[:, 3] = value._matrix[:, 3]
+                # self._cached_origin._matrix[0, 3] = value._matrix[0, 3]
+                # self._cached_origin._matrix[1, 3] = value._matrix[1, 3]
+                # self._cached_origin._matrix[2, 3] = value._matrix[2, 3]
 
             self._set_origin(self._cached_origin._matrix[:, 3])
         else:
             if self._cached_origin is None:
                 self._cached_origin = translation(value)
             else:
-                self._cached_origin._matrix[0, 3] = value[0]
-                self._cached_origin._matrix[1, 3] = value[1]
-                self._cached_origin._matrix[2, 3] = value[2]
+                self._cached_origin._matrix[:, 3] = value
+                # self._cached_origin._matrix[1, 3] = value[1]
+                # self._cached_origin._matrix[2, 3] = value[2]
 
             self._set_origin(value)
 
@@ -239,7 +296,7 @@ class Particle:
                 self._cached_rotation = value.copy()
                 self._cached_rotation._matrix[:, 3] = 0
             else:
-                self._cached_rotation._matrix[0:3, 0:3] = value._matrix[0:3, 0:3]
+                self._cached_rotation._matrix[:, 0:3] = value._matrix[:, 0:3]
 
             self._set_rotation(self._cached_rotation._matrix)
         else:
@@ -261,7 +318,8 @@ class Particle:
         ----------
         item : str
             The name of the attribute to get."""
-        return self._data[self._alias.get(item, item)]
+        # Return the first element of the stored array.
+        return self._data[self._alias.get(item, item)][0]
 
     def __setitem__(self, item, value):
         """
@@ -276,7 +334,8 @@ class Particle:
         """
         key = self._alias.get(item, item)
 
-        self._data[key] = value
+        # Store in the array
+        self._data[key][0] = value
 
         rot_reset = key in self._rot_names
         shift_reset = key in self._trans_names
@@ -294,6 +353,8 @@ class Particle:
             self._cached_origin = None
             self._cached_position = None
 
+    def getref(self, item):
+        return self._data[self._alias.get(item, item)]
 
     def _add_alias(self, alias: str, key: str) -> None:
         """
@@ -326,7 +387,8 @@ class Particle:
 
         # Add all data entries and aliases
         for key, value in self._data_keys.items():
-            self[key] = 0
+            # Data are stored in arrays, so we have the possibility of referencing.
+            self._data[key] = np.ndarray((1,), np.float64, order='C')#array.array('d', [0])
             for v in value:
                 self._add_alias(v, key)
 
@@ -360,6 +422,19 @@ class Particle:
         # All attributes
         self._attributes = list(self._data.keys()) + list(self._alias.keys())
 
+        # References for fast access
+        self._pos_x = self.getref('pos_x')
+        self._pos_y = self.getref('pos_y')
+        self._pos_z = self.getref('pos_z')
+
+        self._shift_x = self.getref('shift_x')
+        self._shift_y = self.getref('shift_y')
+        self._shift_z = self.getref('shift_z')
+
+        self._ang_1 = self.getref('ang_1')
+        self._ang_2 = self.getref('ang_2')
+        self._ang_3 = self.getref('ang_3')
+
     def _get_origin(self):
         """
         Returns the origin of this particle in the tomogram (x, y, z) in units of the particle list.
@@ -381,9 +456,15 @@ class Particle:
         data: three-element tuple, list or array
             The origin of the particle in physical coordinates.
         """
-        self._data[self._alias.get('pos_x')] = data[0] / self.pixelsize_ori
-        self._data[self._alias.get('pos_y')] = data[1] / self.pixelsize_ori
-        self._data[self._alias.get('pos_z')] = data[2] / self.pixelsize_ori
+
+        # Store in array
+        # Don't use Particle.__setitem__ to avoid invalidating cache, use references for speed
+        #self._data[self._alias.get('pos_x')][0] = data[0] / self.pixelsize_ori
+        #self._data[self._alias.get('pos_y')][0] = data[1] / self.pixelsize_ori
+        #self._data[self._alias.get('pos_z')][0] = data[2] / self.pixelsize_ori
+        self._pos_x[0] = data[0] / self.pixelsize_ori
+        self._pos_y[0] = data[1] / self.pixelsize_ori
+        self._pos_z[0] = data[2] / self.pixelsize_ori
         self._cached_position = None
 
     def _get_translation(self):
@@ -407,9 +488,14 @@ class Particle:
         data : three-element tuple, list or array
             The translation of the particle in physical coordinates.
         """
-        self._data[self._alias.get('shift_x')] = data[0] / self.pixelsize_tra
-        self._data[self._alias.get('shift_y')] = data[1] / self.pixelsize_tra
-        self._data[self._alias.get('shift_z')] = data[2] / self.pixelsize_tra
+        # Store in array
+        # Don't use Particle.__setitem__ to avoid invalidating cache
+        #self._data[self._alias.get('shift_x')][0] = data[0] / self.pixelsize_tra
+        #self._data[self._alias.get('shift_y')][0] = data[1] / self.pixelsize_tra
+        #self._data[self._alias.get('shift_z')][0] = data[2] / self.pixelsize_tra
+        self._shift_x[0] = data[0] / self.pixelsize_tra
+        self._shift_y[0] = data[1] / self.pixelsize_tra
+        self._shift_z[0] = data[2] / self.pixelsize_tra
         self._cached_position = None
 
     def _get_rotation(self):
@@ -424,6 +510,7 @@ class Particle:
         """
         return (self['ang_1'], self['ang_2'], self['ang_3'])
 
+    @line_profile
     def _set_rotation(self, data):
         """
         Sets the rotation of this particle (rot1, rot2, rot3) around axes specified in the file format
@@ -434,10 +521,15 @@ class Particle:
         data : 3x4 affine matrix
             The rotation transform of the particle.
         """
+        self.rot.rot_from_matrix_c(data, self._ang_1, self._ang_2, self._ang_3)
         # Don't use Particle.__setitem__ to avoid invalidating cache
-        self._data[self._alias.get('ang_1')] = self.rot.rot1_from_matrix(data)
-        self._data[self._alias.get('ang_2')] = self.rot.rot2_from_matrix(data)
-        self._data[self._alias.get('ang_3')] = self.rot.rot3_from_matrix(data)
+        # a1, a2, a3 = self.rot.rot_from_matrix(data)
+        #self._data[self._alias.get('ang_1')][0] = a1#self.rot.rot1_from_matrix(data)
+        #self._data[self._alias.get('ang_2')][0] = a2#self.rot.rot2_from_matrix(data)
+        #self._data[self._alias.get('ang_3')][0] = a3#self.rot.rot3_from_matrix(data)
+        # self._ang_1[0] = a1
+        # self._ang_2[0] = a2
+        # self._ang_3[0] = a3
 
         self._cached_position = None
 
@@ -765,14 +857,14 @@ class ParticleData:
         # Make sure all keys are added as custom attributes for the Atom class
         for key, value in self._data_keys.items():
             if key not in type_attrs(Atom):
-                Atom.register_attr(self.session, key, 'artiax', attr_type=float)
+                Atom.register_attr(self.session, key, 'artiax', attr_type=np.ndarray)
             for v in value:
                 if v not in type_attrs(Atom):
-                    Atom.register_attr(self.session, v, 'artiax', attr_type=float)
+                    Atom.register_attr(self.session, v, 'artiax', attr_type=np.ndarray)
 
         for key in self._default_params.keys():
             if key not in type_attrs(Atom):
-                Atom.register_attr(self.session, key, 'artiax', attr_type=float)
+                Atom.register_attr(self.session, key, 'artiax', attr_type=np.ndarray)
 
 
     def get_all_transforms(self):

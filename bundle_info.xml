@@ -26,8 +26,12 @@ will be displayed without the ChimeraX- prefix.
     <Category name="General"/>
   </Categories>
 
-  <CModule name="io.RELION._RELION">
+  <CModule name="io.RELION.cython._RELION" usesNumpy="True">
     <SourceFile>src/io/RELION/_RELION.pyx</SourceFile>
+  </CModule>
+
+  <CModule name="io.cython._euler" usesNumpy="True">
+    <SourceFile>src/io/_euler.pyx</SourceFile>
   </CModule>
 
   <!-- Dependencies on other ChimeraX/Python packages -->

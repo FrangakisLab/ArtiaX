@@ -427,7 +427,10 @@ class ParticleList(Model):
             if self.size == 0:
                 minima.append(0)
             else:
-                minima.append(min([getattr(m, a) for m in self.markers.get_all_markers()]))
+                # Note: float() used here to convert singleton arrays to numbers.
+                # This allows the trick of using singleton numpy arrays to get references to the
+                # actual data stored in the particle object.
+                minima.append(min([float(getattr(m, a)) for m in self.markers.atoms]))
 
         return minima
 
@@ -437,7 +440,10 @@ class ParticleList(Model):
             if self.size == 0:
                 maxima.append(0)
             else:
-                maxima.append(max([getattr(m, a) for m in self.markers.get_all_markers()]))
+                # Note: float() used here to convert singleton arrays to numbers.
+                # This allows the trick of using singleton numpy arrays to get references to the
+                # actual data stored in the particle object.
+                maxima.append(max([float(getattr(m, a)) for m in self.markers.atoms]))
 
         return maxima
 
@@ -541,7 +547,7 @@ class ParticleList(Model):
             marker.coord = place.translation()
 
             # Update attributes
-            self._attr_to_marker(marker, particle)
+            #self._attr_to_marker(marker, particle)
 
         self.collection_model.set_places(pids, places)
 
@@ -564,19 +570,20 @@ class ParticleList(Model):
         selection_names = self.selection_settings["names"]
 
         for attr in what:
-            val = particle[attr]
+            val = np.frombuffer(particle.getref(attr), dtype=np.float64)
             setattr(marker, attr, val)
 
             if attr in selection_names:
                 idx = selection_names.index(attr)
-                if val < self.selection_settings["minima"][idx]:
+                if val[0] < self.selection_settings["minima"][idx]:
                     self.selection_settings["minima"][idx] = particle[attr]
 
-                if val > self.selection_settings["maxima"][idx]:
+                if val[0] > self.selection_settings["maxima"][idx]:
                     self.selection_settings["maxima"][idx] = particle[attr]
 
         marker.particle_id = particle.id
 
+    @line_profile
     def _attrs_to_markers(self, markers, particles, position_only=False):
 
         if position_only:
@@ -595,12 +602,12 @@ class ParticleList(Model):
                 ma = self.selection_settings["maxima"][idx]
 
             for m, p in zip(markers, particles):
-                val = p[attr]
+                val = np.frombuffer(p.getref(attr), dtype=np.float64)
                 setattr(m, attr, val)
 
                 if update_sel:
-                    mi = min(val, mi)
-                    ma = max(val, ma)
+                    mi = min(val[0], mi)
+                    ma = max(val[0], ma)
 
             if update_sel:
                 self.selection_settings["minima"][idx] = mi
@@ -768,6 +775,10 @@ class ParticleList(Model):
 
     @line_profile
     def _marker_moved(self, name, data):
+        if self._just_moved:
+            self._just_moved = False
+            return
+
         # Data sent by trigger should be marker instances
         markers = data
 
@@ -793,19 +804,11 @@ class ParticleList(Model):
                 m.coord = particle.coord
                 continue
 
-            new_coord = m.coord
-
-            # Set as additional translation for now
-            #ori = particle.origin.translation()
-            #dx = new_coord[0] - ori[0]
-            #dy = new_coord[1] - ori[1]
-            #dz = new_coord[2] - ori[2]
-            #particle.translation = (dx, dy, dz)
-
             # Set particle translation to 0
-            if not particle.translation.is_identity():
-                particle.translation = (0, 0, 0)
-            particle.origin = (new_coord[0], new_coord[1], new_coord[2])
+            if not particle.translation.is_identity(tolerance=10e-8):
+                particle.translation = [0.0, 0.0, 0.0]
+
+            particle.origin = m.coord#$(new_coord[0], new_coord[1], new_coord[2])
 
             # Update attributes
             #self._attr_to_marker(marker, particle, position_only=True)
@@ -813,7 +816,7 @@ class ParticleList(Model):
             places.append(particle.full_transform())
 
         if not no_change:
-            self._attrs_to_markers(markers, particles, position_only=True)
+            #self._attrs_to_markers(markers, particles, position_only=True)
             self.collection_model.set_places(place_ids, places)
 
     @line_profile
@@ -829,7 +832,7 @@ class ParticleList(Model):
         markers = []
         particles = []
 
-        # Update the marker, block changes trigger to prevent loop
+        # Update the marker
         with self.markers.triggers.block_trigger("changes"):
             for pid in data:
                 particle, marker = self._map[pid]
@@ -851,29 +854,31 @@ class ParticleList(Model):
 
                 # For speed contruct explicitely
                 # new_place = translation(new_coord) * new_rot.zero_translation()
-                new_place = new_rot.copy()
-                new_place._matrix[0, 3] = new_coord[0]
-                new_place._matrix[1, 3] = new_coord[1]
-                new_place._matrix[2, 3] = new_coord[2]
+                new_place = new_rot
+                new_place._matrix[:, 3] = new_coord
+                # new_place._matrix[0, 3] = new_coord[0]
+                # new_place._matrix[1, 3] = new_coord[1]
+                # new_place._matrix[2, 3] = new_coord[2]
 
                 # Set particle translation to 0
-                if not particle.translation.is_identity():
-                    particle.translation = (0, 0, 0)
+                if not particle.translation.is_identity(tolerance=10e-8):
+                    particle.translation = [0.0, 0.0, 0.0]
 
-                particle.origin = (new_coord[0], new_coord[1], new_coord[2])
+                particle.origin_coord = new_coord#(new_coord[0], new_coord[1], new_coord[2])
                 particle.rotation = new_rot
-                marker.coord = particle.coord
+                marker.coord = new_coord
 
                 if self.translation_locked or self.rotation_locked:
                     place_ids.append(pid)
-                    places.append(new_place)
+                    places.append(new_place.copy())
                     #scm.set_place(pid, new_place)
 
                 # Update attributes
                 #self._attr_to_marker(marker, particle, position_only=True)
 
             scm.set_places(place_ids, places)
-            self._attrs_to_markers(markers, particles, position_only=True)
+            self._just_moved = True
+            #self._attrs_to_markers(markers, particles, position_only=True)
 
 
     def update_position_selectors(self):

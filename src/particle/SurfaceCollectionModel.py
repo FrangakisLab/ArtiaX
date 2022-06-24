@@ -6,7 +6,8 @@ import numpy as np
 
 # ChimeraX
 from chimerax.core.models import Model
-from chimerax.geometry import Place, Places
+from chimerax.geometry import Place, Places, _geometry
+from chimerax.geometry import matrix as m34
 from chimerax.graphics.drawing import Drawing, PickedTriangle
 
 # Triggers
@@ -323,26 +324,84 @@ class SurfaceCollectionModel(Model):
     #         if col.active:
     #             col.display_positions = copy(mask)
 
+    # @line_profile
+    # def move_children(self, tf, pm):
+    #     pos = self.child_positions
+    #     scene_pos = self.child_scene_positions
+    #
+    #     work_matrix = np.zeros((3, 4), np.float64, order='C')
+    #
+    #     pids = []
+    #     pl = []
+    #
+    #     ids = self.child_ids
+    #     for _id, mask, p, sp in zip(ids, pm, pos, scene_pos):
+    #         if mask:
+    #             # For speed do this:
+    #             sp_new = Place(sp._matrix)  # <--- Generates a new place instance without additional overhead.
+    #             _geometry.multiply_matrices(tf._matrix, sp._matrix, sp_new._matrix)
+    #             # instead of this:
+    #             #sp_new = tf * sp   <-- This would generate another place instance with _reuse_place()
+    #
+    #             # For speed do this:
+    #             sp_inv = m34.invert_matrix(sp._matrix)
+    #             # instead of:
+    #             # sp_inv = sp.inverse() <-- This would generate another place instance with _reuse_place()
+    #
+    #             # For speed do this:
+    #             _geometry.multiply_matrices(sp_inv, sp_new._matrix, sp_new._matrix)
+    #             _geometry.multiply_matrices(p._matrix, sp_new._matrix, sp_new._matrix)
+    #             # instead of:
+    #             # p = p * (sp_inv * sp_new) <---- would generate 2 more place instances with _reuse_place()
+    #
+    #             # Result
+    #             p = sp_new
+    #             pids.append(_id)
+    #
+    #         pl.append(p)
+    #
+    #     self.child_positions = Places(pl)
+    #     self.triggers.activate_trigger(MODELS_MOVED, pids)
+
     @line_profile
     def move_children(self, tf, pm):
+        # This returns references to the actual place instances used for display
         pos = self.child_positions
         scene_pos = self.child_scene_positions
 
-        pids = []
-        pl = []
+        # Modified object ids
+        ids = self.child_ids[pm]
 
-        ids = self.child_ids
-        for _id, mask, p, sp in zip(ids, pm, pos, scene_pos):
-            if mask:
-                sp_new = tf * sp
-                #sp_inv = sp.inverse() <-- This is slower than computing 4x4 matrix and inverting it.
-                sp_inv = invert_place(sp)
-                p = p * (sp_inv * sp_new)
-                pids.append(_id)
-            pl.append(p)
+        # Work matrix.
+        sp_new = np.zeros((3, 4), np.float64, order='C')
 
-        self.child_positions = Places(pl)
-        self.triggers.activate_trigger(MODELS_MOVED, pids)
+        # Which places (so we don't have to iterate over all)
+        indeces = pm.nonzero()[0]
+
+        # Invert scene position array at once (much faster)
+        spi = np.zeros((indeces.shape[0], 4, 4), np.float64, order='C')
+        spi[:, :3, :] = scene_pos.masked(pm).array()
+        spi[:, 3, 3] = 1
+        spi = np.linalg.inv(spi)
+        # Faster than individual place.inverse() or individual m34.invert_matrix()
+
+        for i, idx in enumerate(indeces):
+            # For speed do this:
+            _geometry.multiply_matrices(tf._matrix, scene_pos[idx]._matrix, sp_new)
+            # instead of this:
+            # sp_new = tf * sp   <-- This would generate another place instance with _reuse_place()
+
+            # For speed do this:
+            _geometry.multiply_matrices(np.squeeze(spi[i, :3, :]), sp_new, sp_new)
+            _geometry.multiply_matrices(pos[idx]._matrix, sp_new, pos[idx]._matrix)  # <-- This already changes the
+            #                                                                              correct place
+            # instead of:
+            # p = p * (sp_inv * sp_new) <---- would generate 2 more place instances with _reuse_place()
+
+        # Update collections with new places
+        self._update_collections()
+        self.triggers.activate_trigger(MODELS_MOVED, ids)
+
 
     def highlighted_instances(self):
         """Highlighted positions in any child SurfaceCollectionDrawings."""
@@ -607,10 +666,37 @@ def move_instances(tf, drawings, masks):
         d.move_children(tf, m)
 
 def invert_place(place):
-    from numpy import zeros
-    from numpy.linalg import inv
-    tf = zeros((4, 4), float)
-    tf[:3, :] = place.matrix
+    tf = np.zeros((4, 4), float)
+    tf[:3, :] = place._matrix
     tf[3, 3] = 1
-    tf = inv(tf)
+    tf = np.linalg.inv(tf)
     return Place(matrix=tf[:3, :])
+
+from scipy import linalg
+def invert_matrix(matrix):
+    tf = np.zeros((4, 4), float)
+    tf[:3, :] = matrix
+    tf[3, 3] = 1
+    linalg.inv(tf, overwrite_a=True)
+    return tf[:3, :]
+
+def invert_matrix_wo_import(tf):
+    #from numpy import array, zeros, float
+    tf = np.array(tf)
+    r = tf[:, :3]
+    t = tf[:, 3]
+    tfinv = np.zeros((3, 4), float)
+    rinv = tfinv[:, :3]
+    tinv = tfinv[:, 3]
+    #from numpy.linalg import inv as matrix_inverse
+    #from numpy import dot as matrix_multiply
+    rinv[:, :] = np.linalg.inv(r)
+    tinv[:] = np.dot(rinv, -t)
+    return tfinv
+
+def invert_matrices(matrices):
+    tf =  np.zeros((matrices.shape[0], 4, 4), float)
+    tf[:, :3, :] = matrices
+    tf[:, 3, 3] = 1
+    return np.linalg.inv(tf)[:, :3, :]
+

@@ -11,7 +11,7 @@ from chimerax.core.errors import UserError
 # This package
 from ..formats import ArtiaXFormat
 from ..ParticleData import ParticleData, EulerRotation
-from ._RELION import rot1_from_matrix, rot2_from_matrix, rot3_from_matrix
+from .cython._RELION import rot1_from_matrix, rot2_from_matrix, rot3_from_matrix, rot_from_matrix
 
 EPSILON = np.finfo(np.float32).eps
 EPSILON16 = 16 * EPSILON
@@ -20,6 +20,7 @@ class RELIONEulerRotation(EulerRotation):
 
     def __init__(self):
         super().__init__(axis_1=(0, 0, 1), axis_2=(0, 1, 0), axis_3=(0, 0, 1), invert_dir=True)
+        self._array = np.ndarray((3,), np.float64, order='C')
 
     def rot1_from_matrix(self, matrix):
         """rlnAngleRot -- Phi"""
@@ -31,9 +32,9 @@ class RELIONEulerRotation(EulerRotation):
         # else:
         #     angle = 0
 
-        angle = rot1_from_matrix(matrix)
+        angle = rot1_from_matrix(matrix.astype(np.float32))
 
-        return angle * 180.0 / np.pi
+        return angle# * 180.0 / np.pi
 
     def rot2_from_matrix(self, matrix):
         """rlnAngleTilt -- Theta"""
@@ -49,9 +50,9 @@ class RELIONEulerRotation(EulerRotation):
         #     else:
         #         angle = np.pi
 
-        angle = rot2_from_matrix(matrix)
+        angle = rot2_from_matrix(matrix.astype(np.float32))
 
-        return angle * 180.0 / np.pi
+        return angle# * 180.0 / np.pi
 
     def rot3_from_matrix(self, matrix):
         """Psi"""
@@ -65,9 +66,23 @@ class RELIONEulerRotation(EulerRotation):
         #     else:
         #         angle = np.arctan2(matrix[1, 0], -matrix[0, 0])
 
-        angle = rot3_from_matrix(matrix)
+        angle = rot3_from_matrix(matrix.astype(np.float32))
 
-        return angle * 180.0 / np.pi
+        return angle# * 180.0 / np.pi
+
+    def as_place(self, ang_1, ang_2, ang_3):
+        return self.as_place_c(ang_1, ang_2, ang_3)
+
+    def rot_from_matrix(self, matrix):
+        rot_from_matrix(matrix, self._array)
+
+        return self._array[0], self._array[1], self._array[2]
+
+    def rot_from_matrix_c(self, matrix, buf1, buf2, buf3):
+        #rot_from_matrix(matrix, self._array)
+        rot_from_matrix(matrix, buf1, buf2, buf3)
+
+        #return self._array[0], self._array[1], self._array[2]
 
     def _abs_sb(self, matrix):
         abs_sb = np.sqrt(matrix[0, 2] * matrix[0, 2] + matrix[1, 2] * matrix[1, 2])
