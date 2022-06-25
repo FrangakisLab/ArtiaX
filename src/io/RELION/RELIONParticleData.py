@@ -22,14 +22,6 @@ class RELIONEulerRotation(EulerRotation):
 
     def rot1_from_matrix(self, matrix):
         """rlnAngleRot -- Phi"""
-        # Singularity check
-        # if matrix[2, 2] > 0.9999:
-        #     angle = 0
-        # else:
-        #     angle = np.arctan2(matrix[2, 1], matrix[2, 0]) * 180.0 / np.pi
-
-        #matrix = np.linalg.inv(matrix[0:3, 0:3])
-
         abs_sb = self._abs_sb(matrix)
 
         if abs_sb is not None:
@@ -41,8 +33,6 @@ class RELIONEulerRotation(EulerRotation):
 
     def rot2_from_matrix(self, matrix):
         """rlnAngleTilt -- Theta"""
-        #angle = np.arccos(matrix[2, 2]) * 180.0 / np.pi
-
         abs_sb = self._abs_sb(matrix)
 
         if abs_sb is not None:
@@ -58,12 +48,6 @@ class RELIONEulerRotation(EulerRotation):
 
     def rot3_from_matrix(self, matrix):
         """Psi"""
-        # Singularity check
-        # if matrix[2, 2] > 0.9999:
-        #     angle = np.arctan2(-matrix[1, 0], matrix[0, 0]) * 180.0 / np.pi
-        # else:
-        #     angle = np.arctan2(matrix[1, 2], -matrix[0, 2]) * 180.0 / np.pi
-
         abs_sb = self._abs_sb(matrix)
 
         if abs_sb is not None:
@@ -88,7 +72,7 @@ class RELIONEulerRotation(EulerRotation):
         rot3 = np.arctan2(matrix[1, 2], -matrix[0, 2])
 
         if np.abs(np.sin(rot3)) < EPSILON:
-            sign_sb = np.sign(-matrix(0, 2) / np.cos(rot3))
+            sign_sb = np.sign(-matrix[0, 2] / np.cos(rot3))
         else:
             sign_sb = np.sign(matrix[1, 2]) if (np.sin(rot3) > 0) else -np.sign(matrix[1, 2])
 

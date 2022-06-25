@@ -13,12 +13,27 @@ from chimerax.core.attributes import type_attrs
 
 
 class EulerRotation:
+    """
+    EulerRotation specifies the axes and order of rotation for a transform parametrized by three rotations, and provides
+    methods for computing the rotation angles from a rotation matrix.
 
+    Transforms are specified in terms of their axes and rotation direction:
+
+    invert_dir == False:
+    M_full = M(axis_3, ang_3) * M(axis_2, ang_2) * M(axis_1, ang_1)
+
+    invert_dir == True:
+    M_full = M(axis_3, -ang_3) * M(axis_2, -ang_2) * M(axis_1, -ang_1)
+    """
     def __init__(self, axis_1, axis_2, axis_3, invert_dir=False):
         self.axis_1 = axis_1
+        """Axis for 1st rotation, 3-tuple of float."""
         self.axis_2 = axis_2
+        """Axis for 2nd rotation, 3-tuple of float."""
         self.axis_3 = axis_3
+        """Axis for 3rd rotation, 3-tuple of float."""
         self.invert_dir = invert_dir
+        """If true, reverse the direction of rotation. False implies right-handed rotations OF THE OBJECT."""
 
     def rot1_from_matrix(self, matrix):
         """
@@ -42,6 +57,22 @@ class EulerRotation:
         pass
 
     def as_place(self, ang_1, ang_2, ang_3):
+        """Compute the full rotation, combining the rotations in order M3 * M2 * M1
+
+        Parameters
+        ----------
+        ang_1 : float
+            1st Rotation angle in degrees.
+        ang_2: float
+            2nd Rotation angle in degrees.
+        ang_3: float
+            3rd Rotation angle in degrees.
+
+        Returns
+        -------
+        transform: chimerax.geometry.place.Place
+            The full rotation.
+        """
         if self.invert_dir:
             ang_1 *= -1
             ang_2 *= -1

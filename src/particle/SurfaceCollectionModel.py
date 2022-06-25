@@ -6,7 +6,7 @@ import numpy as np
 
 # ChimeraX
 from chimerax.core.models import Model
-from chimerax.geometry import Place, Places
+from chimerax.geometry import Place, Places, _geometry
 from chimerax.graphics.drawing import Drawing, PickedTriangle
 
 # Triggers
@@ -321,24 +321,54 @@ class SurfaceCollectionModel(Model):
     #             col.display_positions = copy(mask)
 
     def move_children(self, tf, pm):
+        """
+        Transforms objects specified using mask in child drawings using a transform in the scene coordinate system.
+
+        Parameters
+        ----------
+        tf: chimerax.geometry.place.Place
+            The transform in scene coordinate system.
+        pm:
+            Position mask of len(SurfaceCollectionModel.child_positions), True for objects to be transformed.
+        """
+        # TODO: This all needs to be C++ for speed.
+        # This returns references to the actual place instances used for display
         pos = self.child_positions
         scene_pos = self.child_scene_positions
 
-        pids = []
-        pl = []
+        # Modified object ids
+        ids = self.child_ids[pm]
 
-        ids = self.child_ids
-        for _id, mask, p, sp in zip(ids, pm, pos, scene_pos):
-            if mask:
-                sp_new = tf * sp
-                #sp_inv = sp.inverse() <-- This is slower than computing 4x4 matrix and inverting it.
-                sp_inv = invert_place(sp)
-                p = p * (sp_inv * sp_new)
-                pids.append(_id)
-            pl.append(p)
+        # Work matrix so we don't allocate for every multiplication
+        sp_new = np.zeros((3, 4), np.float64, order='C')
 
-        self.child_positions = Places(pl)
-        self.triggers.activate_trigger(MODELS_MOVED, pids)
+        # Which places (so we don't have to iterate over all)
+        indeces = pm.nonzero()[0]
+
+        # Invert scene position array at once (much faster)
+        spi = np.zeros((indeces.shape[0], 4, 4), np.float64, order='C')
+        spi[:, :3, :] = scene_pos.masked(pm).array()
+        spi[:, 3, 3] = 1
+        spi = np.linalg.inv(spi)
+        # Faster than individual place.inverse() or individual m34.invert_matrix()
+
+        for i, idx in enumerate(indeces):
+            # For speed do this:
+            _geometry.multiply_matrices(tf._matrix, scene_pos[idx]._matrix, sp_new)
+            # instead of this:
+            # sp_new = tf * sp   <-- This would generate another place instance with _reuse_place()
+
+            # For speed do this:
+            _geometry.multiply_matrices(np.squeeze(spi[i, :3, :]), sp_new, sp_new)
+            _geometry.multiply_matrices(pos[idx]._matrix, sp_new, pos[idx]._matrix)  # <-- This already changes the
+            #                                                                              correct place, no need for
+            #                                                                              assigning again.
+            # instead of:
+            # p = p * (sp_inv * sp_new) <---- would generate 2 more place instances with _reuse_place()
+
+        # Update collections with new places
+        self._update_collections()
+        self.triggers.activate_trigger(MODELS_MOVED, ids)
 
     def highlighted_instances(self):
         """Highlighted positions in any child SurfaceCollectionDrawings."""
