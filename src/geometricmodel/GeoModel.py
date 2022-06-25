@@ -21,7 +21,7 @@ class GeoModel(Model):
         super().__init__(name, session)
 
         self._color = self._get_unused_color()
-        self.change_transparency(255)
+        self.change_transparency(0)
 
         # Change trigger for UI
         self.triggers.add_trigger(GEOMODEL_CHANGED)

@@ -7,7 +7,7 @@ will be displayed without the ChimeraX- prefix.
 
 <BundleInfo name="ArtiaX"
 	    version="0.1" package="chimerax.artiax"
-  	    minSessionVersion="1" maxSessionVersion="1">
+  	    minSessionVersion="1" maxSessionVersion="1" purePython="1">
 
   <!-- Additional information about bundle source -->
   <Author>Utz Ermel, Serena M. Arghittu, Conny Sick, Mirko Ploesser and Achilleas Frangakis</Author>

@@ -133,6 +133,9 @@ class Line(GeoModel):
 
         from chimerax.bild.bild import _BildFile
         b = _BildFile(self.session, 'dummy')
+        print('.transparency {}'.format(self._color[3] / 255))
+        bild_color = np.multiply(self.color, 1 / 255)
+        print('.color {} {} {}'.format(*bild_color))
         b.transparency_command('.transparency {}'.format(self._color[3] / 255).split())
         bild_color = np.multiply(self.color, 1 / 255)
         b.color_command('.color {} {} {}'.format(*bild_color).split())
@@ -141,21 +144,26 @@ class Line(GeoModel):
 
         curr_point = self.start
         reached_end = False
-        print(self.start)
-        print(self.end)
-        while not reached_end:
+        print("start: {}".format(self.start))
+        print("end: {}".format(self.end))
+        print("center: {}".format(center))
+        i = 0
+        while (not reached_end and i<10000):
             along_circle_vector = np.cross(curr_point - center, w)
             along_circle_vector = along_circle_vector / np.linalg.norm(along_circle_vector)
-            next_point = self.start + along_circle_vector * step_length
-            print(curr_point)
-            print(next_point)
-            if np.linalg.norm(next_point - self.end) < step_length:
+            next_point = curr_point + along_circle_vector * step_length
+            #print("curr: {}".format(curr_point))
+            if np.linalg.norm(next_point - self.end) < step_length*2:
                 next_point = self.end
                 reached_end = True
 
-            b.cylinder_command(".vector {} {} {} {} {} {} 1".format(*curr_point, *next_point).split())
+            b.cylinder_command(".cylinder {} {} {} {} {} {} 1".format(*curr_point, *next_point).split())
             curr_point = next_point
+            i+=1
 
+        print("ended at {}".format(curr_point))
+        if i == 10000:
+            print("could not curve line")
         d.add_shapes(b.shapes)
         self.set_geometry(d.vertices, d.normals, d.triangles)
         self.vertex_colors = d.vertex_colors
