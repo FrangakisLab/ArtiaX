@@ -423,9 +423,9 @@ class ParticleData:
         self._orig_particles = OrderedDict()
         """Dict containing particles for reverting. Only set when reading from File."""
 
-        self._data_keys = self.DATA_KEYS
+        self._data_keys = self.DATA_KEYS.copy()
         """Dict mapping file format description to aliases."""
-        self._default_params = self.DEFAULT_PARAMS
+        self._default_params = self.DEFAULT_PARAMS.copy()
         """Dict mapping expected parameters to file format description."""
 
         self._rot = self.ROT
@@ -588,6 +588,22 @@ class ParticleData:
     def get_main_attributes(self):
         """Returns a list of the main attributes of a particle in this list."""
         return list(self._data_keys.keys())
+
+    def get_all_attributes(self):
+        """Returns a list of all attributes of a particle in this list."""
+
+        dat = self._data_keys
+        defs = self._default_params
+
+        attr = []
+
+        for key, val in dat.items():
+            attr.append(key)
+            attr += val
+
+        attr += list(defs.keys())
+
+        return attr
 
     def get_position_attributes(self):
         """Returns a list of all attributes related to position of a particle."""

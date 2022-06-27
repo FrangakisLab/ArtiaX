@@ -72,6 +72,7 @@ def color_cmd(session, list_id, color, log=False):
 
 def colormap_cmd(session, list_id, palette, attribute, minimum, maximum, transparency=100, log=False):
     markers = session.ArtiaX.partlists.get(list_id).markers
+    _id = markers.id_string
 
     run(session,
         'color byattribute a:{} #{} palette {} range {},{} transparency {}'.format(attribute,
@@ -79,7 +80,18 @@ def colormap_cmd(session, list_id, palette, attribute, minimum, maximum, transpa
                                                                                    palette,
                                                                                    minimum,
                                                                                    maximum,
-                                                                                   transparency), log=log)
+                                                                                   transparency), log=False)
+
+    if log:
+        from chimerax.core.commands import log_equivalent_command
+        log_equivalent_command(session,
+                               'artiax colormap #{} {} palette {} minValue {} '
+                               'maxValue {} transparency {}'.format(markers.id_string,
+                                                                    attribute,
+                                                                    palette,
+                                                                    minimum,
+                                                                    maximum,
+                                                                    transparency))
 
 
 def _full_spec(id_string, attributes, minima, maxima):

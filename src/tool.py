@@ -46,9 +46,9 @@ class ArtiaXUI(ToolInstance):
     # Does this instance persist when session closes
     SESSION_ENDURING = False
     # We do save/restore in sessions
-    SESSION_SAVE = True
+    SESSION_SAVE = False
     # Let ChimeraX know about our help page
-    help = "help:user/tools/tutorial.html"
+    help = "help:user/tools/artiax.html"
 
 # ==============================================================================
 # Instance Initialization ======================================================

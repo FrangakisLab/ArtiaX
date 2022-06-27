@@ -417,13 +417,16 @@ class ParticleList(Model):
     def get_main_attributes(self):
         return self._data.get_main_attributes()
 
+    def get_all_attributes(self):
+        return self._data.get_all_attributes()
+
     def get_attribute_min(self, attrs):
         minima = []
         for a in attrs:
             if self.size == 0:
                 minima.append(0)
             else:
-                minima.append(min([getattr(m, a) for m in self.markers.get_all_markers()]))
+                minima.append(min([getattr(m, a) for m in self.markers.atoms]))
 
         return minima
 
@@ -433,9 +436,29 @@ class ParticleList(Model):
             if self.size == 0:
                 maxima.append(0)
             else:
-                maxima.append(max([getattr(m, a) for m in self.markers.get_all_markers()]))
+                maxima.append(max([getattr(m, a) for m in self.markers.atoms]))
 
         return maxima
+
+    def get_attribute_info(self, attrs):
+        info = {}
+
+        for a in attrs:
+            info[a] = {}
+            info[a]['min'] = min([getattr(m, a) for m in self.markers.atoms])
+            info[a]['max'] = max([getattr(m, a) for m in self.markers.atoms])
+            info[a]['mean'] = np.mean([getattr(m, a) for m in self.markers.atoms])
+            info[a]['std'] = np.std([getattr(m, a) for m in self.markers.atoms])
+            info[a]['var'] = np.var([getattr(m, a) for m in self.markers.atoms])
+            info[a]['alias'] = self.data._data_keys[a]
+
+            if a in self.data._default_params.values():
+                idx = list(self.data._default_params.values()).index(a)
+                info[a]['pos_attr'] = list(self.data._default_params.keys())[idx]
+            else:
+                info[a]['pos_attr'] = None
+
+        return dict(sorted(info.items()))
 
     def reset_particles(self, reset_ids):
         self._data.reset_particles(reset_ids)

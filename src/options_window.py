@@ -65,7 +65,7 @@ class OptionsWindow(ToolInstance):
 
     SESSION_ENDURING = False    # Does this instance persist when session closes
     SESSION_SAVE = False        # We do save/restore in sessions
-    help = "help:user/tools/tutorial.html"
+    help = "help:user/tools/artiax_options.html"
                             # Let ChimeraX know about our help page
 
 # ==============================================================================

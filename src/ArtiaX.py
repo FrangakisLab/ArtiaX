@@ -1,8 +1,5 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-# General
-from pprint import pprint
-
 # ChimeraX
 from chimerax.core import errors
 from chimerax.core.commands import run
@@ -82,7 +79,7 @@ class ArtiaX(Model):
         self.session.triggers.add_handler(MODEL_DISPLAY_CHANGED, self._model_display_changed)
 
         # Graphical preset
-        run(self.session, "preset artiax default")
+        run(self.session, "preset artiax default", log=False)
 
         # Selection
         #self.selected_tomogram = None
