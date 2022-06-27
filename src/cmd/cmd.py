@@ -79,7 +79,7 @@ def artiax_add_tomo(session, models=None):
 #         session.ArtiaX.close_tomogram(model.id)
 
 
-def artiax_view(session, direction):
+def artiax_view(session, direction=None):
     """Set the current camera position to one of the perpendicular views."""
     directions = {
         'xy': view_xy,
@@ -87,8 +87,11 @@ def artiax_view(session, direction):
         'yz': view_yz
     }
 
+    if direction is None:
+        direction = 'xy'
+
     if direction not in directions.keys():
-        raise errors.UserError("{} is not a viewing direction known to ArtiaX.".format(direction))
+        raise errors.UserError("{} is not a viewing direction known to ArtiaX. Expected one of 'xy', 'xz', or 'yz'.".format(direction))
 
     directions[direction.lower()](session)
 
@@ -592,7 +595,7 @@ def register_artiax(logger):
 
     def register_artiax_view():
         desc = CmdDesc(
-            required=[("direction", StringArg)],
+            optional=[("direction", StringArg)],
             synopsis='Set standard viewing directions.',
             url='help:user/commands/artiax_view.html'
         )
