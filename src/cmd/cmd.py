@@ -1,7 +1,6 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # General
-import syslog
 
 from chimerax.core import errors
 from chimerax.map import Volume
@@ -315,11 +314,16 @@ def artiax_particles(session,
             model.axes_size = axesSize
 
         if set_surface_level:
-            # Clamp by range
-            surfaceLevel = min(model.surface_range[1], surfaceLevel)
-            surfaceLevel = max(model.surface_range[0], surfaceLevel)
+            if model.has_display_model():
+                # Clamp by range
+                surfaceLevel = min(model.surface_range[1], surfaceLevel)
+                surfaceLevel = max(model.surface_range[0], surfaceLevel)
 
-            model.surface_level = surfaceLevel
+                model.surface_level = surfaceLevel
+            else:
+                raise errors.UserError('artiax particles: Model #{} - "{}" does not have a surface attached to '
+                                       'it.'.format(model.id_string, model.name))
+
 
         if set_color:
             model.color = color.uint8x4()
@@ -420,12 +424,12 @@ def artiax_colormap(session, model, attribute, palette=None, minValue=None, maxV
 
     # Clamp min max
     if minValue is None:
-        minValue = model.get_attribute_min([attribute])
+        minValue = model.get_attribute_min([attribute])[0]
     else:
         minValue = max(minValue, model.get_attribute_min([attribute]))
 
     if maxValue is None:
-        maxValue = model.get_attribute_max([attribute])
+        maxValue = model.get_attribute_max([attribute])[0]
     else:
         maxValue = min(maxValue, model.get_attribute_max([attribute]))
 
@@ -625,7 +629,7 @@ def register_artiax(logger):
             required=[("model", ModelArg)],
             keyword=[("toParticleList", ModelArg)],
             synopsis='Set a surface for display at particle positions.',
-            url='help:user/commands/artiax_particles_attach.html'
+            url='help:user/commands/artiax_attach.html'
         )
         register('artiax attach', desc, artiax_attach)
 
@@ -710,8 +714,7 @@ def register_artiax(logger):
             required=[("model", ModelArg),
                       ("attribute", StringArg)],
             keyword=[("height", FloatArg),
-                     ("offset", Float3Arg),
-                     ('maxValue', FloatArg)],
+                     ("offset", Float3Arg)],
             synopsis='Label particles with attribute.',
             url='help:user/commands/artiax_label.html'
         )

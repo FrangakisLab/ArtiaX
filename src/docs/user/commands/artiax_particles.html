@@ -1,0 +1,70 @@
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=windows-1252">
+    <link rel="stylesheet" type="text/css" href="../userdocs.css">
+    <title>Command:artiax particles</title>
+  </head>
+  <body> <a name="top"></a> <a href="../artiax_index.html"> <img src="../ArtiaX-docs-icon.svg"
+        alt="ArtiaX docs icon" class="clRight" title="User Guide Index" width="60px"></a>
+    <h3><a href="../artiax_index.html#commands">Command</a>: artiax particles</h3>
+    <h3 class="usage"><a href="usageconventions.html">Usage</a>: <br>
+      <b>artiax particles</b> [ <a href="atomspec.html#hierarchy"><i>model-spec</i></a> ]
+      <em>property</em> <i>value</i> </h3>
+    <p> The <b>artiax particles</b> command enables setting a property of the selected particle list.
+      A blank spec will change the property on all particle lists currently open.</p>
+      <table style="width: 764px; height: 108px;" border="1">
+      <tbody>
+        <tr>
+          <td style="text-align: center; width: 143.517px;"><em><strong>property</strong></em></td>
+          <td style="width: 1580.48px; text-align: center;"><em><strong>meaning</strong></em></td>
+          <td style="width: 1580.48px; text-align: center;"><em><strong>expected value type</strong></em></td>
+          <td style="width: 1580.48px; text-align: center;"><em><strong>default value</strong></em></td>
+        </tr>
+        <tr>
+          <td style="height: 19px; text-align: center;"><strong>radius</strong></td>
+          <td>radius of the particle sphere</td>
+          <td style="width: 1580.48px; text-align: center;"><em>float</em></td>
+          <td style="width: 1580.48px; text-align: center;">4</td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>axes</strong></td>
+          <td>size of the xyz axes</td>
+          <td style="width: 1580.48px; text-align: center;"><em>float</em></td>
+          <td style="width: 1580.48px; text-align: center;">15</td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>color</strong></td>
+          <td>color of particle sphere</td>
+          <td style="width: 1580.48px; text-align: center;"><em>string</em></td>
+          <td style="width: 1580.48px; text-align: center;">N/A</td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>origin</strong></td>
+          <td>sets the origin scale factor</td>
+          <td style="width: 1580.48px; text-align: center;"><em>float</em></td>
+          <td style="width: 1580.48px; text-align: center;">1</td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>surface</strong></td>
+          <td>dont know</td>
+          <td style="width: 1580.48px; text-align: center;"><em>float</em></td>
+          <td style="width: 1580.48px; text-align: center;">?</td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>trans</strong></td>
+          <td>sets the shift pixelsize scale factor</td>
+          <td style="width: 1580.48px; text-align: center;"><em>float</em></td>
+          <td style="width: 1580.48px; text-align: center;">1</td>
+        </tr>
+      </tbody>
+    </table>
+      <p>
+      Examples: </p>
+    <blockquote> <b>artiax particles radius 8 <br>
+      artiax particles #1.2.1 color blue <br>
+      artiax particles #1.2.2 origin 5</b> </blockquote>
+    <p></p>
+    <hr>
+    <address>BMLS Frangakis Group / June 2022</address>
+  </body>
+</html>
