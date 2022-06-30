@@ -55,6 +55,7 @@ will be displayed without the ChimeraX- prefix.
     <DataFile>docs/user/*.html</DataFile>
     <DataFile>docs/user/tools/*.html</DataFile>
     <DataFile>docs/user/commands/*.html</DataFile>
+    <DataFile>docs/user/general/*.html</DataFile>
     <DataFile>icons/*.png</DataFile>
   </DataFiles>
 
@@ -132,6 +133,8 @@ will be displayed without the ChimeraX- prefix.
     <!-- ArtiaX tab, General -->
     <Provider tab="ArtiaX" section="General"
       name="Launch" icon="start.png" description="Start ArtiaX"/>
+    <Provider tab="ArtiaX" section="General"
+      name="Help" icon="help.png" description="Open documentation"/>
 
     <!-- ArtiaX tab, Markers -->
     <Provider tab="ArtiaX" section="Markers"

@@ -2,6 +2,7 @@
 
 _providers = {
     "Launch": "artiax start",
+    "Help": "open help:user/artiax_index.html",
     "XY": "artiax view xy",
     "XZ": "artiax view xz",
     "YZ": "artiax view yz",
