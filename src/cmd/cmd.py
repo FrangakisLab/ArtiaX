@@ -1,7 +1,6 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-# General
-
+# ChimeraX
 from chimerax.core import errors
 from chimerax.map import Volume
 

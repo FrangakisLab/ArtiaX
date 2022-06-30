@@ -138,7 +138,7 @@ class LabelEditSlider(QWidget):
     def _edit_changed(self):
         """Callback for changing edit text."""
         # Revert to previous value if user inputs something other than a number
-        if not self._edit.text().isnumeric():
+        if not is_float(self._edit.text()):
             print("Error: Please insert a number.")
 
             prev_edit = self._edit.blockSignals(True)
@@ -180,3 +180,10 @@ class LabelEditSlider(QWidget):
         self.editingFinished.emit(self._value)
 
 
+def is_float(s):
+    """Return true if text convertible to float."""
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
