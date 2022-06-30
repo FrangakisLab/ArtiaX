@@ -1,70 +1,105 @@
 <html>
   <head>
-    <meta http-equiv="content-type" content="text/html; charset=windows-1252">
+    <meta http-equiv="content-type" content="text/html; ; charset=utf-8">
     <link rel="stylesheet" type="text/css" href="../userdocs.css">
-    <title>Commands</title>
+    <title>Index</title>
+    <style>
+    div.expanded {visibility:visible; display: block}
+    div.collapsed {visibility:hidden; display: none}
+    </style>
+    <script>
+      function toggle(id, image) {
+        div = document.getElementById(id);
+        if (div.className == "expanded") {
+          div.className = "collapsed";
+          image.src="../../icons/triangler.png";
+        } else {
+          div.className = "expanded";
+          image.src="../../icons/triangled.png";
+        }
+      }
+    </script>
   </head>
-  <body> <a name="top"></a> <a href="./artiax_index.html"> <img src="./ArtiaX-docs-icon.svg"
+  <body>
+    <h2>
+    <a name="top"></a> <a href="./artiax_index.html"> <img src="./ArtiaX-docs-icon.svg"
         alt="ChimeraX docs icon" class="clRight" title="User Guide Index" width="60px"></a>
-    <ul>
-      <b>
-        <li id="Tools">Tools</li>
-      </b>
+    ArtiaX User Guide
+    </h2>
+    <p>
+    <a><b>ArtiaX</b></a> is blabla write something here utz
+    </p>
+
+    <ul class="none" style="list-style: none;">
+      <li><a name="General" href="#glist"></a>
+      <img onClick="toggle('glist', this);"
+      src="../../icons/triangled.png" width=10 height=10/>&nbsp;<b>General</b></li>
+      <div id="glist" class="expanded">
       <ul>
-        <b></b>
-        <li><b><a href="tools/artiax.html">ArtiaX</a></b> &nbsp;– Tool for
+        <li>tutorial and stuff goes here</li>
+      </ul>
+      </div>
+
+      <li><a name="Tools" href="#tlist"></a>
+      <img onClick="toggle('tlist', this);"
+      src="../../icons/triangled.png" width=10 height=10/>&nbsp;<b>Tools</b></li>
+      <div id="tlist" class="expanded">
+      <ul>
+        <li><b><a href="tools/artiax.html">ArtiaX</a></b> &nbsp;â€“ Tool for
           Tomogram and Particle list model management.</li>
         <b></b>
         <li><b><a href="tools/artiax_options.html">ArtiaX Options</a></b>
-          &nbsp;– Tool for Tomogram and Particle list manipulation.</li>
+          &nbsp;â€“ Tool for Tomogram and Particle list manipulation.</li>
         <b></b>
         <li><b><a href="tools/artiax_toolbar.html">ArtiaX Toolbar</a></b>
-          &nbsp;– ArtiaX toolbar tab.</li>
+          &nbsp;â€“ ArtiaX toolbar tab.</li>
       </ul>
-    </ul>
-    <ul>
-      <b>
-        <li>Commands</li>
-      </b>
+      </div>
+
+      <li><a name="Commands" href="#clist"></a>
+      <img onClick="toggle('clist', this);"
+      src="../../icons/triangled.png" width=10 height=10/>&nbsp;<b>Commands</b></li>
+      <div id="clist" class="expanded">
       <ul>
-        <b></b>
-        <li><b><a href="commands/artiax_add_tomo.html">add tomo</a></b> &nbsp;–
+        <li><b><a href="commands/artiax_add_tomo.html">add tomo</a></b> &nbsp;â€“
           add a already opened tomogram</li>
         <b></b>
-        <li><b><a href="commands/artiax_attach.html">attach</a></b> &nbsp;–
+        <li><b><a href="commands/artiax_attach.html">attach</a></b> &nbsp;â€“
           attach a surface to a particle lsit</li>
         <b></b>
-        <li><b><a href="commands/artiax_colormap.html">colormap</a></b> &nbsp;–
+        <li><b><a href="commands/artiax_colormap.html">colormap</a></b> &nbsp;â€“
           set a colormap for a particle list</li>
         <b></b>
-        <li><b><a href="commands/artiax_info.html">info</a></b> &nbsp;–
+        <li><b><a href="commands/artiax_info.html">info</a></b> &nbsp;â€“
           get information about a particle list or tomogram</li>
         <b></b>
-        <li><b><a href="commands/artiax_label.html">label</a></b> &nbsp;–
+        <li><b><a href="commands/artiax_label.html">label</a></b> &nbsp;â€“
           add a label with the value of an attribute to every particle in a list</li>
         <b></b>
-        <li><b><a href="commands/artiax_lock.html">lock, unlock</a></b> &nbsp;–
+        <li><b><a href="commands/artiax_lock.html">lock, unlock</a></b> &nbsp;â€“
           lock or unlock the rotation, translation or movement of particles</li>
         <b></b>
         <li><b><a href="commands/artiax_open_tomo.html">open tomo</a></b>
-          &nbsp;– open a tomogram </li>
+          &nbsp;â€“ open a tomogram </li>
         <b></b>
-        <li><b><a href="commands/artiax_particles.html">particles</a></b> &nbsp;–
+        <li><b><a href="commands/artiax_particles.html">particles</a></b> &nbsp;â€“
           set a property of particles</li>
         <b></b>
-        <li><b><a href="commands/artiax_show.html">show, hide</a></b> &nbsp;– show or hide
+        <li><b><a href="commands/artiax_show.html">show, hide</a></b> &nbsp;â€“ show or hide
           surfaces, axes or markers i.e. </li>
         <b></b>
-        <li><b><a href="commands/artiax_start.html">start</a></b> &nbsp;– start
+        <li><b><a href="commands/artiax_start.html">start</a></b> &nbsp;â€“ start
           artiax </li>
         <b></b>
-        <li><b><a href="commands/artiax_tomo.html">tomo</a></b> &nbsp;–
+        <li><b><a href="commands/artiax_tomo.html">tomo</a></b> &nbsp;â€“
           set a property of a tomogram</li>
         <b></b>
-        <li><b><a href="commands/artiax_view.html">view</a></b> &nbsp;– view
+        <li><b><a href="commands/artiax_view.html">view</a></b> &nbsp;â€“ view
           different camera positions</li>
       </ul>
+      </div>
     </ul>
+
     <hr>
     <address>BMLS Frangakis Group / June 2022</address>
   </body>
