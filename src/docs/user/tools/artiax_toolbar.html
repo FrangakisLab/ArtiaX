@@ -12,20 +12,133 @@ or derivations thereof.=== UCSF ChimeraX Copyright ===
   </head>
   <body> <a name="top"></a> <a href="../index.html"> <img src="../ArtiaX-docs-icon.svg"
         alt="ArtiaX docs icon" class="clRight" title="User Guide Index" width="60px"></a>
-    <h3><a href="../index.html#tools">Tool</a>: Tutorial (Qt)</h3>
-    <p> The <b>Tutorial (Qt)</b> tool demonstrates how to create a graphical
-      tool interface using the <a href="https://wiki.qt.io/Qt_for_Python">Qt
-        for Python</a> (PySide2) toolkit. </p>
-    <p> The tool displays a type-in field. When the user hits the Return key,
-      any text in the field will be shown in the log as its HTML equivalent.
-      That means that the text: </p>
-    <pre>	&lt;a href="http://www.cgl.ucsf.edu/chimerax"&gt;ChimeraX home page&lt;/a&gt;
-</pre> will be logged as: <br>
-    <br>
-    <a href="http://www.cgl.ucsf.edu/chimerax">ChimeraX home page</a>
-    <p></p>
-    <p> Choosing <b>Clear</b> frmo the tool context menu will clear the text
-      field </p>
+    <h3><a href="../index.html#tools">Tool</a>: Toolbar</h3>
+    <p> The ArtiaX <b>Toolbar</b> is seperated into 9 parts with different buttons
+        used to perform actions with a simple click. </p>
+
+    <p> The <b>general</b> section is only used to launch the plugin.</p>
+    <table border cellpadding="4" cellspacing="0">
+    <tr>
+    <td align="center"><b>icon</b></td>
+    <td align="center"><b>description</b></td>
+    <td align="center"><b>command equivalent</b></td>
+    </tr><tr>
+    <td align="center"><img src="../../../icons/start.png" width="35px"></td>
+    <td align="center">start ArtiaX</td>
+    <td align="center">
+    &nbsp;<b><a href="../commands/artiax_start.html">artiax start</a></b>
+    </td>
+    </tr>
+    </table>
+
+    <p> The <b>markers</b>, <b>axes</b>, and <b>surface</b> sections are used to show or hide
+      different parts of the particle markers.</p>
+    <table border cellpadding="4" cellspacing="0">
+    <tr>
+    <td align="center"><b>icon</b></td>
+    <td align="center"><b>description</b></td>
+    <td align="center"><b>command equivalent</b></td>
+    </tr><tr>
+    <td align="center"><img src="../../../icons/show_markers.png" width="35px"></td>
+    <td align="center">show markers</td>
+      <td align="center" rowspan="3">
+    <b><a href="../commands/artiax_show.html">artiax show</a></b>
+    </td>
+    </tr>
+    <tr>
+    <td align="center"><img src="../../../icons/show_axes.png" width="35px"></td>
+    <td align="center">show axes</td>
+    </tr>
+      <tr>
+    <td align="center"><img src="../../../icons/show_surfaces.png" width="35px"></td>
+    <td align="center">show surface</td>
+    </tr><tr>
+    <td align="center"><img src="../../../icons/hide_markers.png" width="35px"></td>
+    <td align="center">hide markers</td>
+      <td align="center" rowspan="3">
+    <b><a href="../commands/artiax_show.html">artiax hide</a></b>
+    </td>
+    </tr>
+    <tr>
+    <td align="center"><img src="../../../icons/hide_axes.png" width="35px"></td>
+    <td align="center">hide axes</td>
+    </tr>
+      <tr>
+    <td align="center"><img src="../../../icons/hide_surfaces.png" width="35px"></td>
+    <td align="center">hide surface</td>
+    </tr>
+    </table>
+
+  <p> The <b>View</b> section orients the camera to the selected view.</p>
+    <table border cellpadding="4" cellspacing="0">
+    <tr>
+    <td align="center"><b>icon</b></td>
+    <td align="center"><b>description</b></td>
+    <td align="center"><b>command equivalent</b></td>
+    </tr><tr>
+    <td align="center"><img src="../../../icons/view_xy.png" width="35px"></td>
+    <td align="center">orient camera such that the x-axis is to the right and y-axis is up</td>
+    <td align="center"> <b><a href="../commands/artiax_view.html">artiax view</a></b> xy
+    </tr><tr>
+    <td align="center"><img src="../../../icons/view_xz.png" width="35px"></td>
+    <td align="center">orient camera such that the x-axis is to the right and z-axis is up</td>
+    <td align="center"> <b><a href="../commands/artiax_view.html">artiax view</a></b> xz
+    </tr><tr>
+    <td align="center"><img src="../../../icons/view_yz.png" width="35px"></td>
+    <td align="center">orient camera such that the y-axis is to the right and z-axis is up</td>
+    <td align="center"> <b><a href="../commands/artiax_view.html">artiax view</a></b> yz
+    </tr>
+    </table>
+
+    <p> The <b>Movement</b> section allows for changing the right button mousemode to selecting models or
+    reorienting the camera.</p>
+    <table border cellpadding="4" cellspacing="0">
+    <tr>
+    <td align="center"><b>icon</b></td>
+    <td align="center"><b>description</b></td>
+    </tr><tr>
+    <td align="center"><img src="../../../icons/select.png" width="35px"></td>
+    <td>lets the user drag a box around models to select them</td>
+    </tr><tr>
+    <td align="center"><img src="../../../icons/rotate.png" width="35px"></td>
+    <td>rotates the camera around the cursor or particle selected as pivot</td>
+    </tr><tr>
+    <td align="center"><img src="../../../icons/translate.png" width="35px"></td>
+    <td>translate the camera</td>
+    </tr><tr>
+    <td align="center"><img src="../../../icons/center.png" width="35px"></td>
+    <td>selects the particle closest to the cursor as a point to pivot around
+      when the camera is rotated</td>
+    </tr>
+    </table>
+
+    <p> The <b>Place Particles</b> section works just like the place markers section
+      from the <b>right mouse</b> tab available with standard ChimeraX, except that
+      particles are created instead of markers if a particle list exists.</p>
+
+    <p> The <b>Move Particles</b> section changes the mouse mode to let the user
+      translate and rotate particles. Translation and rotation can also be set for particles
+      using the <b><a href="../commands/artiax_particles.html.html">artiax particles</a></b> command.</p>
+    <table border cellpadding="4" cellspacing="0">
+    <tr>
+    <td align="center"><b>icon</b></td>
+    <td align="center"><b>description</b></td>
+    </tr><tr>
+    <td align="center"><img src="../../../icons/translate_selected.png" width="35px"></td>
+    <td>translates all particles selected with the <b>select</b> mouse mode</td>
+    </tr><tr>
+    <td align="center"><img src="../../../icons/rotate_selected.png" width="35px"></td>
+    <td>rotates all particles selected with the <b>select</b> mouse mode</td>
+    </tr><tr>
+    <td align="center"><img src="../../../icons/translate.png" width="35px"></td>
+    <td>translate the camera</td>
+    </tr><tr>
+    <td align="center"><img src="../../../icons/center.png" width="35px"></td>
+    <td>selects the particle closest to the cursor as a point to pivot around
+      when the camera is rotated</td>
+    </tr>
+    </table>
+
     <hr>
     <address>BMLS Frangakis Group / June 2022</address>
   </body>
