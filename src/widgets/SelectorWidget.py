@@ -44,11 +44,11 @@ class SelectorWidget(QWidget):
 
         # Enable/Disable toggle
         self.toggle_switch = QCheckBox()
-        self.toggle_switch.setCheckState(Qt.Checked)
+        self.toggle_switch.setCheckState(Qt.CheckState.Checked)
 
         # Attributes
         self.attribute_box = IgnorantComboBox()
-        self.attribute_box.setFocusPolicy(Qt.StrongFocus)
+        self.attribute_box.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         for a in self.attributes:
             self.attribute_box.addItem(a)
 
@@ -72,14 +72,14 @@ class SelectorWidget(QWidget):
         self._slider_min_max_layout = QHBoxLayout()
         self.min_label = QLabel("{:.4f}".format(self.minimum))
         self.max_label = QLabel("{:.4f}".format(self.maximum))
-        self._slider_min_max_layout.addWidget(self.min_label, alignment=Qt.AlignLeft)
-        self._slider_min_max_layout.addWidget(self.max_label, alignment=Qt.AlignRight)
+        self._slider_min_max_layout.addWidget(self.min_label, alignment=Qt.AlignmentFlag.AlignLeft)
+        self._slider_min_max_layout.addWidget(self.max_label, alignment=Qt.AlignmentFlag.AlignRight)
 
         # Slider Line 2
         self.slider = QDoubleRangeSlider()
         self.slider._singleStep = 0.001
         self.slider._pageStep = 0.01
-        self.slider.setOrientation(Qt.Horizontal)
+        self.slider.setOrientation(Qt.Orientation.Horizontal)
 
         # If current attribute is constant, disable slider
         if self.constant:
@@ -96,8 +96,8 @@ class SelectorWidget(QWidget):
         self._slider_edit_layout = QHBoxLayout()
         self.lower_edit = QLineEdit("{:.4f}".format(value_low))
         self.upper_edit = QLineEdit("{:.4f}".format(value_high))
-        self._slider_edit_layout.addWidget(self.lower_edit, alignment=Qt.AlignCenter)
-        self._slider_edit_layout.addWidget(self.upper_edit, alignment=Qt.AlignCenter)
+        self._slider_edit_layout.addWidget(self.lower_edit, alignment=Qt.AlignmentFlag.AlignCenter)
+        self._slider_edit_layout.addWidget(self.upper_edit, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # If current attribute is constant, disable edits
         if self.constant:
@@ -151,8 +151,8 @@ class SelectorWidget(QWidget):
         self.slider.valueChanged.connect(partial(self._slider_changed))
 
         # Edits
-        self.lower_edit.returnPressed.connect(partial(self._edit_changed))
-        self.upper_edit.returnPressed.connect(partial(self._edit_changed))
+        self.lower_edit.editingFinished.connect(partial(self._edit_changed))
+        self.upper_edit.editingFinished.connect(partial(self._edit_changed))
 
     @property
     def minimum(self):
@@ -182,9 +182,10 @@ class SelectorWidget(QWidget):
         return name, minimum, maximum
 
     def _toggled(self, state):
-        if state == Qt.Checked:
+        from ..widgets import qt_enum_equal
+        if qt_enum_equal(Qt.CheckState.Checked, state):
             self.active = True
-        elif state == Qt.Unchecked:
+        elif qt_enum_equal(Qt.CheckState.Unchecked, state):
             self.active = False
 
         self._enable_widgets()

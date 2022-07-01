@@ -43,6 +43,7 @@ class Tomogram(VolumePlus):
 
         self.data.set_step(value)
         self.update_drawings()
+        self.set_parameters(tilted_slab_spacing=value[0])
 
     @property
     def contrast_center(self):
@@ -62,7 +63,14 @@ class Tomogram(VolumePlus):
 
     @property
     def normal(self):
-        return self.rendering_options.tilted_slab_axis
+        from chimerax.geometry import normalize_vector
+        return normalize_vector(self.rendering_options.tilted_slab_axis)
+
+    @normal.setter
+    def normal(self, value):
+        from chimerax.geometry import normalize_vector
+        value = normalize_vector(value)
+        self.set_parameters(tilted_slab_axis=value, color_mode='opaque8')
 
     @property
     def min_offset(self):
@@ -92,7 +100,7 @@ class Tomogram(VolumePlus):
 
     @property
     def integer_slab_position(self):
-        return ma.ceil((self.slab_position - self.min_offset)/self.pixelsize[0])
+        return round((self.slab_position - self.min_offset)/self.pixelsize[0])
 
     @integer_slab_position.setter
     def integer_slab_position(self, value):
@@ -132,16 +140,24 @@ class Tomogram(VolumePlus):
         offset = slice * self.pixelsize[0] + self.min_offset
         self.slab_position = offset
 
-    def _set_slab_offset(self, offset):
+    def _set_slab_offset(self, offset=None):
         if offset is None:
             offset = self.slab_position
 
         id = self.id_string
 
-        run(self.session,
-            'volume #{} region {},{},{},{},{},{} step 1 style image imageMode "tilted slab" tiltedSlabAxis {},{},{} tiltedSlabPlaneCount 1 tiltedSlabOffset {} colorMode l16'.format(
-                id, 0, 0, 0, self.size[0], self.size[1], self.size[2], self.normal[0],
-                self.normal[1], self.normal[2], offset), log=False)
+        self.set_parameters(tilted_slab_axis=self.normal,
+                            tilted_slab_offset=offset,
+                            tilted_slab_plane_count=1,
+                            image_mode='tilted slab',
+                            color_mode='opaque8')
+
+        self.set_display_style('image')
+
+        # run(self.session,
+        #     'volume #{} region {},{},{},{},{},{} step 1 style image imageMode "tilted slab" tiltedSlabAxis {},{},{} tiltedSlabPlaneCount 1 tiltedSlabOffset {} colorMode l16'.format(
+        #         id, 0, 0, 0, self.size[0], self.size[1], self.size[2], self.normal[0],
+        #         self.normal[1], self.normal[2], offset), log=False)
 
     def _get_min_offset(self):
         corners = self.corners()
@@ -198,11 +214,10 @@ def orthoplane_cmd(tomogram, axes, offset=None):
 
     size = tomogram.size
     spacing = tomogram.pixelsize[0]
-    cmd = 'volume #{} region {},{},{},{},{},{} step 1 style image imageMode "tilted slab" tiltedSlabAxis {},{},{} tiltedSlabPlaneCount 1 tiltedSlabOffset {} tilted_slab_spacing {} colorMode l16'
+    cmd = 'volume #{} region {},{},{},{},{},{} step 1 style image imageMode "tilted slab" tiltedSlabAxis {},{},{} tiltedSlabPlaneCount 1 tiltedSlabOffset {} tilted_slab_spacing {} colorMode opaque8'
 
     if offset is None:
         offset = tomogram.center_offset
-        print(offset)
 
     if axes == 'xy':
         cmd = cmd.format(tomogram.id_string, 0, 0, 0, size[0], size[1], size[2], 0, 0, 1, offset, spacing)

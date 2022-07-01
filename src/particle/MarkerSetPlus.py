@@ -41,6 +41,7 @@ class MarkerSetPlus(MarkerSet):
 
         # Handlers
         self.triggers.add_handler("changes", self._handle_changes)
+        self.session.triggers.add_handler('mouse hover', self._catch_hover)
 
     def delete(self):
         MarkerSet.delete(self)
@@ -165,6 +166,28 @@ class MarkerSetPlus(MarkerSet):
         if self.DEBUG:
             print(self._markers)
         return [atom for atom in self._markers if atom.deleted]
+
+
+    def _catch_hover(self, name, pick):
+        """When 'mouse hover' trigger fires for an atom of this MarkerSet, replace the ToolTip text.
+        This is ugly, but so much easier than overriding PickedAtom."""
+        if pick is None:
+            return
+
+        from chimerax.atomic import PickedAtom
+        if isinstance(pick, PickedAtom):
+            if pick.atom.structure is self:
+                ui = self.session.ui
+                pu = ui.main_window.graphics_window.popup
+                model = '#{}, '.format(pick.atom.structure.parent.id_string) #Ooooof
+                particle = 'particle {}/{}, '.format(self.atoms.instances().index(pick.atom)+1,
+                                                     len(self.atoms))
+                position = 'x: {}, y: {}, z: {}'.format(round(pick.atom.coord[0], 2),
+                                                        round(pick.atom.coord[1], 2),
+                                                        round(pick.atom.coord[2], 2))
+
+                pu.setText(model + particle + position)
+                pu.resize(pu.sizeHint())
 
 # class PickedParticle(PickedAtom):
 #

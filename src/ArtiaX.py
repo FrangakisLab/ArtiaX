@@ -5,7 +5,6 @@ from chimerax.core import errors
 from chimerax.core.commands import run
 from chimerax.core.models import Model, ADD_MODELS, REMOVE_MODELS, MODEL_DISPLAY_CHANGED
 from chimerax.map import Volume, open_map
-from pprint import pprint
 
 # This package
 from .volume.Tomogram import Tomogram, orthoplane_cmd
@@ -37,13 +36,6 @@ SEL_GEOMODEL_CHANGED = 'selected geometricmodel changed'
 TOMO_DISPLAY_CHANGED = 'tomo display changed'
 PARTLIST_DISPLAY_CHANGED = 'partlist display changed'
 GEOMODEL_DISPLAY_CHANGED = 'geomodel display changed'
-
-def print_trigger(trigger, trigger_data):
-    print(trigger)
-    print(trigger_data)
-    print(type(trigger_data))
-    pprint(vars(trigger_data))
-    print(trigger_data.drawing)
 
 
 class ArtiaX(Model):
@@ -105,7 +97,7 @@ class ArtiaX(Model):
         #self.triggers.add_handler(GEOMODEL_DEL, self._geomodel_deleted)
 
         # Graphical preset
-        run(self.session, "preset artiax default")
+        run(self.session, "preset artiax default", log=False)
 
         # Selection
         #self.selected_tomogram = None
@@ -283,7 +275,8 @@ class ArtiaX(Model):
 
         # TODO: Do this in pure python?
         run(self.session, "volume #{} capFaces false".format(tomo.id_string), log=False)
-        run(self.session, orthoplane_cmd(tomo, 'xy'))
+        #run(self.session, orthoplane_cmd(tomo, 'xy'))
+        run(self.session, 'artiax tomo #{} sliceDirection 0,0,1'.format(tomo.id_string))
         run(self.session, 'artiax view xy')
 
     def import_tomogram(self, model):
@@ -296,7 +289,8 @@ class ArtiaX(Model):
 
         # TODO: Do this in pure python?
         run(self.session, "volume #{} capFaces false".format(tomo.id_string), log=False)
-        run(self.session, orthoplane_cmd(tomo, 'xy'))
+        #run(self.session, orthoplane_cmd(tomo, 'xy'))
+        run(self.session, 'artiax tomo #{} sliceDirection 0,0,1'.format(tomo.id_string))
         run(self.session, 'artiax view xy')
 
     def close_tomogram(self, identifier):
@@ -320,6 +314,7 @@ class ArtiaX(Model):
         partlist = None
         formats = get_formats(self.session)
         if format_name in formats:
+            name = "particles"
             data = formats[format_name].particle_data(self.session, file_name=None, oripix=1, trapix=1)
             partlist = ParticleList(name, self.session, data)
 
@@ -385,18 +380,19 @@ class ArtiaX(Model):
         from .util.select import selection_cmd
         selection_cmd(self.session, id, attributes, minima, maxima)
 
-    def color_particles(self, identifier, color):
+    def color_particles(self, identifier, color, log=False):
         id = self.partlists.get(identifier).id
         from .util.select import color_cmd
-        color_cmd(self.session, id, color)
+        color_cmd(self.session, id, color, log=log)
 
-    def color_particles_byattribute(self, identifier, palette, attribute, minimum, maximum, transparency):
+    def color_particles_byattribute(self, identifier, palette, attribute, minimum, maximum, transparency, log=False):
         id = self.partlists.get(identifier).id
         from .util.select import colormap_cmd
-        colormap_cmd(self.session, id, palette, attribute, minimum, maximum, transparency)
+        colormap_cmd(self.session, id, palette, attribute, minimum, maximum, transparency, log=log)
 
     def color_geomodel(self, identifier, color):
         self.geomodels.get(identifier).color = color
+
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Callbacks

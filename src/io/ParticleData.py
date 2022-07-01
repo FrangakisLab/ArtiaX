@@ -13,11 +13,27 @@ from chimerax.core.attributes import type_attrs
 
 
 class EulerRotation:
+    """
+    EulerRotation specifies the axes and order of rotation for a transform parametrized by three rotations, and provides
+    methods for computing the rotation angles from a rotation matrix.
 
-    def __init__(self, axis_1, axis_2, axis_3):
+    Transforms are specified in terms of their axes and rotation direction:
+
+    invert_dir == False:
+    M_full = M(axis_3, ang_3) * M(axis_2, ang_2) * M(axis_1, ang_1)
+
+    invert_dir == True:
+    M_full = M(axis_3, -ang_3) * M(axis_2, -ang_2) * M(axis_1, -ang_1)
+    """
+    def __init__(self, axis_1, axis_2, axis_3, invert_dir=False):
         self.axis_1 = axis_1
+        """Axis for 1st rotation, 3-tuple of float."""
         self.axis_2 = axis_2
+        """Axis for 2nd rotation, 3-tuple of float."""
         self.axis_3 = axis_3
+        """Axis for 3rd rotation, 3-tuple of float."""
+        self.invert_dir = invert_dir
+        """If true, reverse the direction of rotation. False implies right-handed rotations OF THE OBJECT."""
 
     def rot1_from_matrix(self, matrix):
         """
@@ -41,6 +57,27 @@ class EulerRotation:
         pass
 
     def as_place(self, ang_1, ang_2, ang_3):
+        """Compute the full rotation, combining the rotations in order M3 * M2 * M1
+
+        Parameters
+        ----------
+        ang_1 : float
+            1st Rotation angle in degrees.
+        ang_2: float
+            2nd Rotation angle in degrees.
+        ang_3: float
+            3rd Rotation angle in degrees.
+
+        Returns
+        -------
+        transform: chimerax.geometry.place.Place
+            The full rotation.
+        """
+        if self.invert_dir:
+            ang_1 *= -1
+            ang_2 *= -1
+            ang_3 *= -1
+
         rot1 = rotation(self.axis_1, ang_1)
         rot2 = rotation(self.axis_2, ang_2)
         rot3 = rotation(self.axis_3, ang_3)
@@ -366,8 +403,8 @@ class ParticleData:
     overridden to implement file format specific conversion rules.
     """
 
-    DATA_KEYS = {}
-    DEFAULT_PARAMS = {}
+    DATA_KEYS = None
+    DEFAULT_PARAMS = None
     ROT = None
 
     def __init__(self, session, file_name, oripix=1, trapix=1, additional_files=None):
@@ -551,6 +588,22 @@ class ParticleData:
     def get_main_attributes(self):
         """Returns a list of the main attributes of a particle in this list."""
         return list(self._data_keys.keys())
+
+    def get_all_attributes(self):
+        """Returns a list of all attributes of a particle in this list."""
+
+        dat = self._data_keys
+        defs = self._default_params
+
+        attr = []
+
+        for key, val in dat.items():
+            attr.append(key)
+            attr += val
+
+        attr += list(defs.keys())
+
+        return attr
 
     def get_position_attributes(self):
         """Returns a list of all attributes related to position of a particle."""

@@ -15,3 +15,15 @@ from .ColorGeomodelWidget import ColorGeomodelWidget
 from .PartlistToolbarWidget import PartlistToolbarWidget
 from .LabelEditRangeSlider import LabelEditRangeSlider
 from .LineOptions import LineOptions
+from .ModelChooserWidget import ModelChooserWidget
+from .LabeledVectorEdit import LabeledVectorEdit
+from .ArtiaXSaveDialog import ArtiaXSaveDialog
+
+def qt_enum_equal(enum_value, comp_value):
+    """Compare with Qt enums safely with Qt5 and Qt6."""
+    try:
+        val = int(enum_value)
+    except TypeError:
+        val = enum_value.value
+
+    return val == comp_value

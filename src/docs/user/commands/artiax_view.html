@@ -11,16 +11,43 @@
     class="clRight" title="User Guide Index"/></a>
     <h3><a href="../artiax_index.html#commands">Command</a>: artiax view</h3>
     <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-    <br><b>artiax view</b></h3>
-    [&nbsp;<b>xy</b>&nbsp;|&nbsp;<b>xz</b>&nbsp;|&nbsp;<b>yz</b>&nbsp;]
+    <br><b>artiax view</b> [ <em>direction</em> ] </h3>
 
     <p>
-    The <b>artiax view</b> command sets the current camera position to one of the perpendicular views. The default position is xy.
-    <br>
-    <br>
-    For example: <em><b>artiax view xz</b></em> brings the camera position in the xz axis view to the current tomogram.
+    The <b>artiax view</b> command sets the current camera position to a standard viewing direction.
+      For example: <em><b>artiax view xz</b></em> brings the camera position in the xz axis view to the current
+      tomogram.
     </p>
-
+    <p>The keyword <em> direction </em> specifies which of the standard viewing directions will be used. When not
+      specified, <em> direction </em> defaults to '<strong>xy</strong>'.</p>
+    <table style="width: 764px; height: 108px;" border="1">
+      <tbody>
+        <tr>
+          <td style="text-align: center; width: 143.517px;"><em><strong>direction</strong></em></td>
+          <td style="width: 1580.48px; text-align: center;"><em><strong>meaning</strong></em></td>
+        </tr>
+        <tr>
+          <td style="height: 19px; text-align: center;"><strong>xy</strong></td>
+          <td>orients the camera such that the x-axis points to the right, the y-axis points up, and the z-axis points
+            through the screen. </td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>xz</strong></td>
+          <td>orients the camera such that the x-axis points to the right, the z-axis points up, and the y-axis points
+            away from the screen. </td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>yz</strong></td>
+          <td>orients the camera such that the y-axis points to the right, the z-axis points up, and the x-axis points
+            through the screen. </td>
+        </tr>
+      </tbody>
+    </table>
+    <p> Examples: </p>
+    <blockquote> <b>artiax view<br>
+        artiax view yz<br>
+      </b> </blockquote>
+    <p></p>
     <hr>
 
     <address>BMLS Frangakis Group / June 2022</address>

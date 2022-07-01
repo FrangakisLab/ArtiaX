@@ -51,15 +51,28 @@ def display_cmd(session, list_id, attributes, minima, maxima):
         markerset.atoms.displays = mask
 
 
-def color_cmd(session, list_id, color):
+def color_cmd(session, list_id, color, log=False):
     pl = session.ArtiaX.partlists.get(list_id)
 
     # Just one color
     pl.color = color
 
+    if log:
+        from chimerax.core.commands import log_equivalent_command
+        from chimerax.core.colors import Color
+        c = Color(color)
+        color = c.rgba * 100
 
-def colormap_cmd(session, list_id, palette, attribute, minimum, maximum, transparency=100):
+        log_equivalent_command(session, "artiax particles #{} color {},{},{},{}".format(pl.id_string,
+                                                                                        round(color[0]),
+                                                                                        round(color[1]),
+                                                                                        round(color[2]),
+                                                                                        round(color[3])))
+
+
+def colormap_cmd(session, list_id, palette, attribute, minimum, maximum, transparency=100, log=False):
     markers = session.ArtiaX.partlists.get(list_id).markers
+    _id = markers.id_string
 
     run(session,
         'color byattribute a:{} #{} palette {} range {},{} transparency {}'.format(attribute,
@@ -68,6 +81,17 @@ def colormap_cmd(session, list_id, palette, attribute, minimum, maximum, transpa
                                                                                    minimum,
                                                                                    maximum,
                                                                                    transparency), log=False)
+
+    if log:
+        from chimerax.core.commands import log_equivalent_command
+        log_equivalent_command(session,
+                               'artiax colormap #{} {} palette {} minValue {} '
+                               'maxValue {} transparency {}'.format(markers.id_string,
+                                                                    attribute,
+                                                                    palette,
+                                                                    minimum,
+                                                                    maximum,
+                                                                    transparency))
 
 
 def _full_spec(id_string, attributes, minima, maxima):

@@ -69,6 +69,17 @@ class VolumePlus(Volume):
                        default_rgba=None,
                        **rendering_options):
 
+        super().set_parameters(surface_levels,
+                               surface_colors,
+                               transparency,
+                               brightness,
+                               image_levels,
+                               image_colors,
+                               transparency_depth,
+                               image_brightness_factor,
+                               default_rgba,
+                               **rendering_options)
+
         if surface_levels:
             self.triggers.activate_trigger(SURFACE_LEVELS_CHANGED, self)
         if surface_colors:
@@ -90,23 +101,18 @@ class VolumePlus(Volume):
         if rendering_options:
             self.triggers.activate_trigger(RENDERING_OPTIONS_CHANGED, self)
 
-        super().set_parameters(surface_levels,
-                               surface_colors,
-                               transparency,
-                               brightness,
-                               image_levels,
-                               image_colors,
-                               transparency_depth,
-                               image_brightness_factor,
-                               default_rgba,
-                               **rendering_options)
 
     def _compute_stats(self):
-        arr = self.data.matrix(ijk_size=self.data.size)
-        self.min = np.min(arr)
-        self.max = np.max(arr)
-        self.mean = np.mean(arr)
-        self.median = np.median(arr)
-        self.std = np.std(arr)
+        # For speed use whatever is possible in C++
+        ms = self.matrix_value_statistics()
+        self.min = ms.minimum
+        self.max = ms.maximum
+        self.median = ms.rank_data_value(0.5)#np.median(arr)
         self.range = self.max - self.min
+
+        # For the rest approximate
+        arr = self.data.matrix(ijk_size=self.data.size, ijk_step=(4, 4, 4))
+        self.mean = np.mean(arr)
+        self.std = np.std(arr)
+
 

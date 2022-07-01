@@ -55,8 +55,8 @@ class SelectionTableWidget(QWidget):
         self.mode_group.addButton(self.dis_mode_switch)
         self.dis_mode_switch.setChecked(True)
 
-        self._mode_layout.addWidget(self.sel_mode_switch, alignment=Qt.AlignCenter)
-        self._mode_layout.addWidget(self.dis_mode_switch, alignment=Qt.AlignCenter)
+        self._mode_layout.addWidget(self.sel_mode_switch, alignment=Qt.AlignmentFlag.AlignCenter)
+        self._mode_layout.addWidget(self.dis_mode_switch, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Scroll area containing Selector widgets
         self.selector_area = QScrollArea()
@@ -66,11 +66,11 @@ class SelectionTableWidget(QWidget):
         self.selectors.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
                                                  QSizePolicy.MinimumExpanding))
         self.selectors_vbox = QVBoxLayout()
-        self.selectors_vbox.setAlignment(Qt.AlignTop)
+        self.selectors_vbox.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.selectors.setLayout(self.selectors_vbox)
 
-        self.selector_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        self.selector_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.selector_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        self.selector_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.selector_area.setWidgetResizable(True)
         self.selector_area.setWidget(self.selectors)
 
@@ -217,7 +217,7 @@ class SelectionTableWidget(QWidget):
                                 maxi=maxi)
 
         self._selectors.append(widget)
-        self.selectors_vbox.addWidget(widget, alignment=Qt.AlignTop)
+        self.selectors_vbox.addWidget(widget, alignment=Qt.AlignmentFlag.AlignTop)
         widget.selectionChanged.connect(self._selector_modified)
         widget.deleted.connect(self._selector_deleted)
 

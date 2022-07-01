@@ -121,9 +121,9 @@ class ManagerTableWidget(QTableWidget):
 
             # Set the check state
             if self.model.get(idx).display:
-                btn.setCheckState(Qt.Checked)
+                btn.setCheckState(Qt.CheckState.Checked)
             else:
-                btn.setCheckState(Qt.Unchecked)
+                btn.setCheckState(Qt.CheckState.Unchecked)
 
             if not send_signal:
                 btn.blockSignals(prev)
@@ -166,7 +166,7 @@ class ManagerTableWidget(QTableWidget):
             # Define table items
             # ID (not editable)
             id_box = QTableWidgetItem('#{}'.format(m.id_string))
-            id_box.setFlags(id_box.flags() ^ Qt.ItemIsEditable)
+            id_box.setFlags(id_box.flags() ^ Qt.ItemFlag.ItemIsEditable)
             # Name
             name_box = QTableWidgetItem(m.name)
             # Show checkbox
@@ -178,14 +178,14 @@ class ManagerTableWidget(QTableWidget):
 
             # Set the check state
             if self.model.get(idx).display:
-                show_box.setCheckState(Qt.Checked)
+                show_box.setCheckState(Qt.CheckState.Checked)
             else:
-                show_box.setCheckState(Qt.Unchecked)
+                show_box.setCheckState(Qt.CheckState.Unchecked)
 
             if self.model.has_id(options_model_id) and self.model.get_id(idx) == options_model_id:
-                options_box.setChecked(Qt.Checked)
+                options_box.setChecked(True)
             else:
-                options_box.setChecked(Qt.Unchecked)
+                options_box.setChecked(False)
 
             # Connect the Items to a function
             show_box.stateChanged.connect(partial(self.show_cb, idx))

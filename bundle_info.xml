@@ -7,7 +7,7 @@ will be displayed without the ChimeraX- prefix.
 
 <BundleInfo name="ArtiaX"
 	    version="0.1" package="chimerax.artiax"
-  	    minSessionVersion="1" maxSessionVersion="1" purePython="1">
+  	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
   <Author>Utz Ermel, Serena M. Arghittu, Conny Sick, Mirko Ploesser and Achilleas Frangakis</Author>
@@ -17,8 +17,10 @@ will be displayed without the ChimeraX- prefix.
   <!-- Synopsis is a one-line description
        Description is a full multi-line description -->
   <Synopsis>Cryo-ET Plugin for ChimeraX</Synopsis>
-  <Description>ArtiaX is an open-source extension of the molecular visualisation program ChimeraX and is primarily aimed on processing data from electron microscopy.
-  The plugin ties in with the possibility of ChimeraX to display and manipulate objects in virtual space.
+  <Description>
+    ArtiaX is an open-source extension of the molecular visualisation program ChimeraX and is primarily
+    aimed for processing cryo electron tomography data. It allows visualization of macromolecules within their context
+    in electron tomograms.
   </Description>
 
   <!-- Categories is a list where this bundle should appear -->
@@ -28,8 +30,21 @@ will be displayed without the ChimeraX- prefix.
 
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=1.2"/>
-    <Dependency name="ChimeraX-UI" version="~=1.0"/>
+    <Dependency name="ChimeraX-Atomic" version=">=1.1"/>
+    <Dependency name="ChimeraX-BILD" version="~=1.0"/>
+    <Dependency name="ChimeraX-Core" version=">=1.3"/>
+    <Dependency name="ChimeraX-Geometry" version=">=1.1"/>
+    <Dependency name="ChimeraX-Graphics" version="~=1.1"/>
+    <Dependency name="ChimeraX-IMOD" version="~=1.0"/>
+    <Dependency name="ChimeraX-Log" version=">=1.1.4"/>
+    <Dependency name="ChimeraX-Map" version="~=1.1"/>
+    <Dependency name="ChimeraX-MapData" version="~=2.0"/>
+    <Dependency name="ChimeraX-Markers" version="~=1.0"/>
+    <Dependency name="ChimeraX-ModelPanel" version=">=1.2.1"/>
+    <Dependency name="ChimeraX-MouseModes" version="~=1.1"/>
+    <Dependency name="ChimeraX-OpenCommand" version=">=1.7"/>
+    <Dependency name="ChimeraX-SaveCommand" version=">=1.5"/>
+    <Dependency name="ChimeraX-UI" version=">=1.0"/>
     <Dependency name="superqt"/>
     <Dependency name="starfile"/>
   </Dependencies>
@@ -40,6 +55,7 @@ will be displayed without the ChimeraX- prefix.
     <DataFile>docs/user/*.html</DataFile>
     <DataFile>docs/user/tools/*.html</DataFile>
     <DataFile>docs/user/commands/*.html</DataFile>
+    <DataFile>docs/user/general/*.html</DataFile>
     <DataFile>icons/*.png</DataFile>
   </DataFiles>
 
@@ -53,11 +69,11 @@ will be displayed without the ChimeraX- prefix.
               synopsis="Artiatomi particle lists"/>
 
     <Provider name="Generic Particle List"
-              suffixes=".csv"
+              suffixes=".tsv"
               category="particle list"
               nicknames="generic_particles"
               reference_url="help:user/tools/generic_particle_list.html"
-              synopsis="CSV particle lists"/>
+              synopsis="TSV particle lists"/>
 
     <Provider name="Dynamo Table"
               suffixes=".tbl"
@@ -117,6 +133,8 @@ will be displayed without the ChimeraX- prefix.
     <!-- ArtiaX tab, General -->
     <Provider tab="ArtiaX" section="General"
       name="Launch" icon="start.png" description="Start ArtiaX"/>
+    <Provider tab="ArtiaX" section="General"
+      name="Help" icon="help.png" description="Open documentation"/>
 
     <!-- ArtiaX tab, Markers -->
     <Provider tab="ArtiaX" section="Markers"
@@ -233,15 +251,6 @@ will be displayed without the ChimeraX- prefix.
     <ChimeraXClassifier>ChimeraX :: Command :: artiax add tomo :: General ::
       Add a volume loaded by ChimeraX to ArtiaX.</ChimeraXClassifier>
 
-<!--    <ChimeraXClassifier>ChimeraX :: Command :: artiax close tomo :: General ::-->
-<!--      Close a tomogram currently loaded in ArtiaX.</ChimeraXClassifier>-->
-
-    <ChimeraXClassifier>ChimeraX :: Command :: artiax open particles :: General ::
-      Open a particle list in ArtiaX</ChimeraXClassifier>
-
-    <ChimeraXClassifier>ChimeraX :: Command :: artiax close particles :: General ::
-      Close a particle list currently loaded in ArtiaX</ChimeraXClassifier>
-
     <ChimeraXClassifier>ChimeraX :: Command :: artiax attach :: General ::
       Attach a model to an ArtiaX particle list.</ChimeraXClassifier>
 
@@ -258,7 +267,10 @@ will be displayed without the ChimeraX- prefix.
       Allow types of movement for these particle lists.</ChimeraXClassifier>
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax particles :: General ::
-      Allow types of movement for these particle lists.</ChimeraXClassifier>
+      Set particle list properties.</ChimeraXClassifier>
+
+     <ChimeraXClassifier>ChimeraX :: Command :: artiax tomo :: General ::
+      Set tomogram properties.</ChimeraXClassifier>
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax fit sphere :: General ::
       Fits a sphere to the currently selected particles..</ChimeraXClassifier>
@@ -266,18 +278,15 @@ will be displayed without the ChimeraX- prefix.
     <ChimeraXClassifier>ChimeraX :: Command :: artiax fit line :: General ::
       Fits a line to two selected particles..</ChimeraXClassifier>
 
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax info :: General ::
+      Print information about tomograms or particle lists.</ChimeraXClassifier>
 
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax colormap :: General ::
+      Color particles by attribute.</ChimeraXClassifier>
 
-<!--    <ChimeraXClassifier>ChimeraX :: Command :: artiax open particles :: General ::-->
-<!--      Start and Initialize ArtiaX plugin</ChimeraXClassifier>-->
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax label :: General ::
+      Label particles with attribute.</ChimeraXClassifier>
 
-<!--    <ChimeraXClassifier>ChimeraX :: Command :: artiax open tomo :: General ::-->
-<!--      Start and Initialize ArtiaX plugin</ChimeraXClassifier>-->
-
-<!--    <ChimeraXClassifier>ChimeraX :: Command :: artiax open tomo :: General ::-->
-<!--      Start and Initialize ArtiaX plugin</ChimeraXClassifier>-->
 
   </Classifiers>
-
-
 </BundleInfo>

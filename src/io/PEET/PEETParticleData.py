@@ -10,7 +10,7 @@ import csv
 from chimerax.core.errors import UserError
 
 # This package
-from ..formats import ArtiaXFormat, ArtiaXSaverInfo
+from ..formats import ArtiaXFormat, ArtiaXSaverInfo, ArtiaXOpenerInfo
 from ..ParticleData import ParticleData, EulerRotation
 from ...widgets import SaveArgsWidget
 
@@ -120,14 +120,14 @@ class PEETParticleData(ParticleData):
                 has_csv = False
                 raise UserWarning('File {} has a different number of entries than the associated model. Skipping CSV.'.format(self.additional_files[0]))
 
-        for a in atoms:
+        for idx, a in enumerate(atoms):
             p = self.new_particle()
             p['pos_x'] = a.coord[0]
             p['pos_y'] = a.coord[1]
             p['pos_z'] = a.coord[2]
 
             if has_csv:
-                for idx, key in enumerate(list(self._data_keys)[0:20]):
+                for key in list(self._data_keys)[0:20]:
                     p[key] = csv_content[key][idx]
 
     def write_file(self, file_name=None, additional_files=None):
@@ -179,8 +179,8 @@ class PEETSaveArgsWidget(SaveArgsWidget):
         self._suffix_edit = QLineEdit('_motl_artiax')
 
         from Qt.QtCore import Qt
-        self._suffix_layout.addWidget(self._suffix_label, alignment=Qt.AlignLeft)
-        self._suffix_layout.addWidget(self._suffix_edit, alignment=Qt.AlignLeft)
+        self._suffix_layout.addWidget(self._suffix_label, alignment=Qt.AlignmentFlag.AlignLeft)
+        self._suffix_layout.addWidget(self._suffix_edit, alignment=Qt.AlignmentFlag.AlignLeft)
 
         return [self._suffix_layout], []
 
@@ -235,10 +235,54 @@ class PEETSaverInfo(ArtiaXSaverInfo):
         return {'partlist': ModelArg, 'csvpath': FileNameArg, 'csvsuffix': StringArg}
 
 
+class PEETOpenerInfo(ArtiaXOpenerInfo):
+
+    def open(self, session, data, file_name, **kw):
+        # Make sure plugin runs
+        from ...cmd import get_singleton
+        get_singleton(session)
+
+        if 'csvpath' in kw.keys() and 'csvsuffix' in kw.keys():
+            raise UserError('Both csvpath and csvsuffix were specified in open command for PEET particle data. \n'
+                            'Only one option can be set.')
+
+        additional_files = None
+
+        # Only suffix
+        if 'csvsuffix' in kw.keys():
+            from pathlib import Path
+
+            # Data is path, not stream
+            p = Path(data)
+            s = p.stem + kw['csvsuffix']
+            p = p.with_stem(s).with_suffix('.csv')
+
+            additional_files = [str(p)]
+
+        # Only path
+        if 'csvpath' in kw.keys():
+            additional_files = [kw['csvpath']]
+
+        # Open list
+        from ..io import open_particle_list
+        return open_particle_list(session,
+                                  data,
+                                  file_name,
+                                  format_name=self.name,
+                                  from_chimx=True,
+                                  additional_files=additional_files)
+
+    @property
+    def open_args(self):
+        from chimerax.core.commands import FileNameArg, StringArg
+        return {'csvpath': FileNameArg, 'csvsuffix': StringArg}
+
 PEET_FORMAT = ArtiaXFormat(name='PEET mod/csv',
                            nicks=['peet'],
                            particle_data=PEETParticleData,
-                           saver_info=PEETSaverInfo('PEET mod/csv', widget=PEETSaveArgsWidget))
+                           opener_info=PEETOpenerInfo('PEET mod/csv'),
+                           saver_info=PEETSaverInfo('PEET mod/csv',
+                           widget=PEETSaveArgsWidget))
 
 
 def write_mod(name, xyz_max, parts):

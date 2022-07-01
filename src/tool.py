@@ -5,6 +5,7 @@ from functools import partial
 
 # ChimeraX
 from chimerax.core.tools import ToolInstance
+from chimerax.core.commands import run
 from chimerax.ui import MainToolWindow
 
 # Qt
@@ -51,9 +52,9 @@ class ArtiaXUI(ToolInstance):
     # Does this instance persist when session closes
     SESSION_ENDURING = False
     # We do save/restore in sessions
-    SESSION_SAVE = True
+    SESSION_SAVE = False
     # Let ChimeraX know about our help page
-    help = "help:user/tools/tutorial.html"
+    help = "help:user/tools/artiax.html"
 
     # ==============================================================================
     # Instance Initialization ======================================================
@@ -112,7 +113,6 @@ class ArtiaXUI(ToolInstance):
     # ==============================================================================
 
     def _build_ui(self):
-
         # Volume open dialog
         caption = 'Choose a volume.'
         self.volume_open_dialog = QFileDialog(caption=caption, parent=self.session.ui.main_window)
@@ -162,25 +162,9 @@ class ArtiaXUI(ToolInstance):
         # ChimeraX main window
         self.tool_window.manage("left")
 
-    # ==============================================================================
-    # Set shortcuts =============================================
-    # ==============================================================================
-
-    def _define_shortcuts(self, session):
-        # Define the shortcuts
-        self.jump_1_forwards = QShortcut(QKeySequence(Qt.Key_F4), self.options_window.group_slices_next_1)
-        self.jump_10_forwards = QShortcut(QKeySequence(Qt.Key_F8), self.options_window.group_slices_next_10)
-        self.jump_1_backwards = QShortcut(QKeySequence(Qt.Key_F3), self.options_window.group_slices_previous_1)
-        self.jump_10_backwards = QShortcut(QKeySequence(Qt.Key_F7), self.options_window.group_slices_previous_10)
-        # Connect actions to functions
-        # self.jump_1_forwards.activated.connect(partial(self.skip_planes, session, 1))
-        # self.jump_10_forwards.activated.connect(partial(self.skip_planes, session, 10))
-        # self.jump_1_backwards.activated.connect(partial(self.skip_planes, session, -1))
-        # self.jump_10_backwards.activated.connect(partial(self.skip_planes, session, -10))
-
-    # ==============================================================================
-    # Prepare GUI functions ========================================================
-    # ==============================================================================
+# ==============================================================================
+# Prepare GUI functions ========================================================
+# ==============================================================================
 
     def _build_menubar(self):
         # Not used anymore
@@ -245,9 +229,19 @@ class ArtiaXUI(ToolInstance):
 
         # Contents
         self.group_tomo_open_button = QPushButton("Open tomogram ...")
+
+        from .widgets import ModelChooserWidget
+        from chimerax.map import Volume
+        self.tomo_from_session = ModelChooserWidget(self.session,
+                                                   labeltext='Add Model: ',
+                                                   buttontext='Add!',
+                                                   type=Volume,
+                                                   exclude=self.session.ArtiaX)
+
         self.group_tomo_close_button = QPushButton("Close selected tomogram")
 
         group_tomo_layout.addWidget(self.group_tomo_open_button)
+        group_tomo_layout.addWidget(self.tomo_from_session)
         group_tomo_layout.addWidget(self.table_tomo)
         group_tomo_layout.addWidget(self.group_tomo_close_button)
 
@@ -320,6 +314,9 @@ class ArtiaXUI(ToolInstance):
         ui.group_tomo_open_button.clicked.connect(self._open_volume)
         ui.group_tomo_close_button.clicked.connect(self._close_volume)
 
+        ui.tomo_from_session.clicked.connect(self._add_volume)
+
+
     def _connect_part_ui(self):
         ui = self
         ow = self.ow
@@ -359,18 +356,25 @@ class ArtiaXUI(ToolInstance):
         if file is not None and len(file):
             artia.open_tomogram(file[0])
 
+    def _add_volume(self, model):
+        artia = self.session.ArtiaX
+
+        run(self.session, "artiax add tomo #{}".format(model.id_string))
+
     def _choose_volume(self):
         if self.volume_open_dialog.exec():
             return self.volume_open_dialog.selectedFiles()
 
     def _open_partlist(self):
-        artia = self.session.ArtiaX
-
-        file, format = self._choose_partlist()
-
-        if file is not None and len(file):
-            fmt_name = self.partlist_filters[format]
-            artia.open_partlist(file[0], fmt_name)
+        from .widgets.ArtiaxOpenDialog import show_open_file_dialog
+        show_open_file_dialog(self.session)
+        # artia = self.session.ArtiaX
+        #
+        # file, format = self._choose_partlist()
+        #
+        # if file is not None and len(file):
+        #     fmt_name = self.partlist_filters[format]
+        #     artia.open_partlist(file[0], fmt_name)
 
     def _choose_partlist(self):
         if self.particle_open_dialog.exec():
@@ -383,13 +387,15 @@ class ArtiaXUI(ToolInstance):
         artia.create_partlist()
 
     def _save_partlist(self):
-        artia = self.session.ArtiaX
-
-        file, format = self._choose_partlist_save()
-
-        if file is not None and len(file):
-            fmt_name = self.partlist_filters[format]
-            artia.save_partlist(artia.selected_partlist, file[0], fmt_name)
+        from .widgets.ArtiaXSaveDialog import show_save_file_dialog
+        show_save_file_dialog(self.session)
+        # artia = self.session.ArtiaX
+        #
+        # file, format = self._choose_partlist_save()
+        #
+        # if file is not None and len(file):
+        #     fmt_name = self.partlist_filters[format]
+        #     artia.save_partlist(artia.selected_partlist, file[0], fmt_name)
 
     def _choose_partlist_save(self):
         if self.particle_save_dialog.exec():
@@ -523,9 +529,11 @@ class ArtiaXUI(ToolInstance):
         artia = self.session.ArtiaX
         artia.selected_tomogram = artia.tomograms.get_id(idx)
 
-        if state == Qt.Checked:
+        from .widgets import qt_enum_equal
+
+        if qt_enum_equal(Qt.CheckState.Checked, state):
             artia.show_tomogram(idx)
-        elif state == Qt.Unchecked:
+        elif qt_enum_equal(Qt.CheckState.Unchecked, state):
             artia.hide_tomogram(idx)
 
     def _show_tomo_options(self, idx, state):
@@ -534,8 +542,6 @@ class ArtiaXUI(ToolInstance):
         if state:
             artia.options_tomogram = artia.tomograms.get_id(idx)
 
-        # if state:
-        #    self.ow._show_tab("tomogram")
 
     def _partlist_table_selected(self, item):
         artia = self.session.ArtiaX
@@ -554,9 +560,11 @@ class ArtiaXUI(ToolInstance):
         artia = self.session.ArtiaX
         artia.selected_partlist = artia.partlists.get_id(idx)
 
-        if state == Qt.Checked:
+        from .widgets import qt_enum_equal
+
+        if qt_enum_equal(Qt.CheckState.Checked, state):
             artia.show_partlist(idx)
-        elif state == Qt.Unchecked:
+        elif qt_enum_equal(Qt.CheckState.Unchecked, state):
             artia.hide_partlist(idx)
 
     def _show_partlist_options(self, idx, state):

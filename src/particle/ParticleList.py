@@ -151,8 +151,6 @@ class ParticleList(Model):
         """Number of particles contained in this list."""
         return self._data.size
 
-
-
     @property
     def datatype(self):
         """Type of file this list originated from."""
@@ -173,6 +171,8 @@ class ParticleList(Model):
 
         self._data.pixelsize_ori = value
 
+        self.radius = 4 * value
+        self.axes_size = 15 * value
         self.update_places()
 
     @property
@@ -391,7 +391,7 @@ class ParticleList(Model):
             'marker_chain_id': 'M',
             'marker color': self.color,
             'marker radius': self.radius,
-            'link color': (101, 156, 239, 255),  # cornflowerblue
+            'link color': self.color,
             'link radius': 0.5,
             'link_new_markers': False,
         }
@@ -417,13 +417,16 @@ class ParticleList(Model):
     def get_main_attributes(self):
         return self._data.get_main_attributes()
 
+    def get_all_attributes(self):
+        return self._data.get_all_attributes()
+
     def get_attribute_min(self, attrs):
         minima = []
         for a in attrs:
             if self.size == 0:
                 minima.append(0)
             else:
-                minima.append(min([getattr(m, a) for m in self.markers.get_all_markers()]))
+                minima.append(min([getattr(m, a) for m in self.markers.atoms]))
 
         return minima
 
@@ -433,9 +436,29 @@ class ParticleList(Model):
             if self.size == 0:
                 maxima.append(0)
             else:
-                maxima.append(max([getattr(m, a) for m in self.markers.get_all_markers()]))
+                maxima.append(max([getattr(m, a) for m in self.markers.atoms]))
 
         return maxima
+
+    def get_attribute_info(self, attrs):
+        info = {}
+
+        for a in attrs:
+            info[a] = {}
+            info[a]['min'] = min([getattr(m, a) for m in self.markers.atoms])
+            info[a]['max'] = max([getattr(m, a) for m in self.markers.atoms])
+            info[a]['mean'] = np.mean([getattr(m, a) for m in self.markers.atoms])
+            info[a]['std'] = np.std([getattr(m, a) for m in self.markers.atoms])
+            info[a]['var'] = np.var([getattr(m, a) for m in self.markers.atoms])
+            info[a]['alias'] = self.data._data_keys[a]
+
+            if a in self.data._default_params.values():
+                idx = list(self.data._default_params.values()).index(a)
+                info[a]['pos_attr'] = list(self.data._default_params.keys())[idx]
+            else:
+                info[a]['pos_attr'] = None
+
+        return dict(sorted(info.items()))
 
     def reset_particles(self, reset_ids):
         self._data.reset_particles(reset_ids)
@@ -555,8 +578,8 @@ class ParticleList(Model):
             #     val = particle[attr].angle
             # else:
             val = particle[attr]
-
             setattr(marker, attr, val)
+
             if attr in self.selection_settings["names"]:
                 idx = self.selection_settings["names"].index(attr)
                 if val < self.selection_settings["minima"][idx]:

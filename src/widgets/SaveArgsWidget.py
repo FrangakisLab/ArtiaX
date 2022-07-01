@@ -39,8 +39,8 @@ class SaveArgsWidget(QFrame):
         if len(artia.partlists.child_models()) > 0:
             self.partlist_combo.setCurrentIndex(0)
 
-        self._list_combo_layout.addWidget(self.partlist_label, alignment=Qt.AlignLeft)
-        self._list_combo_layout.addWidget(self.partlist_combo, alignment=Qt.AlignLeft)
+        self._list_combo_layout.addWidget(self.partlist_label, alignment=Qt.AlignmentFlag.AlignLeft)
+        self._list_combo_layout.addWidget(self.partlist_combo, alignment=Qt.AlignmentFlag.AlignLeft)
 
         self._layout.addLayout(self._list_combo_layout)
 
