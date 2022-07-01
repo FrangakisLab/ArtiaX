@@ -36,7 +36,6 @@ ARTIAX_COLORMAPS = {
     'redgreen': ((1, 0, 0, 1), (1, 1, 0, 1), (0, 1, 0, 1))
 }
 
-
 def add_colors(session):
     for name, colors in ARTIAX_COLORMAPS.items():
         session.user_colormaps[name] = Colormap(None, colors)

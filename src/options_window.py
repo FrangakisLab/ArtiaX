@@ -602,6 +602,14 @@ class OptionsWindow(ToolInstance):
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     def _skip_planes(self, number):
+
+        # Extra checks because it's a callback to keyboard shortcuts.
+        if not hasattr(self.session, 'ArtiaX'):
+            return
+
+        if self.session.ArtiaX.options_tomogram is None:
+            return
+
         artia = self.session.ArtiaX
         tomo = artia.tomograms.get(artia.options_tomogram)
 
