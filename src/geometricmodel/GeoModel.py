@@ -1,6 +1,7 @@
 # General imports
 import numpy as np
 import math
+from scipy import interpolate
 
 # ChimeraX imports
 from chimerax.core.commands import run
@@ -21,7 +22,7 @@ class GeoModel(Model):
         super().__init__(name, session)
 
         self._color = self._get_unused_color()
-        self.change_transparency(0)
+        self.change_transparency(255)
 
         # Change trigger for UI
         self.triggers.add_trigger(GEOMODEL_CHANGED)
@@ -57,28 +58,41 @@ class GeoModel(Model):
         self.vertex_colors = np.full(np.shape(self.vertex_colors), color)
 
 
-def get_curr_selected_particles_pos(session):
+def get_curr_selected_particles_pos(session, XYZ=False):
     artiax = session.ArtiaX
 
-    # Find selected particles
-    particle_pos = np.zeros((0, 3))  # each row is one currently selected particle, with columns being x,y,z
-    for particle_list in artiax.partlists.child_models():
-        for curr_id in particle_list.particle_ids[particle_list.selected_particles]:
-            if curr_id:
-                curr_part = particle_list.get_particle(curr_id)
-                x_pos = curr_part.coord[0]
-                y_pos = curr_part.coord[1]
-                z_pos = curr_part.coord[2]
-                particle_pos = np.append(particle_pos, [[x_pos, y_pos, z_pos]], axis=0)
+    if not XYZ:
+        # Find selected particles
+        particle_pos = np.zeros((0, 3))  # each row is one currently selected particle, with columns being x,y,z
+        for particle_list in artiax.partlists.child_models():
+            for curr_id in particle_list.particle_ids[particle_list.selected_particles]:
+                if curr_id:
+                    curr_part = particle_list.get_particle(curr_id)
+                    x_pos = curr_part.coord[0]
+                    y_pos = curr_part.coord[1]
+                    z_pos = curr_part.coord[2]
+                    particle_pos = np.append(particle_pos, [[x_pos, y_pos, z_pos]], axis=0)
 
-    return particle_pos
+        return particle_pos
+    else:
+        # Find selected particles
+        x, y, z = np.zeros(0), np.zeros(0), np.zeros(0)
+        for particle_list in artiax.partlists.child_models():
+            for curr_id in particle_list.particle_ids[particle_list.selected_particles]:
+                if curr_id:
+                    curr_part = particle_list.get_particle(curr_id)
+                    x = np.append(x, curr_part.coord[0])
+                    y = np.append(y, curr_part.coord[1])
+                    z = np.append(z, curr_part.coord[2])
+
+        return x, y, z
 
 
 def fit_sphere(session):
     """Fits a sphere to the currently selected particles"""
     artiax = session.ArtiaX
 
-    particle_pos = get_curr_selected_particles_pos(session)
+    particle_pos = get_curr_selected_particles_pos(session, XYZ=False)
 
     if len(particle_pos) < 4:
         session.logger.warning("At least four points are needed to fit a sphere")
@@ -117,7 +131,7 @@ def fit_line(session):
     """Creates a line between two particles"""
     artiax = session.ArtiaX
 
-    particle_pos = get_curr_selected_particles_pos(session)
+    particle_pos = get_curr_selected_particles_pos(session, XYZ=False)
 
     if len(particle_pos) != 2:
         session.logger.warning("Only select a start and end point")
@@ -140,4 +154,28 @@ def fit_line(session):
 
     from .Line import Line
     geomodel = Line("line", session, start, end)
+    artiax.add_geomodel(geomodel)
+
+
+def fit_curved_line(session):
+    artiax = session.ArtiaX
+
+    x, y, z = get_curr_selected_particles_pos(session, XYZ=True)
+
+    if len(x) < 2:
+        session.logger.warning("Please select multiple points")
+        return
+
+    smooth = 0  # s=0 means it will go through all points, s!=0 means smoother, good value between m+-sqrt(2m) (m=no. points)
+    degree = 3  # can be 0,3, or 5
+    tck, u = interpolate.splprep([x, y, z], s=smooth, k=degree)
+    resolution = 1000
+    un = np.arange(0, 1 + 1 / resolution, 1 / resolution)
+    out = interpolate.splev(un, tck)
+
+    # TODO rotate particles along line. Then add: options for smoothness and dimensions, add particles along line,
+    #  add particles in specific order.
+
+    from .CurvedLine import CurvedLine
+    geomodel = CurvedLine("curved line", session, out)
     artiax.add_geomodel(geomodel)

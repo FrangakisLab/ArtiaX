@@ -183,6 +183,13 @@ def artiax_fit_line(session):
     from ..geometricmodel.GeoModel import fit_line
     fit_line(session)
 
+def artiax_fit_curved_line(session):
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running, so no line can be fitted.")
+        return
+
+    from ..geometricmodel.GeoModel import fit_curved_line
+    fit_curved_line(session)
 
 def artiax_lock(session, models=None, type=None):
     # No ArtiaX
@@ -689,6 +696,14 @@ def register_artiax(logger):
         )
         register('artiax fit line', desc, artiax_fit_line)
 
+    def register_artiax_fit_curved_line():
+        desc = CmdDesc(
+            #TODO rewrite and get url right
+            synopsis='Create a geometric model curved line that goes through the selected particles.',
+            url='help:user/commands/artiax_hide.html'
+        )
+        register('artiax fit curved line', desc, artiax_fit_curved_line)
+
     def register_artiax_lock():
         desc = CmdDesc(
             optional=[("models", Or(ModelsArg, EmptyArg)),
@@ -781,6 +796,7 @@ def register_artiax(logger):
     register_artiax_particles()
     register_artiax_fit_sphere()
     register_artiax_fit_line()
+    register_artiax_fit_curved_line()
     register_artiax_tomo()
     register_artiax_colormap()
     register_artiax_label()

@@ -273,10 +273,13 @@ will be displayed without the ChimeraX- prefix.
       Set tomogram properties.</ChimeraXClassifier>
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax fit sphere :: General ::
-      Fits a sphere to the currently selected particles..</ChimeraXClassifier>
+      Fits a sphere to the currently selected particles.</ChimeraXClassifier>
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax fit line :: General ::
-      Fits a line to two selected particles..</ChimeraXClassifier>
+      Fits a line to two selected particles.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax fit curved line :: General ::
+      Fits a smooth line between the selected particles.</ChimeraXClassifier>
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax info :: General ::
       Print information about tomograms or particle lists.</ChimeraXClassifier>
