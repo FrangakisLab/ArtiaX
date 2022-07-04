@@ -34,7 +34,8 @@ from Qt.QtWidgets import (
 
 # This package
 from .volume.Tomogram import orthoplane_cmd
-from .widgets import LabelEditSlider, SelectionTableWidget, ColorRangeWidget, ColorGeomodelWidget, LineOptions
+from .widgets import LabelEditSlider, SelectionTableWidget, ColorRangeWidget, ColorGeomodelWidget, LineOptions,\
+    CurvedLineOptions
 from .ArtiaX import (
     OPTIONS_TOMO_CHANGED,
     OPTIONS_GEOMODEL_CHANGED,
@@ -1205,11 +1206,11 @@ class OptionsWindow(ToolInstance):
                                                      QSizePolicy.Maximum))
         sphere_options = QWidget()
         self.line_options = LineOptions(self.session)
-        curved_options = QWidget()
+        self.curved_options = CurvedLineOptions(self.session)
 
         self.model_options.addWidget(sphere_options)
         self.model_options.addWidget(self.line_options)
-        self.model_options.addWidget(curved_options)
+        self.model_options.addWidget(self.curved_options)
 
         geomodel_layout.addWidget(group_current_geomodel)
         geomodel_layout.addWidget(color_select)
@@ -1229,6 +1230,8 @@ class OptionsWindow(ToolInstance):
         self.geomodel_color_selection.set_geomodel(geomodel)
         if type(geomodel).__name__ == "Line":
             self.line_options.set_line(geomodel)
+        elif type(geomodel).__name__ == "CurvedLine":
+            self.curved_options.set_line(geomodel)
 
         self.model_options.setCurrentIndex(self.models[self.curr_model])
 

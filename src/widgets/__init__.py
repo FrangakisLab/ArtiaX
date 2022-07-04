@@ -15,6 +15,8 @@ from .ColorGeomodelWidget import ColorGeomodelWidget
 from .PartlistToolbarWidget import PartlistToolbarWidget
 from .LabelEditRangeSlider import LabelEditRangeSlider
 from .LineOptions import LineOptions
+from .CurvedLineOptions import CurvedLineOptions
+from .DegreeButtons import DegreeButtons
 from .ModelChooserWidget import ModelChooserWidget
 from .LabeledVectorEdit import LabeledVectorEdit
 from .ArtiaXSaveDialog import ArtiaXSaveDialog

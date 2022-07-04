@@ -27,9 +27,6 @@ class Sphere(GeoModel):
     def define_sphere(self):
         from chimerax.bild.bild import _BildFile
         b = _BildFile(self.session, 'dummy')
-        b.transparency_command('.transparency {}'.format(self._color[3]/255).split())
-        bild_color = np.multiply(self.color, 1/255)
-        b.color_command('.color {} {} {}'.format(*bild_color).split())
         b.sphere_command('.sphere {} {} {} {}'.format(self.center[0], self.center[1], self.center[2], self.r).split())
 
         from chimerax.atomic import AtomicShapeDrawing
@@ -41,7 +38,7 @@ class Sphere(GeoModel):
     def update(self):
         vertices, normals, triangles, vertex_colors = self.define_sphere()
         self.set_geometry(vertices, normals, triangles)
-        self.vertex_colors = vertex_colors
+        self.vertex_colors = np.full(np.shape(vertex_colors), self.color)
 
     def change_radius(self, r):
         self.r = r

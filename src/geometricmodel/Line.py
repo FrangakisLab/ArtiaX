@@ -35,9 +35,6 @@ class Line(GeoModel):
     def define_line(self):
         from chimerax.bild.bild import _BildFile
         b = _BildFile(self.session, 'dummy')
-        bild_color = np.multiply(self.color, 1 / 255)
-        b.color_command('.color {} {} {}'.format(*bild_color).split())
-        b.transparency_command('.transparency {}'.format(self._color[3] / 255).split())
         b.cylinder_command(".cylinder {} {} {} {} {} {} 1".format(*self.start, *self.end).split())
 
         from chimerax.atomic import AtomicShapeDrawing
@@ -49,7 +46,16 @@ class Line(GeoModel):
     def update(self):
         vertices, normals, triangles, vertex_colors = self.define_line()
         self.set_geometry(vertices, normals, triangles)
-        self.vertex_colors = vertex_colors
+        self.vertex_colors = np.full(np.shape(vertex_colors), self.color)
+
+    @GeoModel.color.setter
+    def color(self, color):
+        if len(color) == 3:  # transparency was not given
+            color = np.append(color, self._color[3])
+        self._color = color
+        self.vertex_colors = np.full(np.shape(self.vertex_colors), color)
+        if self.spheres.vertex_colors is not None:
+            self.spheres.vertex_colors = np.full(np.shape(self.spheres.vertex_colors), color)
 
     def create_spheres(self):
         self.has_particles = True
@@ -62,16 +68,14 @@ class Line(GeoModel):
             return
 
         b = _BildFile(self.session, 'dummy')
-        b.transparency_command('.transparency 0'.split())
-        bild_color = np.multiply(self.color, 1 / 255)
-        b.color_command('.color {} {} {}'.format(*bild_color).split())
         d = AtomicShapeDrawing('shapes')
         for i in range(1, int(nr_particles) + 1):
             pos = self.start + direction * self.spacing * i
             b.sphere_command('.sphere {} {} {} {}'.format(*pos, 4).split())
             d.add_shapes(b.shapes)
         self.spheres.set_geometry(d.vertices, d.normals, d.triangles)
-        self.spheres.vertex_colors = d.vertex_colors
+        if d.vertex_colors is not None:
+            self.spheres.vertex_colors = np.full(np.shape(d.vertex_colors), self.color)
 
     def remove_spheres(self):
         self.spheres.delete()
@@ -133,9 +137,6 @@ class Line(GeoModel):
 
         from chimerax.bild.bild import _BildFile
         b = _BildFile(self.session, 'dummy')
-        #b.transparency_command('.transparency {}'.format(self._color[3] / 255).split())
-        bild_color = np.multiply(self.color, 1 / 255)
-        b.color_command('.color {} {} {}'.format(*bild_color).split())
         from chimerax.atomic import AtomicShapeDrawing
         d = AtomicShapeDrawing('shapes')
 
@@ -163,6 +164,5 @@ class Line(GeoModel):
             print("could not curve line")
         d.add_shapes(b.shapes)
         self.set_geometry(d.vertices, d.normals, d.triangles)
-        self.vertex_colors = d.vertex_colors
         # Next line needed to make transparency right.
-        self.vertex_colors = np.full(np.shape(self.vertex_colors), self.color)
+        self.vertex_colors = np.full(np.shape(d.vertex_colors), self.color)

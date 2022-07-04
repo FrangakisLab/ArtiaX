@@ -1,7 +1,7 @@
 # General imports
 import numpy as np
 import math
-from scipy import interpolate
+
 
 # ChimeraX imports
 from chimerax.core.commands import run
@@ -10,6 +10,7 @@ from chimerax.core.models import Model
 from chimerax.map import Volume
 from chimerax.atomic import Atom
 from chimerax.graphics import Drawing
+from chimerax.geometry import z_align
 
 # Triggers
 GEOMODEL_CHANGED = 'geomodel changed'  # Data is the modified geometric model.
@@ -58,41 +59,28 @@ class GeoModel(Model):
         self.vertex_colors = np.full(np.shape(self.vertex_colors), color)
 
 
-def get_curr_selected_particles_pos(session, XYZ=False):
+def get_curr_selected_particles_pos(session):
     artiax = session.ArtiaX
 
-    if not XYZ:
-        # Find selected particles
-        particle_pos = np.zeros((0, 3))  # each row is one currently selected particle, with columns being x,y,z
-        for particle_list in artiax.partlists.child_models():
-            for curr_id in particle_list.particle_ids[particle_list.selected_particles]:
-                if curr_id:
-                    curr_part = particle_list.get_particle(curr_id)
-                    x_pos = curr_part.coord[0]
-                    y_pos = curr_part.coord[1]
-                    z_pos = curr_part.coord[2]
-                    particle_pos = np.append(particle_pos, [[x_pos, y_pos, z_pos]], axis=0)
+    # Find selected particles
+    particle_pos = np.zeros((0, 3))  # each row is one currently selected particle, with columns being x,y,z
+    for particle_list in artiax.partlists.child_models():
+        for curr_id in particle_list.particle_ids[particle_list.selected_particles]:
+            if curr_id:
+                curr_part = particle_list.get_particle(curr_id)
+                x_pos = curr_part.coord[0]
+                y_pos = curr_part.coord[1]
+                z_pos = curr_part.coord[2]
+                particle_pos = np.append(particle_pos, [[x_pos, y_pos, z_pos]], axis=0)
 
-        return particle_pos
-    else:
-        # Find selected particles
-        x, y, z = np.zeros(0), np.zeros(0), np.zeros(0)
-        for particle_list in artiax.partlists.child_models():
-            for curr_id in particle_list.particle_ids[particle_list.selected_particles]:
-                if curr_id:
-                    curr_part = particle_list.get_particle(curr_id)
-                    x = np.append(x, curr_part.coord[0])
-                    y = np.append(y, curr_part.coord[1])
-                    z = np.append(z, curr_part.coord[2])
-
-        return x, y, z
+    return particle_pos
 
 
 def fit_sphere(session):
     """Fits a sphere to the currently selected particles"""
     artiax = session.ArtiaX
 
-    particle_pos = get_curr_selected_particles_pos(session, XYZ=False)
+    particle_pos = get_curr_selected_particles_pos(session)
 
     if len(particle_pos) < 4:
         session.logger.warning("At least four points are needed to fit a sphere")
@@ -108,7 +96,6 @@ def fit_sphere(session):
     r = math.sqrt(b[3] + b[0] ** 2 + b[1] ** 2 + b[2] ** 2)
 
     # Reorient selected particles so that Z-axis points towards center of sphere
-    from chimerax.geometry import z_align
     for particle_list in session.ArtiaX.partlists.child_models():
         for curr_id in particle_list.particle_ids[particle_list.selected_particles]:
             if curr_id:
@@ -131,7 +118,7 @@ def fit_line(session):
     """Creates a line between two particles"""
     artiax = session.ArtiaX
 
-    particle_pos = get_curr_selected_particles_pos(session, XYZ=False)
+    particle_pos = get_curr_selected_particles_pos(session)
 
     if len(particle_pos) != 2:
         session.logger.warning("Only select a start and end point")
@@ -141,7 +128,6 @@ def fit_line(session):
     end = particle_pos[1]
 
     # Reorient selected particles so that Z-axis along the line
-    from chimerax.geometry import z_align
     rotation_to_z = z_align(start, end)
     rotation = rotation_to_z.zero_translation().inverse()
     for particle_list in session.ArtiaX.partlists.child_models():
@@ -158,24 +144,49 @@ def fit_line(session):
 
 
 def fit_curved_line(session):
+    # TODO: set particles along line, add smooth, resolution, merge with line, select particles, order from lines
     artiax = session.ArtiaX
 
-    x, y, z = get_curr_selected_particles_pos(session, XYZ=True)
+    particles = np.array([])
+    for particle_list in session.ArtiaX.partlists.child_models():
+        for curr_id in particle_list.particle_ids[particle_list.selected_particles]:
+            if curr_id:
+                part = particle_list.get_particle(curr_id)
+                particles = np.append(particles, part)
 
-    if len(x) < 2:
-        session.logger.warning("Please select multiple points")
+    from .CurvedLine import get_points
+
+    if len(particles) < 2:
+        session.logger.warning("Select at least two points")
         return
+    elif len(particles) <= 3:
+        degree = 1
+    else:
+        degree = 3
 
-    smooth = 0  # s=0 means it will go through all points, s!=0 means smoother, good value between m+-sqrt(2m) (m=no. points)
-    degree = 3  # can be 0,3, or 5
-    tck, u = interpolate.splprep([x, y, z], s=smooth, k=degree)
-    resolution = 1000
-    un = np.arange(0, 1 + 1 / resolution, 1 / resolution)
-    out = interpolate.splev(un, tck)
+    smooth = 0
+    resolution = 300
+    points = get_points(session, particles, smooth, degree, resolution)
 
-    # TODO rotate particles along line. Then add: options for smoothness and dimensions, add particles along line,
-    #  add particles in specific order.
+    # TODO: figure out if it should point to the next particle or along the line.
+    # Reorient selected particles so that Z-axis points towards next particle
+    particle_index = 0
+    last_part = None
+    for particle_list in session.ArtiaX.partlists.child_models():
+        for curr_id in particle_list.particle_ids[particle_list.selected_particles]:
+            if curr_id:
+                curr_part = particle_list.get_particle(curr_id)
+                if particle_index != 0:
+                    rotation_to_z = z_align(np.asarray(last_part.coord), np.asarray(curr_part.coord))
+                    rotation = rotation_to_z.zero_translation().inverse()
+                    last_part.rotation = rotation
+                    if particle_index + 1 == len(particles):  # last selected particle
+                        curr_part.rotation = rotation
+                last_part = curr_part
+                particle_index += 1
+        # Updated graphics
+        particle_list.update_places()
 
     from .CurvedLine import CurvedLine
-    geomodel = CurvedLine("curved line", session, out)
+    geomodel = CurvedLine("curved line", session, points, particles, degree, smooth, resolution)
     artiax.add_geomodel(geomodel)

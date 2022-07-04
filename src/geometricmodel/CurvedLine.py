@@ -1,6 +1,7 @@
 # General imports
 import numpy as np
 import math
+from scipy import interpolate
 
 # ChimeraX imports
 from chimerax.core.commands import run
@@ -18,10 +19,16 @@ from chimerax.bild.bild import _BildFile
 class CurvedLine(GeoModel):
     """Line between two points"""
 
-    def __init__(self, name, session, points):
+    def __init__(self, name, session, points, particles, degree, smooth, resolution):
         super().__init__(name, session)
 
         self.points = points  # points[0] contains all the x values, points[1] all y values etc
+        self.particles = particles
+
+        self.degree = degree
+        self.smooth = smooth
+        self.resolution = resolution
+        self.resolution_edit_range = (50, 500)
 
         self.has_particles = False
         self.spacing_edit_range = (1, 100)
@@ -34,27 +41,32 @@ class CurvedLine(GeoModel):
     def update(self):
         vertices, normals, triangles, vertex_colors = self.define_curved_line()
         self.set_geometry(vertices, normals, triangles)
-        self.vertex_colors = vertex_colors
+        self.vertex_colors = np.full(np.shape(vertex_colors), self.color)
 
     def define_curved_line(self):
         from chimerax.bild.bild import _BildFile
         b = _BildFile(self.session, 'dummy')
-        bild_color = np.multiply(self.color, 1 / 255)
-        b.color_command('.color {} {} {}'.format(*bild_color).split())
-        b.transparency_command('.transparency {}'.format(self._color[3] / 255).split())
 
         for i in range(0, len(self.points[0]) - 1):
             b.cylinder_command(".cylinder {} {} {} {} {} {} 1".format(self.points[0][i], self.points[1][i],
                                                                       self.points[2][i], self.points[0][i + 1],
                                                                       self.points[1][i + 1],
                                                                       self.points[2][i + 1]).split())
-            print(i)
 
         from chimerax.atomic import AtomicShapeDrawing
         d = AtomicShapeDrawing('shapes')
         d.add_shapes(b.shapes)
 
         return d.vertices, d.normals, d.triangles, d.vertex_colors
+
+    @GeoModel.color.setter
+    def color(self, color):
+        if len(color) == 3:  # transparency was not given
+            color = np.append(color, self._color[3])
+        self._color = color
+        self.vertex_colors = np.full(np.shape(self.vertex_colors), color)
+        if self.spheres.vertex_colors is not None:
+            self.spheres.vertex_colors = np.full(np.shape(self.spheres.vertex_colors), color)
 
     def create_spheres(self):
         self.has_particles = True
@@ -67,16 +79,14 @@ class CurvedLine(GeoModel):
             return
 
         b = _BildFile(self.session, 'dummy')
-        b.transparency_command('.transparency 0'.split())
-        bild_color = np.multiply(self.color, 1 / 255)
-        b.color_command('.color {} {} {}'.format(*bild_color).split())
         d = AtomicShapeDrawing('shapes')
         for i in range(1, int(nr_particles) + 1):
             pos = self.start + direction * self.spacing * i
             b.sphere_command('.sphere {} {} {} {}'.format(*pos, 4).split())
             d.add_shapes(b.shapes)
         self.spheres.set_geometry(d.vertices, d.normals, d.triangles)
-        self.spheres.vertex_colors = d.vertex_colors
+        if d.vertex_colors is not None:
+            self.spheres.vertex_colors = np.full(np.shape(d.vertex_colors), self.color)
 
     def remove_spheres(self):
         self.spheres.delete()
@@ -111,3 +121,36 @@ class CurvedLine(GeoModel):
         direction = direction / np.linalg.norm(direction)
         nr_particles = line_length / self.spacing
         return rotation, direction, nr_particles
+
+    def change_degree(self, degree):
+        if self.degree == degree:
+            return
+        else:
+            self.degree = degree
+            self.points = get_points(self.session, self.particles, self.smooth, self.degree, self.resolution)
+            self.update()
+
+    def change_resolution(self, res):
+        if self.resolution == res:
+            return
+        else:
+            self.resolution = res
+            self.points = get_points(self.session, self.particles, self.smooth, self.degree, self.resolution)
+            self.update()
+
+def get_points(session, particles, smooth, degree, resolution):
+    # Find particles
+    x, y, z = np.zeros(0), np.zeros(0), np.zeros(0)
+    for particle in particles:
+        x = np.append(x, particle.coord[0])
+        y = np.append(y, particle.coord[1])
+        z = np.append(z, particle.coord[2])
+
+
+    # s=0 means it will go through all points, s!=0 means smoother, good value between m+-sqrt(2m) (m=no. points)
+    # degree can be 1,3, or 5
+    tck, u = interpolate.splprep([x, y, z], s=smooth, k=degree)
+    un = np.arange(0, 1 + 1 / resolution, 1 / resolution)
+    points = interpolate.splev(un, tck)
+
+    return points
