@@ -93,7 +93,8 @@ def artiax_view(session, direction=None):
         direction = 'xy'
 
     if direction not in directions.keys():
-        raise errors.UserError("{} is not a viewing direction known to ArtiaX. Expected one of 'xy', 'xz', or 'yz'.".format(direction))
+        raise errors.UserError(
+            "{} is not a viewing direction known to ArtiaX. Expected one of 'xy', 'xz', or 'yz'.".format(direction))
 
     directions[direction.lower()](session)
 
@@ -136,15 +137,18 @@ def artiax_attach(session, model=None, toParticleList=None):
 
     # Model is Tomogram
     if session.ArtiaX.tomograms.has_id(model.id):
-        raise errors.UserError("artiax attach: cannot attach a Tomogram as a particle list surface.".format(type(model)))
+        raise errors.UserError(
+            "artiax attach: cannot attach a Tomogram as a particle list surface.".format(type(model)))
 
     # Not a Particle list
     if not session.ArtiaX.partlists.has_id(toParticleList.id):
         session.logger.warning(
-            'artiax attach: Model #{} - "{}" is not managed by ArtiaX'.format(toParticleList.id_string, toParticleList.name))
+            'artiax attach: Model #{} - "{}" is not managed by ArtiaX'.format(toParticleList.id_string,
+                                                                              toParticleList.name))
         return
 
     session.ArtiaX.attach_display_model(toParticleList, model)
+
 
 def artiax_show(session, models=None, style=None):
     # No ArtiaX
@@ -180,16 +184,26 @@ def artiax_fit_line(session):
         session.logger.warning("ArtiaX is not currently running, so no line can be fitted.")
         return
 
-    from ..geometricmodel.GeoModel import fit_line
-    fit_line(session)
+    from ..geometricmodel.GeoModel import fit_curved_line
+    fit_curved_line(session)
 
-def artiax_fit_curved_line(session):
+
+def artiax_reorient_sphere_particles(session):
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running, so no line can be fitted.")
         return
 
-    from ..geometricmodel.GeoModel import fit_curved_line
-    fit_curved_line(session)
+    from ..geometricmodel.GeoModel import selected_geomodels
+    s_geomodels = selected_geomodels(session, "Sphere")
+    if len(s_geomodels) == 0:
+        session.logger.warning("Select a sphere.")
+        return
+    elif len(s_geomodels) != 1:
+        session.logger.warning("Select only one sphere.")
+        return
+
+    s_geomodels[0].orient_particles()
+
 
 def artiax_lock(session, models=None, type=None):
     # No ArtiaX
@@ -207,7 +221,9 @@ def artiax_lock(session, models=None, type=None):
 
     # Type unknown
     if type not in ['translation', 'rotation', 'movement']:
-        errors.UserError("artiax lock: '{}' is not a valid argument for artiax lock. Possible values are: 'translation', 'rotation', 'movement'".format(type))
+        errors.UserError(
+            "artiax lock: '{}' is not a valid argument for artiax lock. Possible values are: 'translation', 'rotation', 'movement'".format(
+                type))
 
     # Filter models
     ms = []
@@ -247,7 +263,8 @@ def artiax_unlock(session, models=None, type=None):
     # Type unknown
     if type not in ['translation', 'rotation', 'movement']:
         errors.UserError(
-            "artiax unlock: '{}' is not a valid argument for artiax unlock. Possible values are: 'translation', 'rotation', 'movement'".format(type))
+            "artiax unlock: '{}' is not a valid argument for artiax unlock. Possible values are: 'translation', 'rotation', 'movement'".format(
+                type))
 
     # Filter models
     ms = []
@@ -268,6 +285,7 @@ def artiax_unlock(session, models=None, type=None):
 
     from ..particle.ParticleList import lock_particlelist
     lock_particlelist(ms, False, type)
+
 
 def artiax_particles(session,
                      models=None,
@@ -326,7 +344,7 @@ def artiax_particles(session,
     for model in models:
         # Is it a particle list?
         from ..particle import ParticleList
-        if not isinstance(model, ParticleList):#session.ArtiaX.partlists.has_id(model.id):
+        if not isinstance(model, ParticleList):  # session.ArtiaX.partlists.has_id(model.id):
             # Is it a model that likely belongs to a particle list?
             from chimerax.core.models import ancestor_models
             if session.ArtiaX in ancestor_models([model]):
@@ -353,7 +371,6 @@ def artiax_particles(session,
                 raise errors.UserError('artiax particles: Model #{} - "{}" does not have a surface attached to '
                                        'it.'.format(model.id_string, model.name))
 
-
         if set_color:
             model.color = color.uint8x4()
 
@@ -362,6 +379,7 @@ def artiax_particles(session,
 
         if set_trans_scale:
             model.translation_pixelsize = transScaleFactor
+
 
 def artiax_tomo(session,
                 model,
@@ -399,7 +417,7 @@ def artiax_tomo(session,
     if sliceDirection is not None:
         model.normal = sliceDirection
         if slice is None:
-            slice = model.slab_count/2+1
+            slice = model.slab_count / 2 + 1
 
     if slice is not None:
         # Clamp to range
@@ -413,6 +431,7 @@ def artiax_tomo(session,
         model.pixelsize = pixelSize
         model.integer_slab_position = model.slab_count / 2 + 1
         run(session, 'artiax view xy')
+
 
 def artiax_colormap(session, model, attribute, palette=None, minValue=None, maxValue=None, transparency=None):
     # No ArtiaX
@@ -444,10 +463,10 @@ def artiax_colormap(session, model, attribute, palette=None, minValue=None, maxV
         palette = 'redgreen'
 
     # Palette unknown
-    #from chimerax.core.colors import BuiltinColormaps
+    # from chimerax.core.colors import BuiltinColormaps
     custom_palettes = list(session.user_colormaps.keys())
-    #builtin_palettes = list(BuiltinColormaps.keys())
-    if palette not in custom_palettes: #and palette not in builtin_palettes:
+    # builtin_palettes = list(BuiltinColormaps.keys())
+    if palette not in custom_palettes:  # and palette not in builtin_palettes:
         raise errors.UserError('artiax colormap: Palette {} is not a known custom palette. Check available palettes '
                                'using "palette list".'.format(palette))
 
@@ -476,6 +495,7 @@ def artiax_colormap(session, model, attribute, palette=None, minValue=None, maxV
                                                maxValue,
                                                transparency,
                                                log=False)
+
 
 def artiax_label(session, model, attribute, height=None, offset=None):
     # No ArtiaX
@@ -511,7 +531,9 @@ def artiax_label(session, model, attribute, height=None, offset=None):
     run(session, 'label #{} atoms attribute {} height {} offset {},{},{}'.format(model.id_string,
                                                                                  attribute,
                                                                                  height,
-                                                                                 offset[0], offset[1], offset[2]), log=False)
+                                                                                 offset[0], offset[1], offset[2]),
+        log=False)
+
 
 def artiax_info(session, model):
     # No ArtiaX
@@ -560,13 +582,13 @@ def artiax_info(session, model):
                         u'<li> min: <b>{:.2f}</b> | max <b>{:.2f}</b>  | mean <b>{:.2f}</b>' \
                         u'  | std <b>{:.2f}</b>  | var <b>{:.2f}</b></li>' \
                         u'</ul>'.format(a,
-                                     alias_text,
-                                     default_text,
-                                     info[a]['min'],
-                                     info[a]['max'],
-                                     info[a]['mean'],
-                                     info[a]['std'],
-                                     info[a]['var'])
+                                        alias_text,
+                                        default_text,
+                                        info[a]['min'],
+                                        info[a]['max'],
+                                        info[a]['mean'],
+                                        info[a]['std'],
+                                        info[a]['var'])
 
             text += attr_text
 
@@ -577,6 +599,7 @@ def artiax_info(session, model):
         raise errors.UserError(
             'artiax info: Model #{} - "{}" is not a particle list or tomogram.'.format(model.id_string,
                                                                                        model.name))
+
 
 def register_artiax(logger):
     """Register all commands with ChimeraX, and specify expected arguments."""
@@ -597,7 +620,7 @@ def register_artiax(logger):
 
     def register_artiax_start():
         desc = CmdDesc(
-            synopsis= 'Start the ArtiaX GUI.',
+            synopsis='Start the ArtiaX GUI.',
             url='help:user/commands/artiax_start.html'
         )
         register('artiax start', desc, artiax_start)
@@ -682,7 +705,7 @@ def register_artiax(logger):
 
     def register_artiax_fit_sphere():
         desc = CmdDesc(
-            #TODO rewrite and get url right
+            # TODO rewrite and get url right
             synopsis='Create a geometric model sphere to the currently selected particles.',
             url='help:user/commands/artiax_hide.html'
         )
@@ -690,19 +713,20 @@ def register_artiax(logger):
 
     def register_artiax_fit_line():
         desc = CmdDesc(
-            #TODO rewrite and get url right
-            synopsis='Create a geometric model line between two selected particles.',
+            # TODO rewrite and get url right
+            synopsis='Create a geometric model line that goes through the selected particles.',
             url='help:user/commands/artiax_hide.html'
         )
         register('artiax fit line', desc, artiax_fit_line)
 
-    def register_artiax_fit_curved_line():
+    def register_artiax_reorient_sphere_particles():
         desc = CmdDesc(
-            #TODO rewrite and get url right
-            synopsis='Create a geometric model curved line that goes through the selected particles.',
+            # TODO rewrite and get url right
+            synopsis='Reorients selected particles so that their z-axis points away from the center or the selected '
+                     'sphere.',
             url='help:user/commands/artiax_hide.html'
         )
-        register('artiax fit curved line', desc, artiax_fit_curved_line)
+        register('artiax reorient sphere particles', desc, artiax_reorient_sphere_particles)
 
     def register_artiax_lock():
         desc = CmdDesc(
@@ -740,10 +764,10 @@ def register_artiax(logger):
         desc = CmdDesc(
             required=[("model", ModelArg)],
             keyword=[("contrastCenter", FloatArg),
-                      ("contrastWidth", FloatArg),
-                      ("slice", IntArg),
-                      ('sliceDirection', Float3Arg),
-                      ('pixelSize', FloatArg)],
+                     ("contrastWidth", FloatArg),
+                     ("slice", IntArg),
+                     ('sliceDirection', Float3Arg),
+                     ('pixelSize', FloatArg)],
             synopsis='Set tomogram properties.',
             url='help:user/commands/artiax_tomo.html'
         )
@@ -796,12 +820,11 @@ def register_artiax(logger):
     register_artiax_particles()
     register_artiax_fit_sphere()
     register_artiax_fit_line()
-    register_artiax_fit_curved_line()
+    register_artiax_reorient_sphere_particles()
     register_artiax_tomo()
     register_artiax_colormap()
     register_artiax_label()
     register_artiax_info()
-
 
 # Possible styles
 # for pl in models:
@@ -813,4 +836,3 @@ def register_artiax(logger):
 #
 #     if style.lower() in ['ax', 'axis', 'axes']:
 #         pl.show_axes(do_show)
-

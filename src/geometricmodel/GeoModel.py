@@ -58,29 +58,43 @@ class GeoModel(Model):
         self._color = color
         self.vertex_colors = np.full(np.shape(self.vertex_colors), color)
 
+def selected_geomodels(session, model=None):
+    s_geomodels = np.array([])
+    if model is None:  # Return all selected geomodels
+        for geomodel in session.ArtiaX.geomodels.child_models():
+            if geomodel.selected:
+                s_geomodels = np.append(s_geomodels, geomodel)
+    else:
+        for geomodel in session.ArtiaX.geomodels.child_models():
+            if geomodel.selected and type(geomodel).__name__  == model:
+                s_geomodels = np.append(s_geomodels, geomodel)
+
+    return s_geomodels
 
 def get_curr_selected_particles_pos(session):
     artiax = session.ArtiaX
 
     # Find selected particles
+    particles = np.array([])
     particle_pos = np.zeros((0, 3))  # each row is one currently selected particle, with columns being x,y,z
     for particle_list in artiax.partlists.child_models():
         for curr_id in particle_list.particle_ids[particle_list.selected_particles]:
             if curr_id:
                 curr_part = particle_list.get_particle(curr_id)
+                particles = np.append(particles, curr_part)
                 x_pos = curr_part.coord[0]
                 y_pos = curr_part.coord[1]
                 z_pos = curr_part.coord[2]
                 particle_pos = np.append(particle_pos, [[x_pos, y_pos, z_pos]], axis=0)
 
-    return particle_pos
+    return particle_pos, particles
 
 
 def fit_sphere(session):
     """Fits a sphere to the currently selected particles"""
     artiax = session.ArtiaX
 
-    particle_pos = get_curr_selected_particles_pos(session)
+    particle_pos, particles = get_curr_selected_particles_pos(session)
 
     if len(particle_pos) < 4:
         session.logger.warning("At least four points are needed to fit a sphere")
@@ -95,22 +109,8 @@ def fit_sphere(session):
     b, residules, rank, singval = np.linalg.lstsq(A, x, rcond=None)
     r = math.sqrt(b[3] + b[0] ** 2 + b[1] ** 2 + b[2] ** 2)
 
-    # Reorient selected particles so that Z-axis points towards center of sphere
-    for particle_list in session.ArtiaX.partlists.child_models():
-        for curr_id in particle_list.particle_ids[particle_list.selected_particles]:
-            if curr_id:
-                curr_part = particle_list.get_particle(curr_id)
-                # Finds the rotation needed to align the vector (from the origin of the sphere to the particle) to
-                # the z-axis. The inverse is then taken to find the rotation needed to make the particle's z-axis
-                # perpendicular to the surface of the sphere.
-                rotation_to_z = z_align(b[:3], curr_part.full_transform().translation())
-                rotation = rotation_to_z.zero_translation().inverse()
-                curr_part.rotation = rotation
-        # Updated graphics
-        particle_list.update_places()
-
     from .Sphere import Sphere
-    geomodel = Sphere("sphere", session, b[:3], r)
+    geomodel = Sphere("sphere", session, particles, b[:3], r)
     artiax.add_geomodel(geomodel)
 
 
@@ -118,7 +118,7 @@ def fit_line(session):
     """Creates a line between two particles"""
     artiax = session.ArtiaX
 
-    particle_pos = get_curr_selected_particles_pos(session)
+    particle_pos, particles = get_curr_selected_particles_pos(session)
 
     if len(particle_pos) != 2:
         session.logger.warning("Only select a start and end point")
@@ -139,12 +139,12 @@ def fit_line(session):
         particle_list.update_places()
 
     from .Line import Line
-    geomodel = Line("line", session, start, end)
+    geomodel = Line("line", session, particles, start, end)
     artiax.add_geomodel(geomodel)
 
 
 def fit_curved_line(session):
-    # TODO: set particles along line, add smooth, resolution, merge with line, select particles, order from lines
+    # TODO: set particles along line, rotate particles with spacing, merge with line, select particles, order from lines
     artiax = session.ArtiaX
 
     particles = np.array([])
@@ -168,25 +168,28 @@ def fit_curved_line(session):
     resolution = 300
     points = get_points(session, particles, smooth, degree, resolution)
 
-    # TODO: figure out if it should point to the next particle or along the line.
     # Reorient selected particles so that Z-axis points towards next particle
-    particle_index = 0
-    last_part = None
-    for particle_list in session.ArtiaX.partlists.child_models():
-        for curr_id in particle_list.particle_ids[particle_list.selected_particles]:
-            if curr_id:
-                curr_part = particle_list.get_particle(curr_id)
-                if particle_index != 0:
-                    rotation_to_z = z_align(np.asarray(last_part.coord), np.asarray(curr_part.coord))
-                    rotation = rotation_to_z.zero_translation().inverse()
-                    last_part.rotation = rotation
-                    if particle_index + 1 == len(particles):  # last selected particle
-                        curr_part.rotation = rotation
-                last_part = curr_part
-                particle_index += 1
-        # Updated graphics
-        particle_list.update_places()
+    # particle_index = 0
+    # last_part = None
+    # for particle_list in session.ArtiaX.partlists.child_models():
+    #     for curr_id in particle_list.particle_ids[particle_list.selected_particles]:
+    #         if curr_id:
+    #             curr_part = particle_list.get_particle(curr_id)
+    #             if particle_index != 0:
+    #                 rotation_to_z = z_align(np.asarray(last_part.coord), np.asarray(curr_part.coord))
+    #                 rotation = rotation_to_z.zero_translation().inverse()
+    #                 last_part.rotation = rotation
+    #                 if particle_index + 1 == len(particles):  # last selected particle
+    #                     curr_part.rotation = rotation
+    #             last_part = curr_part
+    #             particle_index += 1
+    #     # Updated graphics
+    #     particle_list.update_places()
 
     from .CurvedLine import CurvedLine
-    geomodel = CurvedLine("curved line", session, points, particles, degree, smooth, resolution)
+    if degree == 1:
+        name = "line"
+    else:
+        name = "curved line"
+    geomodel = CurvedLine(name, session, particles, points, degree, smooth, resolution)
     artiax.add_geomodel(geomodel)

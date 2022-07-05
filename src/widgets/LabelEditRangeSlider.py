@@ -192,14 +192,14 @@ class LabelEditRangeSlider(QWidget):
         """Callback for changing slider."""
         # Get value
         val = round(self._slider.value(), self._precision)
-        self._value = val
+        self.value = val
 
         # Set edit
-        prev_edit = self._edit.blockSignals(True)
-        self._edit.setText(str(self._value))
-        self._edit.blockSignals(prev_edit)
+        #prev_edit = self._edit.blockSignals(True)
+        #self._edit.setText(str(self._value))
+        #self._edit.blockSignals(prev_edit)
 
-        self._emit_value_changed()
+        #self._emit_value_changed()
 
     def _emit_value_changed(self):
         self.valueChanged.emit(self._value)

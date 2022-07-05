@@ -68,8 +68,8 @@ class DegreeButtons(QWidget):
     @max_degree.setter
     def max_degree(self, val):
         self._degree_box.blockSignals(True)
-        self._degree_three.setEnabled(val > 3)
-        self._degree_five.setEnabled(val > 5)
+        self._degree_three.setEnabled(val >= 3)
+        self._degree_five.setEnabled(val >= 5)
         self._degree_box.blockSignals(False)
 
     def _connect(self):

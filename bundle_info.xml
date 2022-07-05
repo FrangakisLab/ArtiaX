@@ -216,6 +216,58 @@ will be displayed without the ChimeraX- prefix.
       name="Fit Line" icon="show_axes.png" description="Create a geometric model line between two selected particles."/>
 
 
+    <!-- ArtiaX models tab -->
+    <!-- ArtiaX Model tab, Markers -->
+    <Provider tab="ArtiaX Models" section="Markers"
+      name="Show Markers" display_name="Show" icon="show_markers.png" description="Show particles as spheres."/>
+    <Provider tab="ArtiaX Models" section="Markers"
+      name="Hide Markers" display_name="Hide" icon="hide_markers.png" description="Hide spheres."/>
+    <Provider tab="ArtiaX Models" section="Markers" name="layout-markers" compact="true"/>
+
+    <!-- ArtiaX Model tab, Axes -->
+    <Provider tab="ArtiaX Models" section="Axes"
+      name="Show Axes" display_name="Show" icon="show_axes.png" description="Show principle axes of particles."/>
+    <Provider tab="ArtiaX Models" section="Axes"
+      name="Hide Axes" display_name="Hide" icon="hide_axes.png" description="Hide axes."/>
+    <Provider tab="ArtiaX Models" section="Axes" name="layout-axes" compact="true"/>
+
+    <!-- ArtiaX Model tab, Surfaces -->
+    <Provider tab="ArtiaX Models" section="Surfaces"
+      name="Show Surfaces" display_name="Show" icon="show_surfaces.png" description="Show particle surfaces."/>
+    <Provider tab="ArtiaX Models" section="Surfaces"
+      name="Hide Surfaces" display_name="Hide" icon="hide_surfaces.png" description="Hide surfaces."/>
+    <Provider tab="ArtiaX Models" section="Surfaces" name="layout-surfaces" compact="true"/>
+
+    <!-- ArtiaX Model tab, View -->
+    <Provider tab="ArtiaX Models" section="View"
+      name="XY" icon="view_xy.png" description="Set viewing direction to XY planes."/>
+    <Provider tab="ArtiaX Models" section="View"
+      name="ZX" icon="view_xz.png" description="Set viewing direction to ZX planes."/>
+    <Provider tab="ArtiaX Models" section="View"
+      name="YZ" icon="view_yz.png" description="Set viewing direction to YZ planes."/>
+
+    <!-- ArtiaX Model tab, Standard Mouse Modes -->
+    <Provider tab="ArtiaX Models" section="Movement" mouse_mode="select"
+       name="Select" display_name="Select" icon="select.png" description="Select models."/>
+    <Provider tab="ArtiaX Models" section="Movement" mouse_mode="rotate"
+      name="Rotate" display_name="Rotate" icon="rotate.png" description="Rotate models."/>
+    <Provider tab="ArtiaX Models" section="Movement" mouse_mode="translate"
+      name="Translate" display_name="Translate" icon="translate.png" description="Translate models."/>
+    <Provider tab="ArtiaX Models" section="Movement" mouse_mode="pivot"
+      name="Pivot" display_name="Center On" icon="crosshairs.png" description="Set center of rotation on particle."/>
+
+    <!-- ArtiaX Model tab, Sphere-->
+    <Provider tab="ArtiaX Models" section="Sphere"
+      name="Fit Sphere" icon="show_markers.png" description="Fit a sphere to the currently selected particles."/>
+    <Provider tab="ArtiaX Models" section="Sphere"
+      name="Reorient Sphere Particles" icon="show_markers.png"
+      description="Reorients selected particles so that their z-axis points away from the center or the selected sphere"/>
+
+    <!-- ArtiaX Model tab, Line-->
+    <Provider tab="ArtiaX Models" section="Line"
+      name="Fit Line" icon="show_axes.png" description="Create a geometric model line between two selected particles."/>
+
+
   </Providers>
 
   <!-- Python and ChimeraX-specific classifiers

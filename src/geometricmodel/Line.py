@@ -17,8 +17,10 @@ from chimerax.bild.bild import _BildFile
 class Line(GeoModel):
     """Line between two points"""
 
-    def __init__(self, name, session, start, end):
+    def __init__(self, name, session, particles, start, end):
         super().__init__(name, session)
+
+        self.particles = particles
 
         self.start = start
         self.end = end

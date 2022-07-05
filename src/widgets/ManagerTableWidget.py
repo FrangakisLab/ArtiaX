@@ -189,7 +189,7 @@ class ManagerTableWidget(QTableWidget):
 
             # Connect the Items to a function
             show_box.stateChanged.connect(partial(self.show_cb, idx))
-            options_box.toggled.connect(partial(self.options_cb, idx))
+            #options_box.toggled.connect(partial(self.options_cb, idx))
             options_box.clicked.connect(partial(self.options_cb, idx))
 
             self.setItem(idx, 0, id_box)

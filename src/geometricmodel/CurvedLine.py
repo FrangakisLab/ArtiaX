@@ -12,21 +12,24 @@ from chimerax.atomic import Atom
 from chimerax.graphics import Drawing
 from .GeoModel import GeoModel, GEOMODEL_CHANGED
 from chimerax.atomic import AtomicShapeDrawing
-from chimerax.geometry import z_align
+from chimerax.geometry import z_align, rotation
 from chimerax.bild.bild import _BildFile
 
 
 class CurvedLine(GeoModel):
     """Line between two points"""
 
-    def __init__(self, name, session, points, particles, degree, smooth, resolution):
+    def __init__(self, name, session, particles, points, degree, smooth, resolution):
         super().__init__(name, session)
 
         self.points = points  # points[0] contains all the x values, points[1] all y values etc
         self.particles = particles
 
+        self.fitting_options = True
         self.degree = degree
         self.smooth = smooth
+        self.smooth_edit_range = [math.floor(len(particles) - math.sqrt(2 * len(particles))),
+                                  math.ceil(len(particles) + math.sqrt(2 * len(particles)))]
         self.resolution = resolution
         self.resolution_edit_range = (50, 500)
 
@@ -35,6 +38,8 @@ class CurvedLine(GeoModel):
         self.spacing = (self.spacing_edit_range[1] + self.spacing_edit_range[0]) / 2
         self.spheres = Model("spheres", session)
         self.add([self.spheres])
+        self.spheres_position = np.zeros((0, 3))
+        self.spheres_rotation = np.array([])
 
         self.update()
 
@@ -71,19 +76,47 @@ class CurvedLine(GeoModel):
     def create_spheres(self):
         self.has_particles = True
         self.triggers.activate_trigger(GEOMODEL_CHANGED, self)
-
-        rotation, direction, nr_particles = self._calculate_particle_pos()
-
-        if nr_particles == 0:
-            print("too large spacing")
-            return
+        self.spheres_position = np.zeros((0, 3))
+        self.spheres_rotation = np.array([])
 
         b = _BildFile(self.session, 'dummy')
         d = AtomicShapeDrawing('shapes')
-        for i in range(1, int(nr_particles) + 1):
-            pos = self.start + direction * self.spacing * i
-            b.sphere_command('.sphere {} {} {} {}'.format(*pos, 4).split())
-            d.add_shapes(b.shapes)
+
+        # Set first manually to avoid special cases in loop:
+        first_pos = np.array([self.points[0][0], self.points[1][0], self.points[2][0]])
+        second_pos = np.array([self.points[0][1], self.points[1][1], self.points[2][1]])
+        self.spheres_position = np.append(self.spheres_position, [first_pos], axis=0)
+        rotation_to_z = z_align(first_pos, second_pos)
+        rotation_along_line = rotation_to_z.zero_translation().inverse()
+        self.spheres_rotation = np.append(self.spheres_rotation, rotation_along_line)
+        b.sphere_command('.sphere {} {} {} {}'.format(*first_pos, 4).split())
+        # b.cylinder_command()
+        d.add_shapes(b.shapes)
+
+        total_dist = 0
+        distance_since_last = 0
+        for i in range(1, len(self.points[0])):
+            curr_pos = np.array([self.points[0][i], self.points[1][i], self.points[2][i]])
+            last_pos = np.array([self.points[0][i - 1], self.points[1][i - 1], self.points[2][i - 1]])
+            step_dist = np.linalg.norm(curr_pos - last_pos)
+            total_dist += step_dist
+            distance_since_last += step_dist
+            if distance_since_last >= self.spacing:
+                distance_since_last = 0
+                self.spheres_position = np.append(self.spheres_position, [curr_pos], axis=0)
+
+                rotation_to_z = z_align(last_pos, curr_pos)
+                rotation_along_line = rotation_to_z.zero_translation().inverse()
+                rotation_around_z = rotation(rotation_along_line.z_axis(), total_dist)
+                rot = rotation_around_z * rotation_along_line
+                self.spheres_rotation = np.append(self.spheres_rotation, rot)
+
+                b.sphere_command('.sphere {} {} {} {}'.format(*curr_pos, 4).split())
+                #direction = curr_pos - last_pos / step_dist
+                #axis_end_point = curr_pos + direction * 1
+                #b.arrow_command(".arrow {} {} {} {} {} {} 1".format(*curr_pos, *axis_end_point).split())
+                d.add_shapes(b.shapes)
+
         self.spheres.set_geometry(d.vertices, d.normals, d.triangles)
         if d.vertex_colors is not None:
             self.spheres.vertex_colors = np.full(np.shape(d.vertex_colors), self.color)
@@ -93,6 +126,7 @@ class CurvedLine(GeoModel):
         self.spheres = Model("spheres", self.session)
         self.add([self.spheres])
         self.has_particles = False
+        self.spheres_position = np.array([])
         self.triggers.activate_trigger(GEOMODEL_CHANGED, self)
 
     def create_particle_list(self):
@@ -103,24 +137,8 @@ class CurvedLine(GeoModel):
         self.create_particles(partlist)
 
     def create_particles(self, partlist):
-        rotation, direction, nr_particles = self._calculate_particle_pos()
-
-        if nr_particles == 0:
-            print("too large spacing")
-            return
-        for i in range(1, int(nr_particles) + 1):
-            pos = self.start + direction * self.spacing * i
-            partlist.new_particle(pos, [0, 0, 0], rotation)
-
-    def _calculate_particle_pos(self):
-        rotation_to_z = z_align(self.start, self.end)
-        rotation = rotation_to_z.zero_translation().inverse()
-
-        direction = self.end - self.start
-        line_length = np.linalg.norm(self.end - self.start)
-        direction = direction / np.linalg.norm(direction)
-        nr_particles = line_length / self.spacing
-        return rotation, direction, nr_particles
+        for i in range(0, len(self.spheres_position)):
+            partlist.new_particle(self.spheres_position[i], [0, 0, 0], self.spheres_rotation[i])
 
     def change_degree(self, degree):
         if self.degree == degree:
@@ -138,6 +156,15 @@ class CurvedLine(GeoModel):
             self.points = get_points(self.session, self.particles, self.smooth, self.degree, self.resolution)
             self.update()
 
+    def change_smoothing(self, s):
+        if self.smooth == s:
+            return
+        else:
+            self.smooth = s
+            self.points = get_points(self.session, self.particles, self.smooth, self.degree, self.resolution)
+            self.update()
+
+
 def get_points(session, particles, smooth, degree, resolution):
     # Find particles
     x, y, z = np.zeros(0), np.zeros(0), np.zeros(0)
@@ -145,7 +172,6 @@ def get_points(session, particles, smooth, degree, resolution):
         x = np.append(x, particle.coord[0])
         y = np.append(y, particle.coord[1])
         z = np.append(z, particle.coord[2])
-
 
     # s=0 means it will go through all points, s!=0 means smoother, good value between m+-sqrt(2m) (m=no. points)
     # degree can be 1,3, or 5
