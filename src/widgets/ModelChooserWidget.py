@@ -35,14 +35,19 @@ class ModelChooserWidget(QWidget):
         self._layout.setContentsMargins(0, 0, 0, 0)
         self.label = QLabel(labeltext)
         self.combo = QComboBox()
-        self.combo.setSizePolicy(QSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Maximum))
+        #self.combo.setMinimumContentsLength(5)
+        self.combo.setSizeAdjustPolicy(QComboBox.AdjustToContentsOnFirstShow)
+        self.combo.setSizePolicy(QSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum))
         self.button = QPushButton(buttontext)
 
         self._layout.addWidget(self.label, alignment=Qt.AlignmentFlag.AlignLeft)
-        self._layout.addWidget(self.combo)
+        self._layout.addWidget(self.combo, alignment=Qt.AlignmentFlag.AlignLeft)
         self._layout.addWidget(self.button, alignment=Qt.AlignmentFlag.AlignRight)
 
         self.setLayout(self._layout)
+
+        # Show combobox empty first so it doesn't fix the size.
+        self.show()
 
         self._update_models()
         self._connect()

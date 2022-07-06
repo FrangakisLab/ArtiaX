@@ -19,8 +19,8 @@ from Qt.QtWidgets import (
     QMenu,
     QMenuBar,
     QPushButton,
-    QShortcut,
     QVBoxLayout,
+    QSizePolicy
 )
 
 # This package
@@ -227,6 +227,8 @@ class ArtiaXUI(ToolInstance):
 
         # Add layout to the group
         self.group_tomo.setLayout(group_tomo_layout)
+        self.group_tomo.setSizePolicy(QSizePolicy(QSizePolicy.Preferred,
+                                                  QSizePolicy.Preferred))
         ##### Group Box "Tomograms" #####
 
         ##### Group Box "Particle Lists" #####
@@ -256,6 +258,8 @@ class ArtiaXUI(ToolInstance):
         group_partlist_layout.addLayout(group_partlist_button_layout)
         # Add layout to the group
         self.group_partlist.setLayout(group_partlist_layout)
+        self.group_partlist.setSizePolicy(QSizePolicy(QSizePolicy.Preferred,
+                                                      QSizePolicy.Preferred))
         ##### Group Box "Particle Lists" #####
 
 

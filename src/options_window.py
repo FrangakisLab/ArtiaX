@@ -223,8 +223,8 @@ class OptionsWindow(ToolInstance):
     def _build_tomo_widget(self):
         # This widget is the Select/Manipulate lists tab
         self.tomo_area = QScrollArea()
-        self.tomo_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
-        self.tomo_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.tomo_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.tomo_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.tomo_area.setWidgetResizable(True)
 
         #self.tomo_widget = QScrollArea()
@@ -234,20 +234,20 @@ class OptionsWindow(ToolInstance):
 
         #### Current Tomogram Box ####
         group_current_tomo = QGroupBox("Current Tomogram")
-        group_current_tomo.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+        group_current_tomo.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
                                                      QSizePolicy.Maximum))
         group_current_tomo.setFont(self.font)
         current_tomo_layout = QHBoxLayout()
         self.current_tomo_label = QLabel("")
-        self.current_tomo_label.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
-                                                          QSizePolicy.Minimum))
+        self.current_tomo_label.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
+                                                          QSizePolicy.Maximum))
         current_tomo_layout.addWidget(self.current_tomo_label)
         group_current_tomo.setLayout(current_tomo_layout)
         #### Current Tomogram Box ####
 
         #### Physical coordinates Box ####
         group_pixelsize = QGroupBox("Physical Coordinates")
-        group_pixelsize.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+        group_pixelsize.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
                                                   QSizePolicy.Maximum))
         group_pixelsize.setFont(self.font)
         group_pixelsize.setCheckable(True)
@@ -268,7 +268,7 @@ class OptionsWindow(ToolInstance):
 
         #### Contrast Box ####
         group_contrast = QGroupBox("Contrast Settings")
-        group_contrast.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+        group_contrast.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
                                                   QSizePolicy.Maximum))
         group_contrast.setFont(self.font)
         group_contrast.setCheckable(True)
@@ -289,8 +289,8 @@ class OptionsWindow(ToolInstance):
 
         # Define a group for different orthoplanes of a tomogram
         group_orthoplanes = QGroupBox("Orthoplanes")
-        group_orthoplanes.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
-                                                 QSizePolicy.Maximum))
+        group_orthoplanes.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
+                                                    QSizePolicy.Maximum))
         group_orthoplanes.setFont(self.font)
         group_orthoplanes.setCheckable(True)
         # Set the layout of the group
@@ -310,8 +310,8 @@ class OptionsWindow(ToolInstance):
 
         # Define a group for the fourier transform of a volume
         group_fourier_transform = QGroupBox("Fourier transformation")
-        group_fourier_transform.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
-                                               QSizePolicy.Maximum))
+        group_fourier_transform.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
+                                                          QSizePolicy.Maximum))
         group_fourier_transform.setFont(self.font)
         group_fourier_transform_layout = QGridLayout()
         # Define Button to press for execute the transformation
@@ -326,7 +326,7 @@ class OptionsWindow(ToolInstance):
 
         #### Slice Box ####
         group_slices = QGroupBox("Navigation")
-        group_slices.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+        group_slices.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
                                                QSizePolicy.Maximum))
         group_slices.setFont(self.font)
         group_slices.setCheckable(True)
@@ -670,8 +670,8 @@ class OptionsWindow(ToolInstance):
     def _build_manipulation_widget(self):
         # This widget is the Select/Manipulate lists tab
         self.manip_area = QScrollArea()
-        self.manip_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
-        self.manip_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.manip_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.manip_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.manip_area.setWidgetResizable(True)
 
         # Define the overall layout for group boxes
@@ -700,8 +700,8 @@ class OptionsWindow(ToolInstance):
 
         #### Scaling group box ####
         self.group_scale = QGroupBox("Scaling:")
-        self.group_scale.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
-                                                          QSizePolicy.Maximum))
+        self.group_scale.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
+                                                   QSizePolicy.Maximum))
 
         self.group_scale.setFont(self.font)
         self.group_scale.setCheckable(True)
@@ -725,7 +725,7 @@ class OptionsWindow(ToolInstance):
 
         #### Manipulation group box ####
         self.group_manipulation = QGroupBox("Manipulation:")
-        self.group_manipulation.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+        self.group_manipulation.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
                                                           QSizePolicy.Maximum))
         self.group_manipulation.setFont(self.font)
         self.group_manipulation.setCheckable(True)
@@ -748,7 +748,7 @@ class OptionsWindow(ToolInstance):
 
         #### Selection group box ####
         self.group_select = QGroupBox("Selection/Display:")
-        self.group_select.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+        self.group_select.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
                                                     QSizePolicy.MinimumExpanding))
         self.group_select.setFont(self.font)
         self.group_select.setCheckable(True)
@@ -782,8 +782,8 @@ class OptionsWindow(ToolInstance):
     def _build_visualization_widget(self):
         # This widget is the Visualize particle lists tab
         self.vis_area = QScrollArea()
-        self.vis_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
-        self.vis_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.vis_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.vis_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.vis_area.setWidgetResizable(True)
 
         # Define the overall layout
@@ -817,7 +817,7 @@ class OptionsWindow(ToolInstance):
 
         #### Marker/Axes Group box ####
         self.group_marker_axes = QGroupBox("Marker/Axes Display:")
-        self.group_marker_axes.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+        self.group_marker_axes.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
                                                          QSizePolicy.Maximum))
         self.group_marker_axes.setFont(self.font)
         self.group_marker_axes.setCheckable(True)
@@ -834,7 +834,7 @@ class OptionsWindow(ToolInstance):
 
         #### Surface Group box ####
         self.group_surf = QGroupBox("Surface Display:")
-        self.group_surf.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+        self.group_surf.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
                                                   QSizePolicy.Maximum))
         self.group_surf.setFont(self.font)
         self.group_surf.setCheckable(True)
