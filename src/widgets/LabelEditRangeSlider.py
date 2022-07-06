@@ -165,7 +165,7 @@ class LabelEditRangeSlider(QWidget):
     def _edit_changed(self):
         """Callback for changing edit text."""
         # Revert to previous value if user inputs something other than a number
-        if not self._edit.text().isnumeric():
+        if not is_number(self._edit.text()):
             print("Error: Please insert a number.")
 
             prev_edit = self._edit.blockSignals(True)

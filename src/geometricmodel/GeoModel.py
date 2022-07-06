@@ -166,7 +166,7 @@ def fit_curved_line(session):
 
     smooth = 0
     resolution = 300
-    points = get_points(session, particles, smooth, degree, resolution)
+    points, der = get_points(session, particles, smooth, degree, resolution)
 
     # Reorient selected particles so that Z-axis points towards next particle
     # particle_index = 0
@@ -191,5 +191,5 @@ def fit_curved_line(session):
         name = "line"
     else:
         name = "curved line"
-    geomodel = CurvedLine(name, session, particles, points, degree, smooth, resolution)
+    geomodel = CurvedLine(name, session, particles, points, der, degree, smooth, resolution)
     artiax.add_geomodel(geomodel)
