@@ -72,9 +72,9 @@ class OptionsWindow(ToolInstance):
     help = "help:user/tools/artiax_options.html"
                             # Let ChimeraX know about our help page
 
-    # ==============================================================================
-    # Instance Initialization ======================================================
-    # ==============================================================================
+# ==============================================================================
+# Instance Initialization ======================================================
+# ==============================================================================
 
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name)
@@ -140,9 +140,9 @@ class OptionsWindow(ToolInstance):
         artia.triggers.add_handler(OPTIONS_PARTLIST_CHANGED, self._update_partlist_options)
         artia.triggers.add_handler(OPTIONS_GEOMODEL_CHANGED, self._update_geomodel_options)
 
-    # ==============================================================================
-    # Show selected GUI ============================================================
-    # ==============================================================================
+# ==============================================================================
+# Show selected GUI ============================================================
+# ==============================================================================
 
     def _build_full_ui(self):
         # Define a stacked layout and only show the selected layout
@@ -168,7 +168,7 @@ class OptionsWindow(ToolInstance):
         self.volume_open_dialog.setNameFilters(["Volume (*.em *.mrc *.mrcs *.rec *.map *.hdf)"])
         self.volume_open_dialog.setAcceptMode(QFileDialog.AcceptOpen)
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     # Callback for trigger OPTIONS_TOMO_CHANGED
     def _update_tomo_options(self, name, data):
@@ -242,15 +242,15 @@ class OptionsWindow(ToolInstance):
         # Make sure we are on top
         run(self.session, 'ui tool show "ArtiaX Options"', log=False)
 
-    # ==============================================================================
-    # Options Menu for Tomograms ===================================================
-    # ==============================================================================
+# ==============================================================================
+# Options Menu for Tomograms ===================================================
+# ==============================================================================
 
     def _build_tomo_widget(self):
         # This widget is the Select/Manipulate lists tab
         self.tomo_area = QScrollArea()
-        self.tomo_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
-        self.tomo_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.tomo_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.tomo_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.tomo_area.setWidgetResizable(True)
 
         #self.tomo_widget = QScrollArea()
@@ -260,20 +260,20 @@ class OptionsWindow(ToolInstance):
 
         #### Current Tomogram Box ####
         group_current_tomo = QGroupBox("Current Tomogram")
-        group_current_tomo.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+        group_current_tomo.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
                                                      QSizePolicy.Maximum))
         group_current_tomo.setFont(self.font)
         current_tomo_layout = QHBoxLayout()
         self.current_tomo_label = QLabel("")
-        self.current_tomo_label.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
-                                                          QSizePolicy.Minimum))
+        self.current_tomo_label.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
+                                                          QSizePolicy.Maximum))
         current_tomo_layout.addWidget(self.current_tomo_label)
         group_current_tomo.setLayout(current_tomo_layout)
         #### Current Tomogram Box ####
 
         #### Physical coordinates Box ####
         group_pixelsize = QGroupBox("Physical Coordinates")
-        group_pixelsize.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+        group_pixelsize.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
                                                   QSizePolicy.Maximum))
         group_pixelsize.setFont(self.font)
         group_pixelsize.setCheckable(True)
@@ -294,8 +294,8 @@ class OptionsWindow(ToolInstance):
 
         #### Contrast Box ####
         group_contrast = QGroupBox("Contrast Settings")
-        group_contrast.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
-                                                 QSizePolicy.Maximum))
+        group_contrast.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
+                                                  QSizePolicy.Maximum))
         group_contrast.setFont(self.font)
         group_contrast.setCheckable(True)
 
@@ -315,7 +315,7 @@ class OptionsWindow(ToolInstance):
 
         # Define a group for different orthoplanes of a tomogram
         group_orthoplanes = QGroupBox("Orthoplanes")
-        group_orthoplanes.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+        group_orthoplanes.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
                                                     QSizePolicy.Maximum))
         group_orthoplanes.setFont(self.font)
         group_orthoplanes.setCheckable(True)
@@ -336,7 +336,7 @@ class OptionsWindow(ToolInstance):
 
         # Define a group for the fourier transform of a volume
         group_fourier_transform = QGroupBox("Fourier transformation")
-        group_fourier_transform.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+        group_fourier_transform.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
                                                           QSizePolicy.Maximum))
         group_fourier_transform.setFont(self.font)
         group_fourier_transform_layout = QGridLayout()
@@ -352,7 +352,7 @@ class OptionsWindow(ToolInstance):
 
         #### Slice Box ####
         group_slices = QGroupBox("Navigation")
-        group_slices.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+        group_slices.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
                                                QSizePolicy.Maximum))
         group_slices.setFont(self.font)
         group_slices.setCheckable(True)
@@ -423,8 +423,8 @@ class OptionsWindow(ToolInstance):
         # And finally set the layout of the widget
         # self.tomo_widget.setLayout(tomo_layout)
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    # Tomo Window Functions ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# Tomo Window Functions ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     def _connect_ui(self):
         ow = self
@@ -560,7 +560,7 @@ class OptionsWindow(ToolInstance):
 
         self.group_pixelsize_edit.setText(str(tomo.pixelsize[0]))
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _set_tomo_pixelsize(self):
         ow = self
         artia = self.session.ArtiaX
@@ -631,6 +631,14 @@ class OptionsWindow(ToolInstance):
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     def _skip_planes(self, number):
+
+        # Extra checks because it's a callback to keyboard shortcuts.
+        if not hasattr(self.session, 'ArtiaX'):
+            return
+
+        if self.session.ArtiaX.options_tomogram is None:
+            return
+
         artia = self.session.ArtiaX
         tomo = artia.tomograms.get(artia.options_tomogram)
 
@@ -684,15 +692,15 @@ class OptionsWindow(ToolInstance):
         command = "volume fourier #{} phase true".format(id)
         run(self.session, command)
 
-    # ==============================================================================
-    # Options Menus for Motivelists =================================================
-    # ==============================================================================
+# ==============================================================================
+# Options Menus for Motivelists =================================================
+# ==============================================================================
 
     def _build_manipulation_widget(self):
         # This widget is the Select/Manipulate lists tab
         self.manip_area = QScrollArea()
-        self.manip_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
-        self.manip_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.manip_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.manip_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.manip_area.setWidgetResizable(True)
 
         # Define the overall layout for group boxes
@@ -721,7 +729,7 @@ class OptionsWindow(ToolInstance):
 
         #### Scaling group box ####
         self.group_scale = QGroupBox("Scaling:")
-        self.group_scale.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+        self.group_scale.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
                                                    QSizePolicy.Maximum))
 
         self.group_scale.setFont(self.font)
@@ -746,7 +754,7 @@ class OptionsWindow(ToolInstance):
 
         #### Manipulation group box ####
         self.group_manipulation = QGroupBox("Manipulation:")
-        self.group_manipulation.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+        self.group_manipulation.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
                                                           QSizePolicy.Maximum))
         self.group_manipulation.setFont(self.font)
         self.group_manipulation.setCheckable(True)
@@ -769,7 +777,7 @@ class OptionsWindow(ToolInstance):
 
         #### Selection group box ####
         self.group_select = QGroupBox("Selection/Display:")
-        self.group_select.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+        self.group_select.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
                                                     QSizePolicy.MinimumExpanding))
         self.group_select.setFont(self.font)
         self.group_select.setCheckable(True)
@@ -802,8 +810,8 @@ class OptionsWindow(ToolInstance):
     def _build_visualization_widget(self):
         # This widget is the Visualize particle lists tab
         self.vis_area = QScrollArea()
-        self.vis_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
-        self.vis_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.vis_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.vis_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.vis_area.setWidgetResizable(True)
 
         # Define the overall layout
@@ -837,7 +845,7 @@ class OptionsWindow(ToolInstance):
 
         #### Marker/Axes Group box ####
         self.group_marker_axes = QGroupBox("Marker/Axes Display:")
-        self.group_marker_axes.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+        self.group_marker_axes.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
                                                          QSizePolicy.Maximum))
         self.group_marker_axes.setFont(self.font)
         self.group_marker_axes.setCheckable(True)
@@ -854,7 +862,7 @@ class OptionsWindow(ToolInstance):
 
         #### Surface Group box ####
         self.group_surf = QGroupBox("Surface Display:")
-        self.group_surf.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+        self.group_surf.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
                                                   QSizePolicy.Maximum))
         self.group_surf.setFont(self.font)
         self.group_surf.setCheckable(True)
@@ -968,8 +976,8 @@ class OptionsWindow(ToolInstance):
         if model is opl:
             self._update_partlist_ui()
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    # Motl Group Functions +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# Motl Group Functions +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     #
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1046,7 +1054,7 @@ class OptionsWindow(ToolInstance):
             ids = pl.particle_ids[mask]
             pl.delete_data(ids)
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _reset_selected(self):
         from numpy import any
         artia = self.session.ArtiaX
@@ -1057,14 +1065,14 @@ class OptionsWindow(ToolInstance):
             ids = pl.particle_ids[mask]
             pl.reset_particles(ids)
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _reset_all(self):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
         pl.reset_all_particles()
         self._update_partlist_ui()
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     def _attach_display_model(self, file):
         artia = self.session.ArtiaX

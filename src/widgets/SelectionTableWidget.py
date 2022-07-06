@@ -69,8 +69,8 @@ class SelectionTableWidget(QWidget):
         self.selectors_vbox.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.selectors.setLayout(self.selectors_vbox)
 
-        self.selector_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
-        self.selector_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.selector_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.selector_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.selector_area.setWidgetResizable(True)
         self.selector_area.setWidget(self.selectors)
 

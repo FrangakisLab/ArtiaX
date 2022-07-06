@@ -22,7 +22,8 @@ class Tomogram(VolumePlus):
         # Image Levels
         self.default_levels = None
         self._compute_default_levels()
-        self.set_parameters(image_levels=self.default_levels)
+        # Colormap on GPU for adjusting contrast quickly, even in tilted slab mode.
+        self.set_parameters(image_levels=self.default_levels, colormap_on_gpu=True)
 
         # Origin
         self.data.origin = np.array([0, 0, 0])
@@ -131,7 +132,8 @@ class Tomogram(VolumePlus):
         l3 = center + width / 2
         levels = [(l1, 0), (l2, position), (l3, 1)]
 
-        self.set_parameters(image_levels=levels)
+        # Colormap on GPU for adjusting contrast quickly, even in tilted slab mode.
+        self.set_parameters(image_levels=levels, colormap_on_gpu=True)
 
     def _set_integer_slice(self, slice=None):
         if slice is None:
