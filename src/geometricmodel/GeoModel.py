@@ -1,5 +1,6 @@
 # General imports
 import numpy as np
+from scipy import interpolate
 import math
 
 
@@ -154,8 +155,6 @@ def fit_curved_line(session):
                 part = particle_list.get_particle(curr_id)
                 particles = np.append(particles, part)
 
-    from .CurvedLine import get_points
-
     if len(particles) < 2:
         session.logger.warning("Select at least two points")
         return
@@ -166,6 +165,7 @@ def fit_curved_line(session):
 
     smooth = 0
     resolution = 300
+    from .CurvedLine import get_points
     points, der = get_points(session, particles, smooth, degree, resolution)
 
     # Reorient selected particles so that Z-axis points towards next particle
@@ -193,3 +193,13 @@ def fit_curved_line(session):
         name = "curved line"
     geomodel = CurvedLine(name, session, particles, points, der, degree, smooth, resolution)
     artiax.add_geomodel(geomodel)
+
+def fit_plane(session):
+    particle_pos, particles = get_curr_selected_particles_pos(session)
+    resolution = 100
+    method = 'nearest'
+
+    from .Plane import get_grid, Plane
+    grid_x, grid_y, grid_z = get_grid(session, particles, resolution, method, particle_pos=particle_pos)
+    geomodel = Plane('plane', session, particles, grid_x, grid_y, grid_z)
+    session.ArtiaX.add_geomodel(geomodel)

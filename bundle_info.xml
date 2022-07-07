@@ -209,12 +209,6 @@ will be displayed without the ChimeraX- prefix.
       name="Delete Picked Particle" display_name="Delete Picked" icon="delete.png"
       description="Delete picked particle."/>
 
-    <!-- ArtiaX tab, Geometric models-->
-    <Provider tab="ArtiaX" section="Getmetric models"
-      name="Fit Sphere" icon="show_markers.png" description="Fit a sphere to the currently selected particles."/>
-    <Provider tab="ArtiaX" section="Getmetric models"
-      name="Fit Line" icon="show_axes.png" description="Create a geometric model line between two selected particles."/>
-
 
     <!-- ArtiaX models tab -->
     <!-- ArtiaX Model tab, Markers -->
@@ -329,6 +323,9 @@ will be displayed without the ChimeraX- prefix.
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax fit line :: General ::
       Fits a line to two selected particles.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax fit plane :: General ::
+      Fits a plane through the selected particles.</ChimeraXClassifier>
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax fit curved line :: General ::
       Fits a smooth line between the selected particles.</ChimeraXClassifier>

@@ -1208,17 +1208,17 @@ class OptionsWindow(ToolInstance):
         color_select.setLayout(group_color_layout)
 
         # Define the model specific options
-        self.models = {"Sphere": 0, "Line": 1, "CurvedLine": 2}
+        self.models = {"Sphere": 0, "CurvedLine": 1, "Plane":2}
         self.model_options = QStackedWidget()
         self.model_options.setSizePolicy(QSizePolicy(QSizePolicy.Maximum,
                                                      QSizePolicy.Maximum))
         sphere_options = QWidget()
-        self.line_options = LineOptions(self.session)
         self.curved_options = CurvedLineOptions(self.session)
+        plane_options = QWidget()
 
         self.model_options.addWidget(sphere_options)
-        self.model_options.addWidget(self.line_options)
         self.model_options.addWidget(self.curved_options)
+        self.model_options.addWidget(plane_options)
 
         geomodel_layout.addWidget(group_current_geomodel)
         geomodel_layout.addWidget(color_select)
@@ -1236,9 +1236,7 @@ class OptionsWindow(ToolInstance):
 
         # Set new model
         self.geomodel_color_selection.set_geomodel(geomodel)
-        if type(geomodel).__name__ == "Line":
-            self.line_options.set_line(geomodel)
-        elif type(geomodel).__name__ == "CurvedLine":
+        if type(geomodel).__name__ == "CurvedLine":
             self.curved_options.set_line(geomodel)
 
         self.model_options.setCurrentIndex(self.models[self.curr_model])

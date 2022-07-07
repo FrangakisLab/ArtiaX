@@ -57,7 +57,7 @@ class CurvedLineOptions(QWidget):
         self.degree_buttons = DegreeButtons(5)
         fitting_checkbox_layout.addWidget(self.degree_buttons)
 
-        self.resolution_slider = LabelEditRangeSlider([100, 1000], "Resolution:", step_size=10, min=10)
+        self.resolution_slider = LabelEditRangeSlider([100, 1000], "Resolution:", step_size=10, min=1)
         fitting_checkbox_layout.addWidget(self.resolution_slider)
 
         self.smoothing_checkbox = QGroupBox("Smoothen line:")

@@ -187,6 +187,14 @@ def artiax_fit_line(session):
     from ..geometricmodel.GeoModel import fit_curved_line
     fit_curved_line(session)
 
+def artiax_fit_plane(session):
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running, so no plane can be fitted.")
+        return
+
+    from ..geometricmodel.GeoModel import fit_plane
+    fit_plane(session)
+
 
 def artiax_reorient_sphere_particles(session):
     if not hasattr(session, 'ArtiaX'):
@@ -719,6 +727,14 @@ def register_artiax(logger):
         )
         register('artiax fit line', desc, artiax_fit_line)
 
+    def register_artiax_fit_plane():
+        desc = CmdDesc(
+            # TODO rewrite and get url right
+            synopsis='Create a geometric model plane that goes through the selected particles.',
+            url='help:user/commands/artiax_hide.html'
+        )
+        register('artiax fit plane', desc, artiax_fit_plane)
+
     def register_artiax_reorient_sphere_particles():
         desc = CmdDesc(
             # TODO rewrite and get url right
@@ -820,6 +836,7 @@ def register_artiax(logger):
     register_artiax_particles()
     register_artiax_fit_sphere()
     register_artiax_fit_line()
+    register_artiax_fit_plane()
     register_artiax_reorient_sphere_particles()
     register_artiax_tomo()
     register_artiax_colormap()
