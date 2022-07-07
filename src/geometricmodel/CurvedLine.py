@@ -12,8 +12,9 @@ from chimerax.atomic import Atom
 from chimerax.graphics import Drawing
 from .GeoModel import GeoModel, GEOMODEL_CHANGED
 from chimerax.atomic import AtomicShapeDrawing
-from chimerax.geometry import z_align, rotation, Place
+from chimerax.geometry import z_align, rotation, translation
 from chimerax.bild.bild import _BildFile
+from ..particle.SurfaceCollectionModel import SurfaceCollectionModel
 
 
 class CurvedLine(GeoModel):
@@ -45,10 +46,15 @@ class CurvedLine(GeoModel):
         self.axes_size_edit_range = (10, 20)
         self.spacing_edit_range = (1, 100)
         self.spacing = (self.spacing_edit_range[1] + self.spacing_edit_range[0]) / 2
-        self.spheres = Model("spheres", session)
-        self.add([self.spheres])
-        self.spheres_position = np.zeros((0, 3))
-        self.spheres_rotation = np.array([])
+
+        self.collection_model = SurfaceCollectionModel('Spheres', session)
+        self.add([self.collection_model])
+        self.collection_model.add_collection('direction_markers')
+        v, n, t, vc = self.get_direction_marker_surface()
+        self.collection_model.set_surface('direction_markers', v, n, t)
+
+        self.spheres_places = np.array([])
+        self.indices = []
         self.rotate = False
         self.rotation = 0
         self.rotation_edit_range = (0, 1)
@@ -83,8 +89,7 @@ class CurvedLine(GeoModel):
             color = np.append(color, self._color[3])
         self._color = color
         self.vertex_colors = np.full(np.shape(self.vertex_colors), color)
-        if self.spheres.vertex_colors is not None:
-            self.spheres.vertex_colors = np.full(np.shape(self.spheres.vertex_colors), color)
+        self.collection_model.color = color
 
     def change_radius(self, r):
         if self.radius != r:
@@ -94,25 +99,41 @@ class CurvedLine(GeoModel):
     def change_marker_size(self, r):
         if self.marker_size != r:
             self.marker_size = r
-            self.create_spheres()
+            v, n, t, vc = self.get_direction_marker_surface()
+            self.collection_model.set_surface('direction_markers', v, n, t)
 
     def change_axes_size(self, s):
         if self.axes_size != s:
             self.axes_size = s
-            self.create_spheres()
+            v, n, t, vc = self.get_direction_marker_surface()
+            self.collection_model.set_surface('direction_markers', v, n, t)
+
+    def get_direction_marker_surface(self):
+        # Axes from https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/bild.html
+        from chimerax.bild.bild import _BildFile
+        b = _BildFile(self.session, 'dummy')
+
+        b.sphere_command('.sphere 0 0 0 {}'.format(self.marker_size).split())
+        b.arrow_command(".arrow 0 0 0 {} 0 0 {} {}".format(self.axes_size, self.axes_size / 15,
+                                                           self.axes_size / 15 * 4).split())
+        b.arrow_command(".arrow 0 0 0 0 0 {} {} {}".format(self.axes_size, self.axes_size / 15,
+                                                           self.axes_size / 15 * 4).split())
+
+        from chimerax.atomic import AtomicShapeDrawing
+        d = AtomicShapeDrawing('shapes')
+        d.add_shapes(b.shapes)
+
+        return d.vertices, d.normals, d.triangles, d.vertex_colors
 
     def create_spheres(self):
         self.has_particles = True
         self.triggers.activate_trigger(GEOMODEL_CHANGED, self)
-        self.spheres_position = np.zeros((0, 3))
-        self.spheres_rotation = np.array([])
-
-        b = _BildFile(self.session, 'dummy')
-        d = AtomicShapeDrawing('shapes')
+        if len(self.indices):
+            self.collection_model.delete_places(self.indices)
+        self.spheres_places = []
 
         # Set first manually to avoid special cases in loop:
         first_pos = np.array([self.points[0][0], self.points[1][0], self.points[2][0]])
-        self.spheres_position = np.append(self.spheres_position, [first_pos], axis=0)
         der = [self.der_points[0][0], self.der_points[1][0], self.der_points[2][0]]
         tangent = der / np.linalg.norm(der)
         rotation_to_z = z_align(first_pos, first_pos + tangent)
@@ -121,19 +142,13 @@ class CurvedLine(GeoModel):
         if self.rotate:
             rotation_around_z = rotation(rotation_along_line.z_axis(), self.start_rotation)
             rot = rotation_around_z * rotation_along_line
-        self.spheres_rotation = np.append(self.spheres_rotation, rot)
+
+        place = translation(first_pos) * rot
+        self.spheres_places = np.append(self.spheres_places, place)
+
         n = rot.transform_vector((1, 0, 0))
         n = n / np.linalg.norm(n)
         normals = np.array([n])
-
-        b.sphere_command('.sphere {} {} {} {}'.format(*first_pos, self.marker_size).split())
-        axis_end_point = first_pos + tangent * self.axes_size
-        b.arrow_command(".arrow {} {} {} {} {} {} {} {}".format(*first_pos, *axis_end_point, self.axes_size / 15,
-                                                                self.axes_size / 15 * 4).split())
-        normal_end_point = first_pos + n * self.axes_size
-        b.arrow_command(".arrow {} {} {} {} {} {} {} {}".format(*first_pos, *normal_end_point, self.axes_size / 15,
-                                                                self.axes_size / 15 * 4).split())
-        d.add_shapes(b.shapes)
 
         total_dist = 0
         distance_since_last = 0
@@ -146,16 +161,15 @@ class CurvedLine(GeoModel):
             total_dist += step_dist
             distance_since_last += step_dist
 
+            # calculate normal using projection normal method found in "Normal orientation methods for 3D offset
+            # curves, sweep surfaces and skinning" by Pekka  Siltanen  and Charles  Woodward
+            n = normals[-1] - (np.dot(normals[-1], tangent)) * tangent
+            n = n / np.linalg.norm(n)
+            normals = np.append(normals, [n], axis=0)
+
             # create marker
             if distance_since_last >= self.spacing:
                 distance_since_last = 0
-                self.spheres_position = np.append(self.spheres_position, [curr_pos], axis=0)
-
-                # calculate normal using projection normal method found in "Normal orientation methods for 3D offset
-                # curves, sweep surfaces and skinning" by Pekka  Siltanen  and Charles  Woodward
-                n = normals[-1] - (np.dot(normals[-1], tangent)) * tangent
-                n = n / np.linalg.norm(n)
-                normals = np.append(normals, [n], axis=0)
 
                 rotation_along_line = z_align(curr_pos, curr_pos + tangent).zero_translation().inverse()
                 x_axes = rotation_along_line.transform_vector((1, 0, 0))
@@ -170,28 +184,17 @@ class CurvedLine(GeoModel):
 
                 rot = rotation_around_z * rotation_along_line
 
-                self.spheres_rotation = np.append(self.spheres_rotation, rot)
+                place = translation(curr_pos) * rot
+                self.spheres_places = np.append(self.spheres_places, place)
 
-                b.sphere_command('.sphere {} {} {} {}'.format(*curr_pos, self.marker_size).split())
-                axis_end_point = curr_pos + tangent * self.axes_size
-                b.arrow_command(".arrow {} {} {} {} {} {} {} {}".format(*curr_pos, *axis_end_point, self.axes_size / 15,
-                                                                        self.axes_size / 15 * 4).split())
-                normal_end_point = curr_pos + rot.transform_vector((1, 0, 0)) * self.axes_size
-                b.arrow_command(
-                    ".arrow {} {} {} {} {} {} {} {}".format(*curr_pos, *normal_end_point, self.axes_size / 15,
-                                                            self.axes_size / 15 * 4).split())
-                d.add_shapes(b.shapes)
-
-        self.spheres.set_geometry(d.vertices, d.normals, d.triangles)
-        if d.vertex_colors is not None:
-            self.spheres.vertex_colors = np.full(np.shape(d.vertex_colors), self.color)
+        self.indices = [str(i) for i in range(0, len(self.spheres_places))]
+        self.collection_model.add_places(self.indices, self.spheres_places)
+        self.collection_model.color = self.color
 
     def remove_spheres(self):
-        self.spheres.delete()
-        self.spheres = Model("spheres", self.session)
-        self.add([self.spheres])
+        self.collection_model.delete_places(self.indices)
+        self.indices = []
         self.has_particles = False
-        self.spheres_position = np.array([])
         self.triggers.activate_trigger(GEOMODEL_CHANGED, self)
 
     def create_particle_list(self):
@@ -202,8 +205,8 @@ class CurvedLine(GeoModel):
         self.create_particles(partlist)
 
     def create_particles(self, partlist):
-        for i in range(0, len(self.spheres_position)):
-            partlist.new_particle(self.spheres_position[i], [0, 0, 0], self.spheres_rotation[i])
+        for i in range(0, len(self.spheres_places)):
+            partlist.new_particle(self.spheres_places[i], [0, 0, 0], self.spheres_places[i])
 
     def change_rotation(self, rot):
         if self.rotation == rot:
