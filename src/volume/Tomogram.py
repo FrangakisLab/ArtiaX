@@ -23,7 +23,7 @@ class Tomogram(VolumePlus):
         self.default_levels = None
         self._compute_default_levels()
         # Colormap on GPU for adjusting contrast quickly, even in tilted slab mode.
-        self.set_parameters(image_levels=self.default_levels, colormap_on_gpu=True)
+        self.set_parameters(image_levels=self.default_levels, backing_color=(0, 0, 0, 255), color_mode='auto8', colormap_on_gpu=True)
 
         # Origin
         self.data.origin = np.array([0, 0, 0])
@@ -71,7 +71,7 @@ class Tomogram(VolumePlus):
     def normal(self, value):
         from chimerax.geometry import normalize_vector
         value = normalize_vector(value)
-        self.set_parameters(tilted_slab_axis=value, color_mode='opaque8')
+        self.set_parameters(backing_color=(0, 0, 0, 255), tilted_slab_axis=tuple(value), color_mode='auto8')
 
     @property
     def min_offset(self):
@@ -148,11 +148,12 @@ class Tomogram(VolumePlus):
 
         id = self.id_string
 
-        self.set_parameters(tilted_slab_axis=self.normal,
+        self.set_parameters(tilted_slab_axis=tuple(self.normal),
                             tilted_slab_offset=offset,
                             tilted_slab_plane_count=1,
+                            backing_color=(0, 0, 0, 255),
                             image_mode='tilted slab',
-                            color_mode='opaque8')
+                            color_mode='auto8')
 
         self.set_display_style('image')
 
@@ -216,7 +217,7 @@ def orthoplane_cmd(tomogram, axes, offset=None):
 
     size = tomogram.size
     spacing = tomogram.pixelsize[0]
-    cmd = 'volume #{} region {},{},{},{},{},{} step 1 style image imageMode "tilted slab" tiltedSlabAxis {},{},{} tiltedSlabPlaneCount 1 tiltedSlabOffset {} tilted_slab_spacing {} colorMode opaque8'
+    cmd = 'volume #{} region {},{},{},{},{},{} step 1 style image imageMode "tilted slab" tiltedSlabAxis {},{},{} tiltedSlabPlaneCount 1 tiltedSlabOffset {} tilted_slab_spacing {} colorMode auto8 backingColor black'
 
     if offset is None:
         offset = tomogram.center_offset
