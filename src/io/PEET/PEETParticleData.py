@@ -105,6 +105,10 @@ class PEETParticleData(ParticleData):
                 reader = csv.reader(csvfile, delimiter=',')
 
                 header = next(reader)
+
+                # PEET adds version at the end of the header ...........
+                header = [el for el in header if 'PEET' not in el]
+
                 if len(header) != 20:
                     raise UserError("File {} doesn't have 20 columns.".format(self.additional_files[0]))
 
@@ -118,7 +122,7 @@ class PEETParticleData(ParticleData):
 
             if len(csv_content['xOffset']) != expected_len:
                 has_csv = False
-                raise UserWarning('File {} has a different number of entries than the associated model. Skipping CSV.'.format(self.additional_files[0]))
+                UserWarning('File {} has a different number of entries than the associated model. Skipping CSV.'.format(self.additional_files[0]))
 
         for idx, a in enumerate(atoms):
             p = self.new_particle()
