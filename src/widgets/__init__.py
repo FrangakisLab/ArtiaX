@@ -20,6 +20,8 @@ from .DegreeButtons import DegreeButtons
 from .ModelChooserWidget import ModelChooserWidget
 from .LabeledVectorEdit import LabeledVectorEdit
 from .ArtiaXSaveDialog import ArtiaXSaveDialog
+from .PlaneOptions import PlaneOptions
+from .MethodButtons import MethodButtons
 
 def qt_enum_equal(enum_value, comp_value):
     """Compare with Qt enums safely with Qt5 and Qt6."""

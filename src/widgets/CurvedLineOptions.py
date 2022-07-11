@@ -49,6 +49,12 @@ class CurvedLineOptions(QWidget):
         self.line_display_checkbox.setLayout(line_display_layout)
         layout.addWidget(self.line_display_checkbox)
 
+        self.update_button = QPushButton("Update Line")
+        self.update_button.setToolTip("Updates the line to fit the particles. Useful when line doesn't follow the "
+                                      "desired path; simply move the particles that define the line and press this"
+                                      "button to update the line.")
+        layout.addWidget(self.update_button)
+
         # Fitting options
         self.fitting_checkbox = QGroupBox("Change line fitting:")
         self.fitting_checkbox.setCheckable(True)
@@ -126,6 +132,7 @@ class CurvedLineOptions(QWidget):
         self.fitting_checkbox.blockSignals(True)
         self.degree_buttons.blockSignals(True)
         self.resolution_slider.blockSignals(True)
+        self.smoothing_checkbox.blockSignals(True)
         self.smoothing_slider.blockSignals(True)
         self.rotate_checkbox.blockSignals(True)
         self.rotation_slider.blockSignals(True)
@@ -161,6 +168,8 @@ class CurvedLineOptions(QWidget):
 
             self.resolution_slider.set_range(line.resolution_edit_range)
             self.resolution_slider.value = line.resolution
+
+            self.smoothing_checkbox.setChecked(line.smooth != 0)
             self.smoothing_slider.set_range(line.smooth_edit_range)
             self.smoothing_slider.value = line.smooth
 
@@ -174,6 +183,7 @@ class CurvedLineOptions(QWidget):
         self.degree_buttons.blockSignals(False)
         self.resolution_slider.blockSignals(False)
         self.smoothing_slider.blockSignals(False)
+        self.smoothing_checkbox.blockSignals(False)
         self.rotate_checkbox.blockSignals(False)
         self.rotation_slider.blockSignals(False)
         self.start_rotation.blockSignals(False)
@@ -182,6 +192,8 @@ class CurvedLineOptions(QWidget):
     def _connect(self):
         self.line_display_checkbox.clicked.connect(self._display_toggled)
         self.line_radius_slider.valueChanged.connect(self._radius_changed)
+
+        self.update_button.clicked.connect(self._update_button_clicked)
 
         self.spacing_checkbox.clicked.connect(self._spacing_toggled)
         self.marker_axis_display_checkbox.clicked.connect(self._marker_axis_display_toggled)
@@ -208,6 +220,10 @@ class CurvedLineOptions(QWidget):
         if self.line_display_checkbox.isChecked():
             self.line.radius_edit_range = self.line_radius_slider.get_range()
             self.line.change_radius(self.line_radius_slider.value)
+
+    def _update_button_clicked(self):
+        if self.line is not None:
+            self.line.recalc_and_update()
 
     def _spacing_toggled(self):
         if self.spacing_checkbox.isChecked():

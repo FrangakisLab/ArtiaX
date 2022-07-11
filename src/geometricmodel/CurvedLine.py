@@ -67,6 +67,11 @@ class CurvedLine(GeoModel):
         self.set_geometry(vertices, normals, triangles)
         self.vertex_colors = np.full(np.shape(vertex_colors), self.color)
 
+    def recalc_and_update(self):
+        self.points, self.der_points = get_points(self.session, self.particles, self.smooth, self.degree,
+                                                  self.resolution)
+        self.update()
+
     def define_curved_line(self):
         from chimerax.bild.bild import _BildFile
         b = _BildFile(self.session, 'dummy')
@@ -227,27 +232,21 @@ class CurvedLine(GeoModel):
             return
         else:
             self.degree = degree
-            self.points, self.der_points = get_points(self.session, self.particles, self.smooth, self.degree,
-                                                      self.resolution)
-            self.update()
+            self.recalc_and_update()
 
     def change_resolution(self, res):
         if self.resolution == res:
             return
         else:
             self.resolution = res
-            self.points, self.der_points = get_points(self.session, self.particles, self.smooth, self.degree,
-                                                      self.resolution)
-            self.update()
+            self.recalc_and_update()
 
     def change_smoothing(self, s):
         if self.smooth == s:
             return
         else:
             self.smooth = s
-            self.points, self.der_points = get_points(self.session, self.particles, self.smooth, self.degree,
-                                                      self.resolution)
-            self.update()
+            self.recalc_and_update()
 
 
 def get_points(session, particles, smooth, degree, resolution):

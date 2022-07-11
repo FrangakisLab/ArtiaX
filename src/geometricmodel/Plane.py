@@ -3,7 +3,6 @@ import numpy as np
 import math
 from scipy import interpolate
 from itertools import chain
-import pyvista as pv
 
 # ChimeraX imports
 from chimerax.core.commands import run
@@ -18,7 +17,7 @@ from chimerax.geometry import z_align
 class Plane(GeoModel):
     """Plane"""
 
-    def __init__(self, name, session, particles, grid_x, grid_y, grid_z):
+    def __init__(self, name, session, particles, grid_x, grid_y, grid_z, resolution, method):
         super().__init__(name, session)
         self.particles = particles
 
@@ -26,25 +25,37 @@ class Plane(GeoModel):
         self.grid_y = grid_y
         self.grid_z = grid_z
 
+        self.fitting_options = True
+        self.method = method
+        self.allowed_methods = ['nearest', 'linear', 'cubic']
+        self.resolution = resolution
+        self.resolution_edit_range = (10, 200)
+        self.use_base = False
+        self.base_level = 0
+        self.base_level_edit_range = (-10, 10)
+
         self.update()
 
     def define_plane(self):
+        vertices = np.dstack((self.grid_x.flatten(), self.grid_y.flatten(), self.grid_z.flatten()))
+        triangles = np.array((0,3))
+        # TODO comment away stuff below and calculate d,v,n on your own
+
+        points = np.dstack((self.grid_x, self.grid_y, self.grid_z))
         from chimerax.bild.bild import _BildFile
         b = _BildFile(self.session, 'dummy')
-
-        command_string = [".polygon"]
-        flat_x = list(chain(*self.grid_x))
-        flat_y = list(chain(*self.grid_y))
-        flat_z = list(chain(*self.grid_z))
-        points = np.vstack(flat_x, flat_y, flat_z)
-
-        cloud = pv.PolyData(points)
-        surf = cloud.delaunay_2d()
-        for i in range(0, len(flat_x)):
-            command_string.append(str(flat_x[i]))
-            command_string.append(str(flat_y[i]))
-            command_string.append(str(flat_z[i]))
-        b.polygon_command(command_string)
+        nr_rows = len(self.grid_x)
+        nr_cols = len(self.grid_x[0])
+        for i, row in enumerate(points):
+            for j, point in enumerate(row):
+                if not math.isnan(point[2]):
+                    if i+1 < nr_rows and not math.isnan(points[i+1][j][2]):
+                        if j-1 >= 0 and not math.isnan(points[i+1][j-1][2]):
+                            b.polygon_command(".polygon {} {} {} {} {} {} {} {} {}".format(*point, *points[i+1][j],
+                                                                                           *points[i+1][j-1]).split())
+                        if j+1 < nr_cols and not math.isnan(points[i][j+1][2]):
+                            b.polygon_command(".polygon {} {} {} {} {} {} {} {} {}".format(*point, *points[i+1][j],
+                                                                                           *points[i][j+1]).split())
 
         from chimerax.atomic import AtomicShapeDrawing
         d = AtomicShapeDrawing('shapes')
@@ -57,7 +68,31 @@ class Plane(GeoModel):
         self.set_geometry(vertices, normals, triangles)
         self.vertex_colors = np.full(np.shape(vertex_colors), self.color)
 
-def get_grid(session, particles, resolution, method, particle_pos=None):
+    def recalc_and_update(self):
+        if self.use_base:
+            self.grid_x, self.grid_y, self.grid_z = get_grid(self.session, self.particles, self.resolution, self.method,
+                                                             self.base_level)
+        else:
+            self.grid_x, self.grid_y, self.grid_z = get_grid(self.session, self.particles, self.resolution, self.method)
+        self.update()
+
+    def change_method(self, method):
+        if self.method != method and method in self.allowed_methods:
+            self.method = method
+            self.recalc_and_update()
+
+    def change_resolution(self, res):
+        if self.resolution != res:
+            self.resolution = res
+            self.recalc_and_update()
+
+    def change_base(self, b):
+        if self.base_level != b:
+            self.base_level = b
+            self.recalc_and_update()
+
+
+def get_grid(session, particles, resolution, method, base=None, particle_pos=None):
     if particle_pos is None:
         particle_pos = np.zeros((0, 3))  # each row is one currently selected particle, with columns being x,y,z
         for particle in particles:
@@ -70,12 +105,9 @@ def get_grid(session, particles, resolution, method, particle_pos=None):
     upper = np.amax(particle_pos, axis=0)
     resolution = complex(0, resolution)
     grid_x, grid_y = np.mgrid[lower[0]:upper[0]:resolution, lower[1]:upper[1]:resolution]
-    grid_z = interpolate.griddata(particle_pos[:, :2], particle_pos[:, 2], (grid_x, grid_y), method=method)
+    if base is None:
+        grid_z = interpolate.griddata(particle_pos[:, :2], particle_pos[:, 2], (grid_x, grid_y), method=method)
+    else:
+        grid_z = interpolate.griddata(particle_pos[:, :2], particle_pos[:, 2], (grid_x, grid_y), method=method,
+                                      fill_value=base)
     return grid_x, grid_y, grid_z
-
-points = [[0,0,1], [0, 1, 2], [1, 0, 2], [1, 1, 2]]
-d = AtomicShapeDrawing('shapes')
-command_string = ".pylogon 0 0 1 0 1 2 1 0 2"
-b.polygon_command(command_string.split())
-d.add_shapes(b.shapes)
-l.set_geometry(d.vertices, d.normals, d.triangles)

@@ -3,7 +3,6 @@ import numpy as np
 from scipy import interpolate
 import math
 
-
 # ChimeraX imports
 from chimerax.core.commands import run
 from chimerax.core.errors import UserError
@@ -59,6 +58,7 @@ class GeoModel(Model):
         self._color = color
         self.vertex_colors = np.full(np.shape(self.vertex_colors), color)
 
+
 def selected_geomodels(session, model=None):
     s_geomodels = np.array([])
     if model is None:  # Return all selected geomodels
@@ -67,10 +67,11 @@ def selected_geomodels(session, model=None):
                 s_geomodels = np.append(s_geomodels, geomodel)
     else:
         for geomodel in session.ArtiaX.geomodels.child_models():
-            if geomodel.selected and type(geomodel).__name__  == model:
+            if geomodel.selected and type(geomodel).__name__ == model:
                 s_geomodels = np.append(s_geomodels, geomodel)
 
     return s_geomodels
+
 
 def get_curr_selected_particles_pos(session):
     artiax = session.ArtiaX
@@ -194,12 +195,16 @@ def fit_curved_line(session):
     geomodel = CurvedLine(name, session, particles, points, der, degree, smooth, resolution)
     artiax.add_geomodel(geomodel)
 
+
 def fit_plane(session):
     particle_pos, particles = get_curr_selected_particles_pos(session)
+    if len(particles) < 3:
+        session.logger.warning("Select at least three points")
+        return
     resolution = 100
-    method = 'nearest'
+    method = 'cubic'  # nearest, cubic, or linear
 
     from .Plane import get_grid, Plane
     grid_x, grid_y, grid_z = get_grid(session, particles, resolution, method, particle_pos=particle_pos)
-    geomodel = Plane('plane', session, particles, grid_x, grid_y, grid_z)
+    geomodel = Plane('plane', session, particles, grid_x, grid_y, grid_z, resolution, method)
     session.ArtiaX.add_geomodel(geomodel)
