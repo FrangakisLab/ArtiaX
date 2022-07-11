@@ -3,6 +3,7 @@ import numpy as np
 import math
 from scipy import interpolate
 from itertools import chain
+import pyvista as pv
 
 # ChimeraX imports
 from chimerax.core.commands import run
@@ -35,6 +36,10 @@ class Plane(GeoModel):
         flat_x = list(chain(*self.grid_x))
         flat_y = list(chain(*self.grid_y))
         flat_z = list(chain(*self.grid_z))
+        points = np.vstack(flat_x, flat_y, flat_z)
+
+        cloud = pv.PolyData(points)
+        surf = cloud.delaunay_2d()
         for i in range(0, len(flat_x)):
             command_string.append(str(flat_x[i]))
             command_string.append(str(flat_y[i]))
@@ -67,3 +72,10 @@ def get_grid(session, particles, resolution, method, particle_pos=None):
     grid_x, grid_y = np.mgrid[lower[0]:upper[0]:resolution, lower[1]:upper[1]:resolution]
     grid_z = interpolate.griddata(particle_pos[:, :2], particle_pos[:, 2], (grid_x, grid_y), method=method)
     return grid_x, grid_y, grid_z
+
+points = [[0,0,1], [0, 1, 2], [1, 0, 2], [1, 1, 2]]
+d = AtomicShapeDrawing('shapes')
+command_string = ".pylogon 0 0 1 0 1 2 1 0 2"
+b.polygon_command(command_string.split())
+d.add_shapes(b.shapes)
+l.set_geometry(d.vertices, d.normals, d.triangles)
