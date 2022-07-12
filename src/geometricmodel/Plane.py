@@ -29,7 +29,7 @@ class Plane(GeoModel):
         self.method = method
         self.allowed_methods = ['nearest', 'linear', 'cubic']
         self.resolution = resolution
-        self.resolution_edit_range = (10, 200)
+        self.resolution_edit_range = (10, 100)
         self.use_base = False
         self.base_level = 0
         self.base_level_edit_range = (-10, 10)
@@ -37,41 +37,51 @@ class Plane(GeoModel):
         self.update()
 
     def define_plane(self):
-        vertices = np.dstack((self.grid_x.flatten(), self.grid_y.flatten(), self.grid_z.flatten()))
-        triangles = np.array((0,3))
-        # TODO comment away stuff below and calculate d,v,n on your own
+        nr_points = len(self.grid_x)*len(self.grid_x[0])
+        vertices = np.zeros((nr_points*6, 3), dtype=np.float32)
+        triangles = np.zeros((nr_points*2, 3), dtype=np.int32)
+        normals = np.zeros((nr_points*6, 3), dtype=np.float32)
+        nr_cols = len(self.grid_x[0])
+        vertex_index = 0
+        triangles_index = 0
 
         points = np.dstack((self.grid_x, self.grid_y, self.grid_z))
-        from chimerax.bild.bild import _BildFile
-        b = _BildFile(self.session, 'dummy')
-        nr_rows = len(self.grid_x)
-        nr_cols = len(self.grid_x[0])
         for i, row in enumerate(points):
             for j, point in enumerate(row):
                 if not math.isnan(point[2]):
-                    if i+1 < nr_rows and not math.isnan(points[i+1][j][2]):
-                        if j-1 >= 0 and not math.isnan(points[i+1][j-1][2]):
-                            b.polygon_command(".polygon {} {} {} {} {} {} {} {} {}".format(*point, *points[i+1][j],
-                                                                                           *points[i+1][j-1]).split())
-                        if j+1 < nr_cols and not math.isnan(points[i][j+1][2]):
-                            b.polygon_command(".polygon {} {} {} {} {} {} {} {} {}".format(*point, *points[i+1][j],
-                                                                                           *points[i][j+1]).split())
+                    if i-1 >= 0 and not math.isnan(points[i-1][j][2]):
+                        if j-1 >= 0 and not math.isnan(points[i][j-1][2]):
+                            vertices[vertex_index:vertex_index+3] = [point, points[i][j-1], points[i-1][j]]
+                            triangles[triangles_index] = [vertex_index, vertex_index+1, vertex_index+2]
+                            normal = np.cross(points[i][j-1] - point, points[i-1][j] - point)
+                            normal = normal / np.linalg.norm(normal)
+                            normals[vertex_index: vertex_index+3] = [normal, normal, normal]
+                            vertex_index += 3
+                            triangles_index += 1
+                        if j+1 < nr_cols and not math.isnan(points[i-1][j+1][2]):
+                            vertices[vertex_index:vertex_index + 3] = [point, points[i-1][j], points[i-1][j+1]]
+                            triangles[triangles_index] = [vertex_index, vertex_index + 1, vertex_index + 2]
+                            normal = np.cross(points[i-1][j+1] - points[i-1][j], point - points[i-1][j])
+                            normal = normal / np.linalg.norm(normal)
+                            normals[vertex_index: vertex_index + 3] = [normal, normal, normal]
+                            vertex_index += 3
+                            triangles_index += 1
+        vertices = vertices[:vertex_index]
+        triangles = triangles[:triangles_index]
+        normals = normals[:vertex_index]
+        triangles = triangles.astype(np.int32)
 
-        from chimerax.atomic import AtomicShapeDrawing
-        d = AtomicShapeDrawing('shapes')
-        d.add_shapes(b.shapes)
-
-        return d.vertices, d.normals, d.triangles, d.vertex_colors
+        return vertices, normals, triangles
 
     def update(self):
-        vertices, normals, triangles, vertex_colors = self.define_plane()
+        vertices, normals, triangles = self.define_plane()
         self.set_geometry(vertices, normals, triangles)
-        self.vertex_colors = np.full(np.shape(vertex_colors), self.color)
+        self.vertex_colors = np.full((len(vertices), 4), self.color)
 
     def recalc_and_update(self):
         if self.use_base:
             self.grid_x, self.grid_y, self.grid_z = get_grid(self.session, self.particles, self.resolution, self.method,
-                                                             self.base_level)
+                                                             base=self.base_level)
         else:
             self.grid_x, self.grid_y, self.grid_z = get_grid(self.session, self.particles, self.resolution, self.method)
         self.update()
@@ -87,9 +97,8 @@ class Plane(GeoModel):
             self.recalc_and_update()
 
     def change_base(self, b):
-        if self.base_level != b:
-            self.base_level = b
-            self.recalc_and_update()
+        self.base_level = b
+        self.recalc_and_update()
 
 
 def get_grid(session, particles, resolution, method, base=None, particle_pos=None):

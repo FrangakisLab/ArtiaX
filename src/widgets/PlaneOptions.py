@@ -41,6 +41,12 @@ class PlaneOptions(QWidget):
         line_options_label = QLabel("Plane Options")
         layout.addWidget(line_options_label)
 
+        self.update_button = QPushButton("Update Plane")
+        self.update_button.setToolTip("Updates the plane to fit the particles. Useful when the plane doesn't match the "
+                                      "desired plane; simply move the particles that define the plane and press this "
+                                      "button to update the plane.")
+        layout.addWidget(self.update_button)
+
         #Fitting options
         self.fitting_checkbox = QGroupBox("Change line fitting:")
         self.fitting_checkbox.setCheckable(True)
@@ -89,11 +95,16 @@ class PlaneOptions(QWidget):
         self.plane = plane
 
     def _connect(self):
+        self.update_button.clicked.connect(self._update)
         self.fitting_checkbox.clicked.connect(self._fitting_toggled)
         self.method_buttons.valueChanged.connect(self._method_changed)
         self.resolution_slider.valueChanged.connect(self._resolution_changed)
         self.base_checkbox.clicked.connect(self._base_toggled)
         self.base_slider.valueChanged.connect(self._base_changed)
+
+    def _update(self):
+        if self.plane is not None:
+            self.plane.recalc_and_update()
 
     def _fitting_toggled(self):
         if self.plane is not None:

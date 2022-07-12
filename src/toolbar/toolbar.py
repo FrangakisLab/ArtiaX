@@ -38,7 +38,8 @@ _providers = {
 
     "Fit Sphere": "artiax fit sphere",
     "Fit Line": "artiax fit line",
-    "Reorient Sphere Particles": "artiax reorient sphere particles"
+    "Reorient Sphere Particles": "artiax reorient sphere particles",
+    "Fit Plane": "artiax fit plane"
 }
 
 

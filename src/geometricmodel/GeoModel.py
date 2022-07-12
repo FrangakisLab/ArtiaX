@@ -201,10 +201,11 @@ def fit_plane(session):
     if len(particles) < 3:
         session.logger.warning("Select at least three points")
         return
-    resolution = 100
+    resolution = 50
     method = 'cubic'  # nearest, cubic, or linear
 
     from .Plane import get_grid, Plane
     grid_x, grid_y, grid_z = get_grid(session, particles, resolution, method, particle_pos=particle_pos)
     geomodel = Plane('plane', session, particles, grid_x, grid_y, grid_z, resolution, method)
+
     session.ArtiaX.add_geomodel(geomodel)
