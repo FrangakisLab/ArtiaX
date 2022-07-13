@@ -449,7 +449,9 @@ class ColorRangeWidget(QWidget):
         self.lower_edit.blockSignals(prev)
         self.upper_edit.blockSignals(prev1)
 
-    def _slider_changed(self, value, released=False):
+    def _slider_changed(self, value=None, released=False):
+        if value is None:
+            value = self.slider.value()
         prev = self.lower_edit.blockSignals(True)
         prev1 = self.upper_edit.blockSignals(True)
         self.lower_edit.setText("{:.4f}".format(value[0]))

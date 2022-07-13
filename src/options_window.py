@@ -545,7 +545,7 @@ class OptionsWindow(ToolInstance):
         self.contrast_center_widget.blockSignals(prev)
 
         prev = self.contrast_width_widget.blockSignals(True)
-        self.contrast_width_widget.set_range(range=[0, tomo.range], value=tomo.contrast_width)
+        self.contrast_width_widget.set_range(range=[0.001, tomo.range], value=tomo.contrast_width)
         self.contrast_width_widget.blockSignals(prev)
 
         prev = self.slice_widget.blockSignals(True)

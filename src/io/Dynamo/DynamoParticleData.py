@@ -117,6 +117,18 @@ class DynamoParticleData(ParticleData):
                 for i in range(0, diff):
                     self._data_keys['eig{}'.format(i+1)] = ['column_{}'.format(i+41)]
 
+            # Some tbls are smaller than 40 ---> e.g. template matching output. y tho?
+            if len(row1) < 40:
+                keys = list(self._data_keys.keys())
+                poplist = []
+
+                for idx, key in enumerate(keys):
+                    if idx >= len(row1):
+                        poplist.append(key)
+
+                for key in poplist:
+                    self._data_keys.pop(key)
+
             self._register_keys()
 
             # Back to the beginning

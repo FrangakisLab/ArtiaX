@@ -84,6 +84,7 @@ class RELIONEulerRotation(EulerRotation):
 class RELIONParticleData(ParticleData):
 
     DATA_KEYS = {
+        'rlnTomoName': [],
         'rlnCoordinateX': [],
         'rlnCoordinateY': [],
         'rlnCoordinateZ': [],
@@ -113,6 +114,8 @@ class RELIONParticleData(ParticleData):
         self.remaining_loops = {}
         self.remaining_data = {}
         self.loop_name = 0
+        self.name_prefix = None
+        self.name_leading_zeros = None
 
         super().__init__(session, file_name, oripix=oripix, trapix=trapix, additional_files=additional_files)
 
@@ -139,6 +142,39 @@ class RELIONParticleData(ParticleData):
         # What is present
         df_keys = list(df.keys())
         additional_keys = df_keys
+
+        # Do we have tomo names?
+        names_present = False
+        if 'rlnTomoName' in df_keys:
+            names = list(df['rlnTomoName'])
+
+            # Sanity check names
+            first_name = names[0]
+            if '_' not in first_name:
+                raise UserError('Encountered particle without "_" in rlnTomoName. Aborting.')
+
+            full = first_name.split('_')
+            prefix_guess = ''.join(full[0:-1])
+            num_guess = full[-1]
+
+            for n in names:
+                if '_' not in n:
+                    raise UserError('Encountered particle without "_" in rlnTomoName. Aborting.')
+
+                full = n.split('_')
+                prefix_test = ''.join(full[0:-1])
+
+                if prefix_test != prefix_guess:
+                    raise UserError(
+                        'Encountered particles with inconsistent '
+                        'rlnTomoName prefixes {} and {}. Aborting.'.format(prefix_test, prefix_guess))
+
+            self.name_prefix = prefix_guess
+            self.name_leading_zeros = len(num_guess)
+            names_present = True
+            additional_keys.remove('rlnTomoName')
+        else:
+            self._data_keys.pop('rlnTomoName')
 
         # If we have shifts in Angstrom, use those instead of the pixel shifts, remodel the format definition
         origin_present = False
@@ -206,6 +242,12 @@ class RELIONParticleData(ParticleData):
         for idx, row in df.iterrows():
             p = self.new_particle()
 
+            # Name
+            if names_present:
+                n = row['rlnTomoName'].split('_')
+                num = int(n[-1])
+                p['rlnTomoName'] = num
+
             # Position
             p['pos_x'] = row['rlnCoordinateX']
             p['pos_y'] = row['rlnCoordinateY']
@@ -249,7 +291,7 @@ class RELIONParticleData(ParticleData):
                 p[attr] = float(row[attr])
 
 
-    def write_file(self, file_name=None):
+    def write_file(self, file_name=None, additional_files=None):
         if file_name is None:
             file_name = self.file_name
 
@@ -266,6 +308,11 @@ class RELIONParticleData(ParticleData):
                 data['rlnOriginX'][idx] *= -1
                 data['rlnOriginY'][idx] *= -1
                 data['rlnOriginZ'][idx] *= -1
+
+        if self.name_prefix is not None:
+            for idx, n in enumerate(data['rlnTomoName']):
+                fmt = '{{}}_{{:0{}d}}'.format(self.name_leading_zeros)
+                data['rlnTomoName'][idx] = fmt.format(self.name_prefix, data['rlnTomoName'][idx])
 
         df = pd.DataFrame(data=data)
 
