@@ -120,6 +120,7 @@ class CurvedLineOptions(QWidget):
         layout.addWidget(self.spacing_checkbox)
 
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.addStretch()
         self.setLayout(layout)
 
         self._connect()

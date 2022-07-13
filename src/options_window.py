@@ -1210,8 +1210,7 @@ class OptionsWindow(ToolInstance):
         # Define the model specific options
         self.models = {"Sphere": 0, "CurvedLine": 1, "Plane": 2}
         self.model_options = QStackedWidget()
-        self.model_options.setSizePolicy(QSizePolicy(QSizePolicy.Maximum,
-                                                     QSizePolicy.Maximum))
+
         sphere_options = QWidget()
         self.curved_options = CurvedLineOptions(self.session)
         self.plane_options = PlaneOptions(self.session)
@@ -1219,7 +1218,6 @@ class OptionsWindow(ToolInstance):
         self.model_options.addWidget(sphere_options)
         self.model_options.addWidget(self.curved_options)
         self.model_options.addWidget(self.plane_options)
-
 
         geomodel_layout.addWidget(group_current_geomodel)
         geomodel_layout.addWidget(color_select)

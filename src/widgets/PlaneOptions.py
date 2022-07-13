@@ -39,8 +39,6 @@ class PlaneOptions(QWidget):
 
         layout = QVBoxLayout()
         plane_options_label = QLabel("Plane Options")
-        plane_options_label.setSizePolicy(QSizePolicy(QSizePolicy.Maximum,
-                                                     QSizePolicy.Maximum))
         layout.addWidget(plane_options_label)
 
         self.update_button = QPushButton("Update Plane")
@@ -69,6 +67,7 @@ class PlaneOptions(QWidget):
         layout.addWidget(self.fitting_checkbox)
 
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.addStretch()
         self.setLayout(layout)
 
         self._connect()
