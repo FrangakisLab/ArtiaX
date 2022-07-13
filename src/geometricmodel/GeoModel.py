@@ -117,6 +117,7 @@ def fit_sphere(session):
 
 
 def fit_line(session):
+    # NOT USED
     """Creates a line between two particles"""
     artiax = session.ArtiaX
 

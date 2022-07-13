@@ -161,7 +161,7 @@ will be displayed without the ChimeraX- prefix.
     <Provider tab="ArtiaX" section="View"
       name="XY" icon="view_xy.png" description="Set viewing direction to XY planes."/>
     <Provider tab="ArtiaX" section="View"
-      name="ZX" icon="view_xz.png" description="Set viewing direction to ZX planes."/>
+      name="XZ" icon="view_xz.png" description="Set viewing direction to XZ planes."/>
     <Provider tab="ArtiaX" section="View"
       name="YZ" icon="view_yz.png" description="Set viewing direction to YZ planes."/>
 
@@ -236,7 +236,7 @@ will be displayed without the ChimeraX- prefix.
     <Provider tab="ArtiaX Models" section="View"
       name="XY Models Tab" display_name="XY" icon="view_xy.png" description="Set viewing direction to XY planes."/>
     <Provider tab="ArtiaX Models" section="View"
-      name="ZX Models Tab" display_name="ZX" icon="view_xz.png" description="Set viewing direction to ZX planes."/>
+      name="XZ Models Tab" display_name="XZ" icon="view_xz.png" description="Set viewing direction to XZ planes."/>
     <Provider tab="ArtiaX Models" section="View"
       name="YZ Models Tab" display_name="YZ" icon="view_yz.png" description="Set viewing direction to YZ planes."/>
 

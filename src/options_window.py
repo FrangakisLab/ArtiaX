@@ -1215,8 +1215,6 @@ class OptionsWindow(ToolInstance):
         sphere_options = QWidget()
         self.curved_options = CurvedLineOptions(self.session)
         self.plane_options = PlaneOptions(self.session)
-        self.plane_options.setSizePolicy(QSizePolicy(QSizePolicy.Maximum,
-                                                     QSizePolicy.Maximum))
 
         self.model_options.addWidget(sphere_options)
         self.model_options.addWidget(self.curved_options)

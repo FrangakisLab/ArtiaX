@@ -39,6 +39,8 @@ class CurvedLineOptions(QWidget):
 
         layout = QVBoxLayout()
         line_options_label = QLabel("Curved Line Options")
+        line_options_label.setSizePolicy(QSizePolicy(QSizePolicy.Maximum,
+                                                     QSizePolicy.Maximum))
         layout.addWidget(line_options_label)
 
         self.line_display_checkbox = QGroupBox("Line display:")

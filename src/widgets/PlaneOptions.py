@@ -38,8 +38,10 @@ class PlaneOptions(QWidget):
         self.plane = None
 
         layout = QVBoxLayout()
-        line_options_label = QLabel("Plane Options")
-        layout.addWidget(line_options_label)
+        plane_options_label = QLabel("Plane Options")
+        plane_options_label.setSizePolicy(QSizePolicy(QSizePolicy.Maximum,
+                                                     QSizePolicy.Maximum))
+        layout.addWidget(plane_options_label)
 
         self.update_button = QPushButton("Update Plane")
         self.update_button.setToolTip("Updates the plane to fit the particles. Useful when the plane doesn't match the "

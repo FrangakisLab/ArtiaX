@@ -85,7 +85,7 @@ def artiax_view(session, direction=None):
     """Set the current camera position to one of the perpendicular views."""
     directions = {
         'xy': view_xy,
-        'zx': view_zx,
+        'xz': view_xz,
         'yz': view_yz
     }
 
