@@ -47,6 +47,7 @@ will be displayed without the ChimeraX- prefix.
     <Dependency name="ChimeraX-UI" version=">=1.0"/>
     <Dependency name="superqt"/>
     <Dependency name="starfile"/>
+    <Dependency name="geomdl"/>
   </Dependencies>
 
   <!-- Non-Python files that are part of package -->

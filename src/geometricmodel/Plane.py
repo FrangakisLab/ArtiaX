@@ -2,7 +2,7 @@
 import numpy as np
 import math
 from scipy import interpolate
-from itertools import chain
+
 
 # ChimeraX imports
 from chimerax.core.commands import run
@@ -17,13 +17,13 @@ from chimerax.geometry import z_align
 class Plane(GeoModel):
     """Plane"""
 
-    def __init__(self, name, session, particles, grid_x, grid_y, grid_z, resolution, method):
+    def __init__(self, name, session, particles, particle_pos, normal, points, resolution, method):
         super().__init__(name, session)
         self.particles = particles
+        self.particle_pos = particle_pos
+        self.normal = normal
 
-        self.grid_x = grid_x
-        self.grid_y = grid_y
-        self.grid_z = grid_z
+        self.points = points
 
         self.fitting_options = True
         self.method = method
@@ -37,31 +37,30 @@ class Plane(GeoModel):
         self.update()
 
     def define_plane(self):
-        nr_points = len(self.grid_x)*len(self.grid_x[0])
+        nr_points = len(self.points)*len(self.points)
         vertices = np.zeros((nr_points*6, 3), dtype=np.float32)
         triangles = np.zeros((nr_points*2, 3), dtype=np.int32)
         normals = np.zeros((nr_points*6, 3), dtype=np.float32)
-        nr_cols = len(self.grid_x[0])
+        nr_cols = len(self.points[0])
         vertex_index = 0
         triangles_index = 0
 
-        points = np.dstack((self.grid_x, self.grid_y, self.grid_z))
-        for i, row in enumerate(points):
+        for i, row in enumerate(self.points):
             for j, point in enumerate(row):
                 if not math.isnan(point[2]):
-                    if i-1 >= 0 and not math.isnan(points[i-1][j][2]):
-                        if j-1 >= 0 and not math.isnan(points[i][j-1][2]):
-                            vertices[vertex_index:vertex_index+3] = [point, points[i][j-1], points[i-1][j]]
+                    if i-1 >= 0 and not math.isnan(self.points[i-1][j][2]):
+                        if j-1 >= 0 and not math.isnan(self.points[i][j-1][2]):
+                            vertices[vertex_index:vertex_index+3] = [point, self.points[i][j-1], self.points[i-1][j]]
                             triangles[triangles_index] = [vertex_index, vertex_index+1, vertex_index+2]
-                            normal = np.cross(points[i][j-1] - point, points[i-1][j] - point)
+                            normal = np.cross(self.points[i][j-1] - point, self.points[i-1][j] - point)
                             normal = normal / np.linalg.norm(normal)
                             normals[vertex_index: vertex_index+3] = [normal, normal, normal]
                             vertex_index += 3
                             triangles_index += 1
-                        if j+1 < nr_cols and not math.isnan(points[i-1][j+1][2]):
-                            vertices[vertex_index:vertex_index + 3] = [point, points[i-1][j], points[i-1][j+1]]
+                        if j+1 < nr_cols and not math.isnan(self.points[i-1][j+1][2]):
+                            vertices[vertex_index:vertex_index + 3] = [point, self.points[i-1][j], self.points[i-1][j+1]]
                             triangles[triangles_index] = [vertex_index, vertex_index + 1, vertex_index + 2]
-                            normal = np.cross(points[i-1][j+1] - points[i-1][j], point - points[i-1][j])
+                            normal = np.cross(self.points[i-1][j+1] - self.points[i-1][j], point - self.points[i-1][j])
                             normal = normal / np.linalg.norm(normal)
                             normals[vertex_index: vertex_index + 3] = [normal, normal, normal]
                             vertex_index += 3
@@ -79,11 +78,11 @@ class Plane(GeoModel):
         self.vertex_colors = np.full((len(vertices), 4), self.color)
 
     def recalc_and_update(self):
+        #self.normal, self.particle_pos = get_normal_and_pos(self.particles)
         if self.use_base:
-            self.grid_x, self.grid_y, self.grid_z = get_grid(self.session, self.particles, self.resolution, self.method,
-                                                             base=self.base_level)
+            self.points = get_grid(self.particle_pos, self.normal, self.resolution, self.method, base=self.base_level)
         else:
-            self.grid_x, self.grid_y, self.grid_z = get_grid(self.session, self.particles, self.resolution, self.method)
+            self.points = get_grid(self.particle_pos, self.normal, self.resolution, self.method)
         self.update()
 
     def change_method(self, method):
@@ -101,22 +100,54 @@ class Plane(GeoModel):
         self.recalc_and_update()
 
 
-def get_grid(session, particles, resolution, method, base=None, particle_pos=None):
-    if particle_pos is None:
-        particle_pos = np.zeros((0, 3))  # each row is one currently selected particle, with columns being x,y,z
-        for particle in particles:
-            x_pos = particle.coord[0]
-            y_pos = particle.coord[1]
-            z_pos = particle.coord[2]
-            particle_pos = np.append(particle_pos, [[x_pos, y_pos, z_pos]], axis=0)
+def get_grid(particle_pos, normal, resolution, method, base=None):
+    # Create ON system u,v,n
+    u = np.array([1,0,0], dtype=np.float64)
+    u -= u.dot(normal) * normal
+    u /= np.linalg.norm(u)
+    v = np.cross(normal, u)
 
-    lower = np.amin(particle_pos, axis=0)
-    upper = np.amax(particle_pos, axis=0)
+    # Transform points to new system
+    T = [u,v,normal]
+    particle_pos_uvn = np.matmul(T,particle_pos.T).T
+    lower = np.amin(particle_pos_uvn, axis=0)
+    upper = np.amax(particle_pos_uvn, axis=0)
     resolution = complex(0, resolution)
-    grid_x, grid_y = np.mgrid[lower[0]:upper[0]:resolution, lower[1]:upper[1]:resolution]
+    grid_u, grid_v = np.mgrid[lower[0]:upper[0]:resolution, lower[1]:upper[1]:resolution]
+
+    # Calculate mesh in new system
     if base is None:
-        grid_z = interpolate.griddata(particle_pos[:, :2], particle_pos[:, 2], (grid_x, grid_y), method=method)
+        grid_n = interpolate.griddata(particle_pos_uvn[:, :2], particle_pos_uvn[:, 2], (grid_u, grid_v), method=method)
     else:
-        grid_z = interpolate.griddata(particle_pos[:, :2], particle_pos[:, 2], (grid_x, grid_y), method=method,
+        grid_n = interpolate.griddata(particle_pos_uvn[:, :2], particle_pos_uvn[:, 2], (grid_u, grid_v), method=method,
                                       fill_value=base)
-    return grid_x, grid_y, grid_z
+
+    # Translate back to old system
+    points_uvn = np.dstack((grid_u, grid_v, grid_n))
+    points = np.zeros(points_uvn.shape)
+    for i, row in enumerate(points_uvn):
+        points[i] = np.matmul(np.linalg.inv(T), row.T).T
+
+    return points
+
+
+def get_normal_and_pos(particles, particle_pos=None):
+    return_pos = False
+    if particle_pos is None:
+        return_pos = True
+        particle_pos = np.zeros((len(particles), 3))
+        # Each row is one currently selected particle, with columns being x,y,z
+        for i, particle in enumerate(particles):
+            particle_pos[i] = [particle.coord[0], particle.coord[1], particle.coord[2]]
+
+    # subtract out the centroid and take the SVD
+    svd = np.linalg.svd(particle_pos - particle_pos.mean(0))
+    # Normal is now the last row of the 3x3 scd[2] (vh) matrix
+    normal = svd[2][2, :]
+    if normal[2] < 0:
+        normal = -normal
+
+    if return_pos:
+        return normal, particle_pos
+    else:
+        return normal

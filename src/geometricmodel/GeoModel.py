@@ -205,8 +205,9 @@ def fit_plane(session):
     resolution = 50
     method = 'cubic'  # nearest, cubic, or linear
 
-    from .Plane import get_grid, Plane
-    grid_x, grid_y, grid_z = get_grid(session, particles, resolution, method, particle_pos=particle_pos)
-    geomodel = Plane('plane', session, particles, grid_x, grid_y, grid_z, resolution, method)
+    from .Plane import get_normal_and_pos, get_grid, Plane
+    normal = get_normal_and_pos(particles, particle_pos)
+    points = get_grid(particle_pos, normal, resolution, method)
+    geomodel = Plane('plane', session, particles, particle_pos, normal, points, resolution, method)
 
     session.ArtiaX.add_geomodel(geomodel)
