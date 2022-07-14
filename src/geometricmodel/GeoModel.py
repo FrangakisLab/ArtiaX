@@ -1,15 +1,9 @@
 # General imports
 import numpy as np
-from scipy import interpolate
 import math
 
 # ChimeraX imports
-from chimerax.core.commands import run
-from chimerax.core.errors import UserError
 from chimerax.core.models import Model
-from chimerax.map import Volume
-from chimerax.atomic import Atom
-from chimerax.graphics import Drawing
 from chimerax.geometry import z_align
 
 # Triggers
@@ -170,7 +164,7 @@ def fit_curved_line(session):
     from .CurvedLine import get_points
     points, der = get_points(session, particles, smooth, degree, resolution)
 
-    # Reorient selected particles so that Z-axis points towards next particle
+    # Reorient selected particles so that Z-axis points towards next particle NOW ITS OWN COMMAND
     # particle_index = 0
     # last_part = None
     # for particle_list in session.ArtiaX.partlists.child_models():

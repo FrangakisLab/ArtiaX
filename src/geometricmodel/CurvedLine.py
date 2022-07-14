@@ -4,21 +4,17 @@ import math
 from scipy import interpolate
 
 # ChimeraX imports
-from chimerax.core.commands import run
-from chimerax.core.errors import UserError
-from chimerax.core.models import Model
-from chimerax.map import Volume
-from chimerax.atomic import Atom
-from chimerax.graphics import Drawing
-from .GeoModel import GeoModel, GEOMODEL_CHANGED
-from chimerax.atomic import AtomicShapeDrawing
 from chimerax.geometry import z_align, rotation, translation
 from chimerax.bild.bild import _BildFile
+from chimerax.atomic import AtomicShapeDrawing
+
+# ArtiaX imports
+from .GeoModel import GeoModel, GEOMODEL_CHANGED
 from ..particle.SurfaceCollectionModel import SurfaceCollectionModel
 
 
 class CurvedLine(GeoModel):
-    """Line between two points"""
+    """Line between points"""
 
     def __init__(self, name, session, particles, points, der_points, degree, smooth, resolution):
         super().__init__(name, session)
@@ -73,7 +69,6 @@ class CurvedLine(GeoModel):
         self.update()
 
     def define_curved_line(self):
-        from chimerax.bild.bild import _BildFile
         b = _BildFile(self.session, 'dummy')
 
         for i in range(0, len(self.points[0]) - 1):
@@ -82,7 +77,6 @@ class CurvedLine(GeoModel):
                                                                        self.points[1][i + 1],
                                                                        self.points[2][i + 1], self.radius).split())
 
-        from chimerax.atomic import AtomicShapeDrawing
         d = AtomicShapeDrawing('shapes')
         d.add_shapes(b.shapes)
 
@@ -115,7 +109,6 @@ class CurvedLine(GeoModel):
 
     def get_direction_marker_surface(self):
         # Axes from https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/bild.html
-        from chimerax.bild.bild import _BildFile
         b = _BildFile(self.session, 'dummy')
 
         b.sphere_command('.sphere 0 0 0 {}'.format(self.marker_size).split())
@@ -124,7 +117,6 @@ class CurvedLine(GeoModel):
         b.arrow_command(".arrow 0 0 0 0 0 {} {} {}".format(self.axes_size, self.axes_size / 15,
                                                            self.axes_size / 15 * 4).split())
 
-        from chimerax.atomic import AtomicShapeDrawing
         d = AtomicShapeDrawing('shapes')
         d.add_shapes(b.shapes)
 
@@ -251,11 +243,11 @@ class CurvedLine(GeoModel):
 
 def get_points(session, particles, smooth, degree, resolution):
     # Find particles
-    x, y, z = np.zeros(0), np.zeros(0), np.zeros(0)
-    for particle in particles:
-        x = np.append(x, particle.coord[0])
-        y = np.append(y, particle.coord[1])
-        z = np.append(z, particle.coord[2])
+    x, y, z = np.zeros(len(particles)), np.zeros(len(particles)), np.zeros(len(particles))
+    for i, particle in enumerate(particles):
+        x[i] = particle.coord[0]
+        y[i] = particle.coord[1]
+        z[i] = particle.coord[2]
 
     # s=0 means it will go through all points, s!=0 means smoother, good value between m+-sqrt(2m) (m=no. points)
     # degree can be 1,3, or 5

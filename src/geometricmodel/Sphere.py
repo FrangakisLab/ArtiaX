@@ -1,16 +1,11 @@
 # General imports
 import numpy as np
-import math
 
 # ChimeraX imports
-from chimerax.core.commands import run
-from chimerax.core.errors import UserError
-from chimerax.core.models import Model
-from chimerax.map import Volume
-from chimerax.atomic import Atom
-from chimerax.graphics import Drawing
-from .GeoModel import GeoModel
 from chimerax.geometry import z_align
+
+# ArtiaX imports
+from .GeoModel import GeoModel
 
 class Sphere(GeoModel):
     """Sphere"""

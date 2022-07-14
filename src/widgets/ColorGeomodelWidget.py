@@ -14,13 +14,9 @@ from Qt.QtWidgets import (
     QHBoxLayout,
     QVBoxLayout,
     QPushButton,
-    QRadioButton,
-    QButtonGroup,
     QToolButton,
     QGroupBox,
     QLabel,
-    QLineEdit,
-    QLayout
 )
 
 # This package
