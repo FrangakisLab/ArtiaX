@@ -67,30 +67,49 @@ def selected_geomodels(session, model=None):
     return s_geomodels
 
 
-def get_curr_selected_particles_pos(session):
+def get_curr_selected_particles(session, return_particles=True, return_pos=True, return_markers=False):
     artiax = session.ArtiaX
 
     # Find selected particles
     particles = np.array([])
+    markers = np.array([])
     particle_pos = np.zeros((0, 3))  # each row is one currently selected particle, with columns being x,y,z
     for particle_list in artiax.partlists.child_models():
         for curr_id in particle_list.particle_ids[particle_list.selected_particles]:
             if curr_id:
                 curr_part = particle_list.get_particle(curr_id)
-                particles = np.append(particles, curr_part)
-                x_pos = curr_part.coord[0]
-                y_pos = curr_part.coord[1]
-                z_pos = curr_part.coord[2]
-                particle_pos = np.append(particle_pos, [[x_pos, y_pos, z_pos]], axis=0)
+                if return_particles:
+                    particles = np.append(particles, curr_part)
+                if return_pos:
+                    x_pos = curr_part.coord[0]
+                    y_pos = curr_part.coord[1]
+                    z_pos = curr_part.coord[2]
+                    particle_pos = np.append(particle_pos, [[x_pos, y_pos, z_pos]], axis=0)
+                if return_markers:
+                    curr_marker = particle_list.get_marker(curr_id)
+                    markers = np.append(markers, curr_marker)
 
-    return particle_pos, particles
+    if return_pos and return_particles and return_markers:
+        return particle_pos, particles, markers
+    elif return_pos and return_particles:
+        return particle_pos, particles
+    elif return_pos and return_markers:
+        return particle_pos, markers
+    elif return_particles and return_markers:
+        return particles, markers
+    elif return_pos:
+        return particle_pos
+    elif return_particles:
+        return particles
+    else:
+        return markers
 
 
 def fit_sphere(session):
     """Fits a sphere to the currently selected particles"""
     artiax = session.ArtiaX
 
-    particle_pos, particles = get_curr_selected_particles_pos(session)
+    particle_pos, particles = get_curr_selected_particles(session)
 
     if len(particle_pos) < 4:
         session.logger.warning("At least four points are needed to fit a sphere")
@@ -115,7 +134,7 @@ def fit_line(session):
     """Creates a line between two particles"""
     artiax = session.ArtiaX
 
-    particle_pos, particles = get_curr_selected_particles_pos(session)
+    particle_pos, particles = get_curr_selected_particles(session)
 
     if len(particle_pos) != 2:
         session.logger.warning("Only select a start and end point")
@@ -144,12 +163,7 @@ def fit_curved_line(session):
     # TODO: set particles along line, rotate particles with spacing, merge with line, select particles, order from lines
     artiax = session.ArtiaX
 
-    particles = np.array([])
-    for particle_list in session.ArtiaX.partlists.child_models():
-        for curr_id in particle_list.particle_ids[particle_list.selected_particles]:
-            if curr_id:
-                part = particle_list.get_particle(curr_id)
-                particles = np.append(particles, part)
+    particles = get_curr_selected_particles(return_pos=False)
 
     if len(particles) < 2:
         session.logger.warning("Select at least two points")
@@ -191,17 +205,67 @@ def fit_curved_line(session):
     artiax.add_geomodel(geomodel)
 
 
-def fit_plane(session):
-    particle_pos, particles = get_curr_selected_particles_pos(session)
+def fit_surface(session):
+    particle_pos, particles = get_curr_selected_particles(session)
     if len(particles) < 3:
         session.logger.warning("Select at least three points")
         return
     resolution = 50
     method = 'cubic'  # nearest, cubic, or linear
 
-    from .Plane import get_normal_and_pos, get_grid, Plane
+    from .Surface import get_normal_and_pos, get_grid, Surface
     normal = get_normal_and_pos(particles, particle_pos)
     points = get_grid(particle_pos, normal, resolution, method)
-    geomodel = Plane('plane', session, particles, particle_pos, normal, points, resolution, method)
+    geomodel = Surface('surface', session, particles, particle_pos, normal, points, resolution, method)
 
     session.ArtiaX.add_geomodel(geomodel)
+
+
+def triangulate_selected(session):
+    particle_pos, markers = get_curr_selected_particles(session, return_particles=False, return_markers=True)
+    if len(markers) < 3:
+        session.logger.warning("Select at least three points")
+        return
+
+    from scipy.spatial import Delaunay
+    connections = Delaunay(particle_pos, furthest_site=True).simplices
+    from .TrangulationSurface import make_links
+    make_links(markers, connections)
+
+
+def surface_from_links(session):
+    from chimerax.markers.markers import selected_markers
+    particle_pairs = np.asarray(selected_markers(session).bonds.unique().atoms)
+    triangles = np.zeros((0,3,3))
+    triangle_made = False
+    while len(particle_pairs[0]) > 1:
+        first_corner = particle_pairs[0][0]
+        second_corner = particle_pairs[1][0]
+        bonds_that_contain_first = find_bonds_containing_corner(particle_pairs, first_corner)
+        bonds_that_contain_second = find_bonds_containing_corner(particle_pairs, second_corner)
+        for second_side in bonds_that_contain_second:
+            if second_corner == particle_pairs[0][second_side]:
+                third_corner = particle_pairs[1][second_side]
+            else:
+                third_corner = particle_pairs[0][second_side]
+            for third_side in bonds_that_contain_first:
+                if third_corner == particle_pairs[0][third_side] or third_corner == particle_pairs[1][third_side]:
+                    triangle_made = True
+                    triangles = np.append(triangles, [[first_corner.coord, second_corner.coord, third_corner.coord]], axis=0)
+        particle_pairs = np.delete(particle_pairs, 0, 1)
+
+    if not triangle_made:
+        session.logger.warning("Markers that form at least one triangle.")
+        return
+
+    from .TrangulationSurface import TriangulationSurface
+    geomodel = TriangulationSurface("triangulated surface", session, triangles)
+    session.ArtiaX.add_geomodel(geomodel)
+
+
+def find_bonds_containing_corner(particle_pairs, corner):
+    bonds_containing_corner = np.array([])
+    for bond in range(0, len(particle_pairs[0])):
+        if particle_pairs[0][bond] == corner or particle_pairs[1][bond] == corner:
+            bonds_containing_corner = np.append(bonds_containing_corner, bond)
+    return bonds_containing_corner.astype(np.int)

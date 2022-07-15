@@ -7,8 +7,8 @@ from scipy import interpolate
 from .GeoModel import GeoModel
 
 
-class TriangulationPlane(GeoModel):
-    """Triangulated Plane"""
+class Surface(GeoModel):
+    """Surface"""
 
     def __init__(self, name, session, particles, particle_pos, normal, points, resolution, method):
         super().__init__(name, session)
@@ -71,7 +71,7 @@ class TriangulationPlane(GeoModel):
         self.vertex_colors = np.full((len(vertices), 4), self.color)
 
     def recalc_and_update(self):
-        #self.normal, self.particle_pos = get_normal_and_pos(self.particles)
+        self.normal, self.particle_pos = get_normal_and_pos(self.particles)
         if self.use_base:
             self.points = get_grid(self.particle_pos, self.normal, self.resolution, self.method, base=self.base_level)
         else:
@@ -137,6 +137,7 @@ def get_normal_and_pos(particles, particle_pos=None):
     svd = np.linalg.svd(particle_pos - particle_pos.mean(0))
     # Normal is now the last row of the 3x3 scd[2] (vh) matrix
     normal = svd[2][2, :]
+    # Make sure z part is positive otherwise it didnt work
     if normal[2] < 0:
         normal = -normal
 

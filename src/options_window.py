@@ -1208,16 +1208,18 @@ class OptionsWindow(ToolInstance):
         color_select.setLayout(group_color_layout)
 
         # Define the model specific options
-        self.models = {"Sphere": 0, "CurvedLine": 1, "Plane": 2}
+        self.models = {"Sphere": 0, "CurvedLine": 1, "Surface": 2, "TriangulationSurface":3}
         self.model_options = QStackedWidget()
 
         sphere_options = QWidget()
         self.curved_options = CurvedLineOptions(self.session)
         self.plane_options = PlaneOptions(self.session)
+        triangulation_surface_options = QWidget()
 
         self.model_options.addWidget(sphere_options)
         self.model_options.addWidget(self.curved_options)
         self.model_options.addWidget(self.plane_options)
+        self.model_options.addWidget(triangulation_surface_options)
 
         geomodel_layout.addWidget(group_current_geomodel)
         geomodel_layout.addWidget(color_select)
@@ -1237,8 +1239,10 @@ class OptionsWindow(ToolInstance):
         self.geomodel_color_selection.set_geomodel(geomodel)
         if type(geomodel).__name__ == "CurvedLine":
             self.curved_options.set_line(geomodel)
-        elif type(geomodel).__name__ == "Plane":
+        elif type(geomodel).__name__ == "Surface":
             self.plane_options.set_line(geomodel)
+        # elif type(geomodel).__name__ == "TriangulationSurface":
+        #     self.triangulation_surface_options.set_line(geomodel)
 
         self.model_options.setCurrentIndex(self.models[self.curr_model])
 

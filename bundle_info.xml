@@ -262,9 +262,13 @@ will be displayed without the ChimeraX- prefix.
     <Provider tab="ArtiaX Models" section="Line"
       name="Fit Line" icon="show_axes.png" description="Create a geometric model line between the selected particles."/>
 
-    <!-- ArtiaX Model tab, Plane-->
-    <Provider tab="ArtiaX Models" section="Plane"
-      name="Fit Plane" icon="view_xz.png" description="Create a geometric model plane between the selected particles."/>
+    <!-- ArtiaX Model tab, Surface-->
+    <Provider tab="ArtiaX Models" section="Surface"
+      name="Fit Surface" icon="view_xz.png" description="Create a geometric model plane between the selected particles."/>
+    <Provider tab="ArtiaX Models" section="Surface"
+      name="Triangulate" icon="show_axes.png" description="Triangulate all selected particles using links."/>
+    <Provider tab="ArtiaX Models" section="Surface"
+      name="Triangles From Links" icon="view_xz.png" description="Creates a triangle surface between all particles marked by links."/>
 
 
   </Providers>
@@ -329,11 +333,17 @@ will be displayed without the ChimeraX- prefix.
     <ChimeraXClassifier>ChimeraX :: Command :: artiax fit line :: General ::
       Fits a line to two selected particles.</ChimeraXClassifier>
 
-    <ChimeraXClassifier>ChimeraX :: Command :: artiax fit plane :: General ::
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax fit surface :: General ::
       Fits a plane through the selected particles.</ChimeraXClassifier>
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax fit curved line :: General ::
       Fits a smooth line between the selected particles.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax triangulate :: General ::
+      Triangulates all selected particles.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax triangles from links :: General ::
+      Creates a triangle surface between all particles marked by links.</ChimeraXClassifier>
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax info :: General ::
       Print information about tomograms or particle lists.</ChimeraXClassifier>

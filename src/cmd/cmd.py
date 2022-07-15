@@ -187,13 +187,25 @@ def artiax_fit_line(session):
     from ..geometricmodel.GeoModel import fit_curved_line
     fit_curved_line(session)
 
-def artiax_fit_plane(session):
+def artiax_fit_surface(session):
     if not hasattr(session, 'ArtiaX'):
-        session.logger.warning("ArtiaX is not currently running, so no plane can be fitted.")
+        session.logger.warning("ArtiaX is not currently running, so no surface can be fitted.")
         return
 
-    from ..geometricmodel.GeoModel import fit_plane
-    fit_plane(session)
+    from ..geometricmodel.GeoModel import fit_surface
+    fit_surface(session)
+
+def artiax_triangulate(session):
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running, so no particles can be triangulated.")
+        return
+
+    from ..geometricmodel.GeoModel import triangulate_selected
+    triangulate_selected(session)
+
+def artiax_triangles_from_links(session):
+    from ..geometricmodel.GeoModel import surface_from_links
+    surface_from_links(session)
 
 
 def artiax_reorient_sphere_particles(session):
@@ -727,13 +739,31 @@ def register_artiax(logger):
         )
         register('artiax fit line', desc, artiax_fit_line)
 
-    def register_artiax_fit_plane():
+    def register_artiax_fit_surface():
         desc = CmdDesc(
             # TODO rewrite and get url right
-            synopsis='Create a geometric model plane that goes through the selected particles.',
+            synopsis='Create a geometric model surface that goes through the selected particles.',
             url='help:user/commands/artiax_hide.html'
         )
-        register('artiax fit plane', desc, artiax_fit_plane)
+        register('artiax fit surface', desc, artiax_fit_surface)
+
+    def register_artiax_triangulate():
+        desc = CmdDesc(
+            # TODO rewrite and get url right
+            synopsis='Triangulates all selected particles using links.',
+            url='help:user/commands/artiax_hide.html'
+        )
+        register('artiax triangulate', desc, artiax_triangulate)
+
+    def register_artiax_triangles_from_links():
+        desc = CmdDesc(
+            # TODO rewrite and get url right
+            synopsis='Creates a triangle surface between all particles marked by links. Useful together with artiax '
+                     'triangulate.',
+            url='help:user/commands/artiax_hide.html'
+        )
+        register('artiax triangles from links', desc, artiax_triangles_from_links)
+
 
     def register_artiax_reorient_sphere_particles():
         desc = CmdDesc(
@@ -836,7 +866,9 @@ def register_artiax(logger):
     register_artiax_particles()
     register_artiax_fit_sphere()
     register_artiax_fit_line()
-    register_artiax_fit_plane()
+    register_artiax_fit_surface()
+    register_artiax_triangulate()
+    register_artiax_triangles_from_links()
     register_artiax_reorient_sphere_particles()
     register_artiax_tomo()
     register_artiax_colormap()
