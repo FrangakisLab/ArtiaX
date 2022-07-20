@@ -1240,7 +1240,7 @@ class OptionsWindow(ToolInstance):
         if type(geomodel).__name__ == "CurvedLine":
             self.curved_options.set_line(geomodel)
         elif type(geomodel).__name__ == "Surface":
-            self.plane_options.set_line(geomodel)
+            self.plane_options.set_plane(geomodel)
         # elif type(geomodel).__name__ == "TriangulationSurface":
         #     self.triangulation_surface_options.set_line(geomodel)
 

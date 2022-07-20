@@ -48,7 +48,6 @@ class CurvedLine(GeoModel):
         self.collection_model.add_collection('direction_markers')
         v, n, t, vc = self.get_direction_marker_surface()
         self.collection_model.set_surface('direction_markers', v, n, t)
-
         self.spheres_places = np.array([])
         self.indices = []
         self.rotate = False
@@ -125,6 +124,7 @@ class CurvedLine(GeoModel):
     def create_spheres(self):
         self.has_particles = True
         self.triggers.activate_trigger(GEOMODEL_CHANGED, self)
+        # Remove old spheres if any exist
         if len(self.indices):
             self.collection_model.delete_places(self.indices)
         self.spheres_places = []
@@ -199,9 +199,6 @@ class CurvedLine(GeoModel):
         artia.create_partlist(name=self.name + " particles")
         partlist = artia.partlists.child_models()[-1]
         artia.ui.ow._show_tab("geomodel")
-        self.create_particles(partlist)
-
-    def create_particles(self, partlist):
         for i in range(0, len(self.spheres_places)):
             partlist.new_particle(self.spheres_places[i], [0, 0, 0], self.spheres_places[i])
 
