@@ -5,22 +5,22 @@ When uploaded to the ChimeraX toolshed, the bundle
 will be displayed without the ChimeraX- prefix.
 -->
 
-<BundleInfo name="ArtiaX"
+<BundleInfo name="ChimeraX-ArtiaX"
 	    version="0.1" package="chimerax.artiax"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
-  <Author>Utz Ermel, Serena M. Arghittu, Conny Sick, Mirko Ploesser and Achilleas Frangakis</Author>
+  <Author>Utz Ermel, Serena M. Arghittu, and Achilleas Frangakis</Author>
   <Email>achilleas.frankgakis@biophysik.org</Email>
   <URL>https://www.bmls.de/Electron_Microscopy/aboutus.html</URL>
 
   <!-- Synopsis is a one-line description
        Description is a full multi-line description -->
-  <Synopsis>Cryo-ET Plugin for ChimeraX</Synopsis>
+  <Synopsis>ArtiaX: Cryo-ET Plugin for ChimeraX</Synopsis>
   <Description>
-    ArtiaX is an open-source extension of the molecular visualisation program ChimeraX and is primarily
-    aimed for processing cryo electron tomography data. It allows visualization of macromolecules within their context
-    in electron tomograms.
+    ArtiaX is an open-source extension for visualization and processing of cryo electron tomography data. It allows
+    rendering of macromolecular complexes within their context in electron tomograms, picking particles for subtomogram
+    averaging, and assessing results of image classification or template matching procedures.
   </Description>
 
   <!-- Categories is a list where this bundle should appear -->
