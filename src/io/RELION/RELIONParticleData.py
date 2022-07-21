@@ -313,6 +313,8 @@ class RELIONParticleData(ParticleData):
             for idx, n in enumerate(data['rlnTomoName']):
                 fmt = '{{}}_{{:0{}d}}'.format(self.name_leading_zeros)
                 data['rlnTomoName'][idx] = fmt.format(self.name_prefix, data['rlnTomoName'][idx])
+        else:
+            data.pop('rlnTomoName')
 
         df = pd.DataFrame(data=data)
 
