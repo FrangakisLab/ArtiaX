@@ -9,11 +9,12 @@ from chimerax.bild.bild import _BildFile
 from chimerax.atomic import AtomicShapeDrawing
 
 # ArtiaX imports
-from .GeoModel import GeoModel, GEOMODEL_CHANGED
+from .GeoModel import GEOMODEL_CHANGED
+from .PopulatedModel import PopulatedModel
 from ..particle.SurfaceCollectionModel import SurfaceCollectionModel
 
 
-class CurvedLine(GeoModel):
+class CurvedLine(PopulatedModel):
     """Line between points"""
 
     def __init__(self, name, session, particles, points, der_points, degree, smooth, resolution):
@@ -34,22 +35,9 @@ class CurvedLine(GeoModel):
         self.display_options = True
         self.radius = 1
         self.radius_edit_range = (0, 2)
-        self.has_particles = False
-        self.marker_axis_display_options = True
-        self.marker_size = 4
-        self.marker_size_edit_range = (1, 7)
-        self.axes_size = 15
-        self.axes_size_edit_range = (10, 20)
+
         self.spacing_edit_range = (1, 100)
         self.spacing = (self.spacing_edit_range[1] + self.spacing_edit_range[0]) / 2
-
-        self.collection_model = SurfaceCollectionModel('Spheres', session)
-        self.add([self.collection_model])
-        self.collection_model.add_collection('direction_markers')
-        v, n, t, vc = self.get_direction_marker_surface()
-        self.collection_model.set_surface('direction_markers', v, n, t)
-        self.spheres_places = np.array([])
-        self.indices = []
         self.rotate = False
         self.rotation = 0
         self.rotation_edit_range = (0, 1)
@@ -81,45 +69,10 @@ class CurvedLine(GeoModel):
 
         return d.vertices, d.normals, d.triangles, d.vertex_colors
 
-    @GeoModel.color.setter
-    def color(self, color):
-        if len(color) == 3:  # transparency was not given
-            color = np.append(color, self._color[3])
-        self._color = color
-        self.vertex_colors = np.full(np.shape(self.vertex_colors), color)
-        self.collection_model.color = color
-
     def change_radius(self, r):
         if self.radius != r:
             self.radius = r
             self.update()
-
-    def change_marker_size(self, r):
-        if self.marker_size != r:
-            self.marker_size = r
-            v, n, t, vc = self.get_direction_marker_surface()
-            self.collection_model.set_surface('direction_markers', v, n, t)
-
-    def change_axes_size(self, s):
-        if self.axes_size != s:
-            self.axes_size = s
-            v, n, t, vc = self.get_direction_marker_surface()
-            self.collection_model.set_surface('direction_markers', v, n, t)
-
-    def get_direction_marker_surface(self):
-        # Axes from https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/bild.html
-        b = _BildFile(self.session, 'dummy')
-
-        b.sphere_command('.sphere 0 0 0 {}'.format(self.marker_size).split())
-        b.arrow_command(".arrow 0 0 0 {} 0 0 {} {}".format(self.axes_size, self.axes_size / 15,
-                                                           self.axes_size / 15 * 4).split())
-        b.arrow_command(".arrow 0 0 0 0 0 {} {} {}".format(self.axes_size, self.axes_size / 15,
-                                                           self.axes_size / 15 * 4).split())
-
-        d = AtomicShapeDrawing('shapes')
-        d.add_shapes(b.shapes)
-
-        return d.vertices, d.normals, d.triangles, d.vertex_colors
 
     def create_spheres(self):
         self.has_particles = True
@@ -187,20 +140,6 @@ class CurvedLine(GeoModel):
         self.indices = [str(i) for i in range(0, len(self.spheres_places))]
         self.collection_model.add_places(self.indices, self.spheres_places)
         self.collection_model.color = self.color
-
-    def remove_spheres(self):
-        self.collection_model.delete_places(self.indices)
-        self.indices = []
-        self.has_particles = False
-        self.triggers.activate_trigger(GEOMODEL_CHANGED, self)
-
-    def create_particle_list(self):
-        artia = self.session.ArtiaX
-        artia.create_partlist(name=self.name + " particles")
-        partlist = artia.partlists.child_models()[-1]
-        artia.ui.ow._show_tab("geomodel")
-        for i in range(0, len(self.spheres_places)):
-            partlist.new_particle(self.spheres_places[i], [0, 0, 0], self.spheres_places[i])
 
     def change_rotation(self, rot):
         if self.rotation == rot:

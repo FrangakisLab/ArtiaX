@@ -163,7 +163,7 @@ def fit_curved_line(session):
     # TODO: set particles along line, rotate particles with spacing, merge with line, select particles, order from lines
     artiax = session.ArtiaX
 
-    particles = get_curr_selected_particles(return_pos=False)
+    particles = get_curr_selected_particles(session, return_pos=False)
 
     if len(particles) < 2:
         session.logger.warning("Select at least two points")
@@ -223,14 +223,20 @@ def fit_surface(session):
 
 def triangulate_selected(session):
     particle_pos, markers = get_curr_selected_particles(session, return_particles=False, return_markers=True)
-    if len(markers) < 3:
-        session.logger.warning("Select at least three points")
+    if len(markers) < 5:
+        session.logger.warning("Select at least five points")
         return
 
     from scipy.spatial import Delaunay
-    connections = Delaunay(particle_pos, furthest_site=True).simplices
+    connections = Delaunay(particle_pos, furthest_site=True).simplices #  TODO make this an optional argument
     from .TrangulationSurface import make_links
     make_links(markers, connections)
+
+
+def remove_selected_links(session):
+    from chimerax.markers.markers import selected_markers
+    bonds = selected_markers(session).bonds.unique()
+    bonds.delete()
 
 
 def surface_from_links(session):
@@ -255,7 +261,7 @@ def surface_from_links(session):
         particle_pairs = np.delete(particle_pairs, 0, 1)
 
     if not triangle_made:
-        session.logger.warning("Markers that form at least one triangle.")
+        session.logger.warning("Select particles that form at least one triangle.")
         return
 
     from .TrangulationSurface import TriangulationSurface
@@ -269,3 +275,12 @@ def find_bonds_containing_corner(particle_pairs, corner):
         if particle_pairs[0][bond] == corner or particle_pairs[1][bond] == corner:
             bonds_containing_corner = np.append(bonds_containing_corner, bond)
     return bonds_containing_corner.astype(np.int)
+
+
+def boundry(session):
+    particle_pos, markers = get_curr_selected_particles(session, return_particles=False, return_markers=True)
+    if len(markers) < 5:
+        session.logger.warning("Select at least five points")
+        return
+
+    # TODO: calculate stuff here and create the model

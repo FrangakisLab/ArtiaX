@@ -9,11 +9,12 @@ from chimerax.bild.bild import _BildFile
 from chimerax.atomic import AtomicShapeDrawing
 
 # ArtiaX imports
-from .GeoModel import GeoModel, GEOMODEL_CHANGED
+from .GeoModel import GEOMODEL_CHANGED
+from .PopulatedModel import PopulatedModel
 from ..particle.SurfaceCollectionModel import SurfaceCollectionModel
 
 
-class Surface(GeoModel):
+class Surface(PopulatedModel):
     """Surface"""
 
     def __init__(self, name, session, particles, particle_pos, normal, points, resolution, method):
@@ -32,20 +33,7 @@ class Surface(GeoModel):
         self.base_level = 0
         self.base_level_edit_range = (-10, 10)
 
-        self.has_particles = False
-        self.marker_axis_display_options = True
-        self.marker_size = 4
-        self.marker_size_edit_range = (1, 7)
-        self.axes_size = 15
-        self.axes_size_edit_range = (10, 20)
         self.rotation = 0
-        self.collection_model = SurfaceCollectionModel('Spheres', session)
-        self.add([self.collection_model])
-        self.collection_model.add_collection('direction_markers')
-        v, n, t, vc = self.get_direction_marker_surface()
-        self.collection_model.set_surface('direction_markers', v, n, t)
-        self.spheres_places = np.array([])
-        self.indices = []
 
         self.update()
 
@@ -57,6 +45,7 @@ class Surface(GeoModel):
         nr_cols = len(self.points[0])
         vertex_index = 0
         triangles_index = 0
+        self.ordered_normals = np.ones((len(self.points), len(self.points), 6), dtype=np.int32) * -1
 
         for i, row in enumerate(self.points):
             for j, point in enumerate(row):
@@ -68,6 +57,10 @@ class Surface(GeoModel):
                             normal = np.cross(self.points[i][j-1] - point, self.points[i-1][j] - point)
                             normal = normal / np.linalg.norm(normal)
                             normals[vertex_index: vertex_index+3] = [normal, normal, normal]
+                            self.ordered_normals[i][j][0] = vertex_index
+                            self.ordered_normals[i][j-1][np.where(self.ordered_normals[i][j-1] == -1)[0][0]] = vertex_index
+                            self.ordered_normals[i-1][j][np.where(self.ordered_normals[i-1][j] == -1)[0][0]] = vertex_index
+
                             vertex_index += 3
                             triangles_index += 1
                         if j+1 < nr_cols and not math.isnan(self.points[i-1][j+1][2]):
@@ -76,6 +69,10 @@ class Surface(GeoModel):
                             normal = np.cross(self.points[i-1][j+1] - self.points[i-1][j], point - self.points[i-1][j])
                             normal = normal / np.linalg.norm(normal)
                             normals[vertex_index: vertex_index + 3] = [normal, normal, normal]
+                            self.ordered_normals[i][j][0] = vertex_index
+                            self.ordered_normals[i-1][j][np.where(self.ordered_normals[i-1][j] == -1)[0][0]] = vertex_index
+                            self.ordered_normals[i-1][j+1][np.where(self.ordered_normals[i-1][j+1] == -1)[0][0]] = vertex_index
+
                             vertex_index += 3
                             triangles_index += 1
         vertices = vertices[:vertex_index]
@@ -112,41 +109,6 @@ class Surface(GeoModel):
         self.base_level = b
         self.recalc_and_update()
 
-    @GeoModel.color.setter
-    def color(self, color):
-        if len(color) == 3:  # transparency was not given
-            color = np.append(color, self._color[3])
-        self._color = color
-        self.vertex_colors = np.full(np.shape(self.vertex_colors), color)
-        self.collection_model.color = color
-
-    def change_marker_size(self, r):
-        if self.marker_size != r:
-            self.marker_size = r
-            v, n, t, vc = self.get_direction_marker_surface()
-            self.collection_model.set_surface('direction_markers', v, n, t)
-
-    def change_axes_size(self, s):
-        if self.axes_size != s:
-            self.axes_size = s
-            v, n, t, vc = self.get_direction_marker_surface()
-            self.collection_model.set_surface('direction_markers', v, n, t)
-
-    def get_direction_marker_surface(self):
-        # Axes from https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/bild.html
-        b = _BildFile(self.session, 'dummy')
-
-        b.sphere_command('.sphere 0 0 0 {}'.format(self.marker_size).split())
-        b.arrow_command(".arrow 0 0 0 {} 0 0 {} {}".format(self.axes_size, self.axes_size / 15,
-                                                           self.axes_size / 15 * 4).split())
-        b.arrow_command(".arrow 0 0 0 0 0 {} {} {}".format(self.axes_size, self.axes_size / 15,
-                                                           self.axes_size / 15 * 4).split())
-
-        d = AtomicShapeDrawing('shapes')
-        d.add_shapes(b.shapes)
-
-        return d.vertices, d.normals, d.triangles, d.vertex_colors
-
     def create_spheres(self):
         self.has_particles = True
         self.triggers.activate_trigger(GEOMODEL_CHANGED, self)
@@ -155,38 +117,40 @@ class Surface(GeoModel):
             self.collection_model.delete_places(self.indices)
         self.spheres_places = []
 
-        for row in self.points:
-            for vertex in row:
+        for i, row in enumerate(self.points):
+            for j, vertex in enumerate(row):
                 if not math.isnan(vertex[2]):
-                    normals = []
-                    for i, v in enumerate(self.vertices):
-                        #use isclose or go back to using self.vertices
-                        if (v == vertex).all():
-                            print("True")
-                            normals = np.append(normals, self.normals[i])
+                    normal_indices = self.ordered_normals[i][j][self.ordered_normals[i][j] != -1]
+                    normals = np.zeros((len(normal_indices), 3))
+                    for k, index in enumerate(normal_indices):
+                        normals[k] = self.normals[index]
+
                     normal = np.add.reduce(normals)
-                    normal = normal / np.linalg.norm(normal)
+                    normal = - normal / np.linalg.norm(normal)  # - needed to make them point to pos z
                     rot_to_normal = z_align(vertex, vertex + normal).zero_translation().inverse()
-                    place = translation(vertex) * rot_to_normal
+                    theta = 0
+                    if i+1 < len(self.points) and not math.isnan(self.points[i+1][j][2]):
+                        to_next_point = self.points[i+1][j] - vertex
+                        to_next_point = to_next_point - np.dot(to_next_point, normal) * normal  # projected onto plane
+                        to_next_point = to_next_point/np.linalg.norm(to_next_point)
+                        x_axes = rot_to_normal.transform_vector((1, 0, 0))
+                        cross = np.cross(to_next_point, x_axes)
+                        theta = math.acos(np.dot(x_axes, to_next_point)) * 180 / math.pi
+                        if cross[2] > 0:
+                            theta = -theta
+                    rot_around_normal = rotation(rot_to_normal.z_axis(), theta + self.rotation)
+                    rot = rot_around_normal * rot_to_normal
+                    place = translation(vertex) * rot
                     self.spheres_places = np.append(self.spheres_places, place)
 
         self.indices = [str(i) for i in range(0, len(self.spheres_places))]
         self.collection_model.add_places(self.indices, self.spheres_places)
         self.collection_model.color = self.color
 
-    def remove_spheres(self):
-        self.collection_model.delete_places(self.indices)
-        self.indices = []
-        self.has_particles = False
-        self.triggers.activate_trigger(GEOMODEL_CHANGED, self)
-
-    def create_particle_list(self):
-        artia = self.session.ArtiaX
-        artia.create_partlist(name=self.name + " particles")
-        partlist = artia.partlists.child_models()[-1]
-        artia.ui.ow._show_tab("geomodel") #make sure to stay on geomodel tab
-        for i in range(0, len(self.spheres_places)):
-            partlist.new_particle(self.spheres_places[i], [0, 0, 0], self.spheres_places[i])
+    def change_rotation(self, phi):
+        if self.rotation != phi:
+            self.rotation = phi
+            self.create_spheres()
 
 
 def get_grid(particle_pos, normal, resolution, method, base=None):

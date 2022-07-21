@@ -266,10 +266,15 @@ will be displayed without the ChimeraX- prefix.
     <Provider tab="ArtiaX Models" section="Surface"
       name="Fit Surface" icon="view_xz.png" description="Create a geometric model plane between the selected particles."/>
     <Provider tab="ArtiaX Models" section="Surface"
-      name="Triangulate" icon="show_axes.png" description="Triangulate all selected particles using links."/>
-    <Provider tab="ArtiaX Models" section="Surface"
       name="Triangles From Links" icon="view_xz.png" description="Creates a triangle surface between all particles marked by links."/>
+    <Provider tab="ArtiaX Models" section="Surface"
+      name="Boundary" icon="view_xz.png" description="Creates a hull around the selected particles."/>
 
+    <!-- ArtiaX Model tab, Links-->
+    <Provider tab="ArtiaX Models" section="Links"
+      name="Triangulate" icon="show_axes.png" description="Triangulate all selected particles using links."/>
+    <Provider tab="ArtiaX Models" section="Links"
+      name="Remove Links" icon="show_axes.png" description="Removes links from selected particles."/>
 
   </Providers>
 
@@ -336,11 +341,17 @@ will be displayed without the ChimeraX- prefix.
     <ChimeraXClassifier>ChimeraX :: Command :: artiax fit surface :: General ::
       Fits a plane through the selected particles.</ChimeraXClassifier>
 
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax boundary :: General ::
+      Creates a hull around the selected particles.</ChimeraXClassifier>
+
     <ChimeraXClassifier>ChimeraX :: Command :: artiax fit curved line :: General ::
       Fits a smooth line between the selected particles.</ChimeraXClassifier>
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax triangulate :: General ::
       Triangulates all selected particles.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax remove links :: General ::
+      Removes links from selected particles.</ChimeraXClassifier>
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax triangles from links :: General ::
       Creates a triangle surface between all particles marked by links.</ChimeraXClassifier>

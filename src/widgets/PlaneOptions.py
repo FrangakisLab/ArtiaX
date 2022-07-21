@@ -71,13 +71,12 @@ class PlaneOptions(QWidget):
         self.populate_checkbox.setCheckable(True)
         self.populate_checkbox.setChecked(False)
         populate_checkbox_layout = QVBoxLayout()
-
+        self.update_particles_button = QPushButton("Update marker positions")
+        populate_checkbox_layout.addWidget(self.update_particles_button)
         self.create_particle_button = QPushButton("Create particles")
         populate_checkbox_layout.addWidget(self.create_particle_button)
-
         self.rotation_slider = LabelEditSlider((0, 360), "Rotation [deg]:")
         populate_checkbox_layout.addWidget(self.rotation_slider)
-
         self.marker_axis_display_checkbox = QGroupBox("Marker/Axis Display")
         self.marker_axis_display_checkbox.setCheckable(True)
         marker_axis_display_checkbox_layout = QVBoxLayout()
@@ -87,7 +86,6 @@ class PlaneOptions(QWidget):
         marker_axis_display_checkbox_layout.addWidget(self.axes_size_slider)
         self.marker_axis_display_checkbox.setLayout(marker_axis_display_checkbox_layout)
         populate_checkbox_layout.addWidget(self.marker_axis_display_checkbox)
-
         populate_checkbox_layout.setSizeConstraint(QLayout.SetMinimumSize)
         self.populate_checkbox.setLayout(populate_checkbox_layout)
         layout.addWidget(self.populate_checkbox)
@@ -151,41 +149,12 @@ class PlaneOptions(QWidget):
         self.base_checkbox.clicked.connect(self._base_toggled)
         self.base_slider.valueChanged.connect(self._base_changed)
         self.populate_checkbox.clicked.connect(self._population_toggled)
+        self.update_particles_button.clicked.connect(self._update_marker_position)
         self.create_particle_button.clicked.connect(self._create_particles)
         self.rotation_slider.valueChanged.connect(self._rotation_changed)
         self.marker_axis_display_checkbox.clicked.connect(self._marker_axis_display_toggled)
         self.marker_radius_slider.valueChanged.connect(self._marker_radius_changed)
         self.axes_size_slider.valueChanged.connect(self._axes_size_changed)
-
-
-    def _population_toggled(self):
-        if self.plane is not None:
-            if self.plane.has_particles:
-                self.plane.remove_spheres()
-            else:
-                self.plane.create_spheres()
-
-    def _create_particles(self):
-        if self.populate_checkbox.isChecked():
-            self.plane.create_particle_list()
-
-    def _rotation_changed(self):
-        if self.plane is not None:
-            pass
-
-    def _marker_axis_display_toggled(self):
-        if self.plane is not None:
-            self.plane.marker_axis_display_options = self.marker_axis_display_checkbox.isChecked()
-
-    def _marker_radius_changed(self):
-        if self.populate_checkbox.isChecked():
-            self.plane.marker_size_edit_range = self.marker_radius_slider.get_range()
-            self.plane.change_marker_size(self.marker_radius_slider.value)
-
-    def _axes_size_changed(self):
-        if self.populate_checkbox.isChecked():
-            self.plane.axes_size_edit_range = self.axes_size_slider.get_range()
-            self.plane.change_axes_size(self.axes_size_slider.value)
 
     def _update(self):
         if self.plane is not None:
@@ -213,3 +182,36 @@ class PlaneOptions(QWidget):
         if self.plane is not None:
             self.plane.change_base(self.base_slider.value)
             self.plane.base_level_edit_range = self.base_slider.get_range()
+
+    def _population_toggled(self):
+        if self.plane is not None:
+            if self.plane.has_particles:
+                self.plane.remove_spheres()
+            else:
+                self.plane.create_spheres()
+
+    def _update_marker_position(self):
+        if self.populate_checkbox.isChecked():
+            self.plane.create_spheres()
+
+    def _create_particles(self):
+        if self.populate_checkbox.isChecked():
+            self.plane.create_particle_list()
+
+    def _rotation_changed(self):
+        if self.plane is not None:
+            self.plane.change_rotation(self.rotation_slider.value)
+
+    def _marker_axis_display_toggled(self):
+        if self.plane is not None:
+            self.plane.marker_axis_display_options = self.marker_axis_display_checkbox.isChecked()
+
+    def _marker_radius_changed(self):
+        if self.populate_checkbox.isChecked():
+            self.plane.marker_size_edit_range = self.marker_radius_slider.get_range()
+            self.plane.change_marker_size(self.marker_radius_slider.value)
+
+    def _axes_size_changed(self):
+        if self.populate_checkbox.isChecked():
+            self.plane.axes_size_edit_range = self.axes_size_slider.get_range()
+            self.plane.change_axes_size(self.axes_size_slider.value)

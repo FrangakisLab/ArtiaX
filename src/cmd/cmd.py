@@ -187,6 +187,7 @@ def artiax_fit_line(session):
     from ..geometricmodel.GeoModel import fit_curved_line
     fit_curved_line(session)
 
+
 def artiax_fit_surface(session):
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running, so no surface can be fitted.")
@@ -195,6 +196,7 @@ def artiax_fit_surface(session):
     from ..geometricmodel.GeoModel import fit_surface
     fit_surface(session)
 
+
 def artiax_triangulate(session):
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running, so no particles can be triangulated.")
@@ -202,6 +204,20 @@ def artiax_triangulate(session):
 
     from ..geometricmodel.GeoModel import triangulate_selected
     triangulate_selected(session)
+
+def artiax_boundary(session):
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running, so no boundary can be made.")
+        return
+
+    from ..geometricmodel.GeoModel import boundry
+    boundry(session)
+
+
+def artiax_remove_links(session):
+    from ..geometricmodel.GeoModel import remove_selected_links
+    remove_selected_links(session)
+
 
 def artiax_triangles_from_links(session):
     from ..geometricmodel.GeoModel import surface_from_links
@@ -755,6 +771,22 @@ def register_artiax(logger):
         )
         register('artiax triangulate', desc, artiax_triangulate)
 
+    def register_artiax_boundary():
+        desc = CmdDesc(
+            # TODO rewrite and get url right
+            synopsis='Creates a hull around the selected particles.',
+            url='help:user/commands/artiax_hide.html'
+        )
+        register('artiax boundary', desc, artiax_boundary)
+
+    def register_artiax_remove_links():
+        desc = CmdDesc(
+            # TODO rewrite and get url right
+            synopsis='Removes links from selected particles',
+            url='help:user/commands/artiax_hide.html'
+        )
+        register('artiax remove links', desc, artiax_remove_links)
+
     def register_artiax_triangles_from_links():
         desc = CmdDesc(
             # TODO rewrite and get url right
@@ -868,6 +900,8 @@ def register_artiax(logger):
     register_artiax_fit_line()
     register_artiax_fit_surface()
     register_artiax_triangulate()
+    register_artiax_boundary()
+    register_artiax_remove_links()
     register_artiax_triangles_from_links()
     register_artiax_reorient_sphere_particles()
     register_artiax_tomo()

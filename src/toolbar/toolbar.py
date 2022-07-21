@@ -41,6 +41,8 @@ _providers = {
     "Reorient Sphere Particles": "artiax reorient sphere particles",
     "Fit Surface": "artiax fit surface",
     "Triangulate": "artiax triangulate",
+    "Boundary": "artiax boundary",
+    "Remove Links": 'artiax remove links',
     "Triangles From Links": "artiax triangles from links"
 }
 
