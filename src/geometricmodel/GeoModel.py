@@ -1,16 +1,17 @@
 # General imports
 import numpy as np
 import math
+from scipy.spatial import Delaunay
 
 # ChimeraX imports
-from chimerax.core.models import Model
+from chimerax.core.models import Surface
 from chimerax.geometry import z_align
 
 # Triggers
 GEOMODEL_CHANGED = 'geomodel changed'  # Data is the modified geometric model.
 
 
-class GeoModel(Model):
+class GeoModel(Surface):
     """Handles geometric models"""
 
     def __init__(self, name, session):
@@ -221,14 +222,13 @@ def fit_surface(session):
     session.ArtiaX.add_geomodel(geomodel)
 
 
-def triangulate_selected(session):
+def triangulate_selected(session, furthest_site):
     particle_pos, markers = get_curr_selected_particles(session, return_particles=False, return_markers=True)
     if len(markers) < 5:
         session.logger.warning("Select at least five points")
         return
 
-    from scipy.spatial import Delaunay
-    connections = Delaunay(particle_pos, furthest_site=True).simplices #  TODO make this an optional argument
+    connections = Delaunay(particle_pos, furthest_site=furthest_site).simplices
     from .TrangulationSurface import make_links
     make_links(markers, connections)
 
@@ -278,9 +278,41 @@ def find_bonds_containing_corner(particle_pairs, corner):
 
 
 def boundry(session):
-    particle_pos, markers = get_curr_selected_particles(session, return_particles=False, return_markers=True)
-    if len(markers) < 5:
+    particle_pos, particles = get_curr_selected_particles(session)
+    if len(particles) < 5:
         session.logger.warning("Select at least five points")
         return
 
-    # TODO: calculate stuff here and create the model
+    from .Boundary import get_triangles, Boundary
+    alpha = 0.7
+    triangles = get_triangles(particle_pos, alpha)
+    geomodel = Boundary("boundary", session, triangles, particles, particle_pos, alpha)
+    session.ArtiaX.add_geomodel(geomodel)
+
+
+def reorient_to_surface(session):
+    s_geomodels = selected_geomodels(session)
+    if len(s_geomodels) == 0:
+        session.logger.warning("Select a geometric model.")
+        return
+
+    vertices = s_geomodels[0].vertices
+    normals = s_geomodels[0].normals
+    for particle_list in session.ArtiaX.partlists.child_models():
+        for curr_id in particle_list.particle_ids[particle_list.selected_particles]:
+            if curr_id:
+                curr_part = particle_list.get_particle(curr_id)
+                curr_normals = np.zeros((0, 3))
+                for i, v in enumerate(vertices):
+                    if (curr_part.coord == v).all():
+                        curr_normals = np.append(curr_normals, [normals[i]], axis=0)
+                if len(curr_normals) > 0:
+                    normal = np.add.reduce(curr_normals)
+                    #normal = normal / np.linalg.norm(normal)  # - needed to make them point to pos z
+
+                    # TODO: fix this, doesn't rotate it like it should
+                    curr_pos = np.asarray(curr_part.coord)
+                    rot = z_align(curr_pos, curr_pos + normal).zero_translation().inverse()
+                    curr_part.rotation = rot
+        # Updated graphics
+        particle_list.update_places()

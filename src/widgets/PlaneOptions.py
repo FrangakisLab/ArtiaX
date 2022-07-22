@@ -38,13 +38,13 @@ class PlaneOptions(QWidget):
         self.plane = None
 
         layout = QVBoxLayout()
-        plane_options_label = QLabel("Plane Options")
+        plane_options_label = QLabel("Surface Options")
         layout.addWidget(plane_options_label)
 
-        self.update_button = QPushButton("Update Plane")
-        self.update_button.setToolTip("Updates the plane to fit the particles. Useful when the plane doesn't match the "
-                                      "desired plane; simply move the particles that define the plane and press this "
-                                      "button to update the plane.")
+        self.update_button = QPushButton("Update Surface")
+        self.update_button.setToolTip("Updates the surface to fit the particles. Useful when the surface doesn't match"
+                                      "the desired surface; simply move the particles that define the surface and "
+                                      "press this button to update the surface.")
         layout.addWidget(self.update_button)
 
         #Fitting options

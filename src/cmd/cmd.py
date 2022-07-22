@@ -197,13 +197,12 @@ def artiax_fit_surface(session):
     fit_surface(session)
 
 
-def artiax_triangulate(session):
-    if not hasattr(session, 'ArtiaX'):
-        session.logger.warning("ArtiaX is not currently running, so no particles can be triangulated.")
-        return
-
+def artiax_triangulate(session, furthestSite=None):
+    if furthestSite is None:
+        furthestSite = True
     from ..geometricmodel.GeoModel import triangulate_selected
-    triangulate_selected(session)
+    triangulate_selected(session, furthestSite)
+
 
 def artiax_boundary(session):
     if not hasattr(session, 'ArtiaX'):
@@ -212,6 +211,28 @@ def artiax_boundary(session):
 
     from ..geometricmodel.GeoModel import boundry
     boundry(session)
+
+
+def artiax_mask(session):
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running, so no mask can be made.")
+        return
+
+    from ..geometricmodel.GeoModel import selected_geomodels
+    s_geomodels = selected_geomodels(session)
+    if len(s_geomodels) == 0:
+        session.logger.warning("Select a geometric model.")
+        return
+    run(session, "volume onesmask #{}.{}.{}".format(*s_geomodels[0].id))
+
+
+def artiax_reorient_surface_particles(session):
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running, so no particles can be reoriented.")
+        return
+
+    from ..geometricmodel.GeoModel import reorient_to_surface
+    reorient_to_surface(session)
 
 
 def artiax_remove_links(session):
@@ -226,7 +247,7 @@ def artiax_triangles_from_links(session):
 
 def artiax_reorient_sphere_particles(session):
     if not hasattr(session, 'ArtiaX'):
-        session.logger.warning("ArtiaX is not currently running, so no line can be fitted.")
+        session.logger.warning("ArtiaX is not currently running, so no particles can be reoriented.")
         return
 
     from ..geometricmodel.GeoModel import selected_geomodels
@@ -651,7 +672,8 @@ def register_artiax(logger):
         FileNameArg,
         FloatArg,
         ColorArg,
-        Float3Arg
+        Float3Arg,
+        BoolArg
     )
 
     def register_artiax_start():
@@ -766,6 +788,7 @@ def register_artiax(logger):
     def register_artiax_triangulate():
         desc = CmdDesc(
             # TODO rewrite and get url right
+            keyword=[("furthestSite", BoolArg)],
             synopsis='Triangulates all selected particles using links.',
             url='help:user/commands/artiax_hide.html'
         )
@@ -778,6 +801,22 @@ def register_artiax(logger):
             url='help:user/commands/artiax_hide.html'
         )
         register('artiax boundary', desc, artiax_boundary)
+
+    def register_artiax_mask():
+        desc = CmdDesc(
+            # TODO rewrite and get url right
+            synopsis='Creates a mask from the selected geometric model.',
+            url='help:user/commands/artiax_hide.html'
+        )
+        register('artiax mask', desc, artiax_mask)
+
+    def register_artiax_reorient_surface_particles():
+        desc = CmdDesc(
+            # TODO rewrite and get url right
+            synopsis='Reorient the selected particles on the vertices of the selected surface.',
+            url='help:user/commands/artiax_hide.html'
+        )
+        register('artiax reorient surface particles', desc, artiax_reorient_surface_particles)
 
     def register_artiax_remove_links():
         desc = CmdDesc(
@@ -901,6 +940,8 @@ def register_artiax(logger):
     register_artiax_fit_surface()
     register_artiax_triangulate()
     register_artiax_boundary()
+    register_artiax_mask()
+    register_artiax_reorient_surface_particles()
     register_artiax_remove_links()
     register_artiax_triangles_from_links()
     register_artiax_reorient_sphere_particles()

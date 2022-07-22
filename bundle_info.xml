@@ -269,12 +269,18 @@ will be displayed without the ChimeraX- prefix.
       name="Triangles From Links" icon="view_xz.png" description="Creates a triangle surface between all particles marked by links."/>
     <Provider tab="ArtiaX Models" section="Surface"
       name="Boundary" icon="view_xz.png" description="Creates a hull around the selected particles."/>
+    <Provider tab="ArtiaX Models" section="Surface"
+      name="Reorient Surface Particles" icon="view_xz.png" description="Reorient the selected particles on the vertices of the selected surface."/>
 
     <!-- ArtiaX Model tab, Links-->
     <Provider tab="ArtiaX Models" section="Links"
       name="Triangulate" icon="show_axes.png" description="Triangulate all selected particles using links."/>
     <Provider tab="ArtiaX Models" section="Links"
       name="Remove Links" icon="show_axes.png" description="Removes links from selected particles."/>
+
+    <!-- ArtiaX Model tab, Mask-->
+    <Provider tab="ArtiaX Models" section="Mask"
+      name="Create Mask" icon="view_xz.png" description="Creates a mask from the selected geometric model."/>
 
   </Providers>
 
@@ -335,6 +341,9 @@ will be displayed without the ChimeraX- prefix.
     <ChimeraXClassifier>ChimeraX :: Command :: artiax fit sphere :: General ::
       Fits a sphere to the currently selected particles.</ChimeraXClassifier>
 
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax reorient sphere particles :: General ::
+      eorients selected particles so that their z-axis points away from the center or the selected sphere</ChimeraXClassifier>
+
     <ChimeraXClassifier>ChimeraX :: Command :: artiax fit line :: General ::
       Fits a line to two selected particles.</ChimeraXClassifier>
 
@@ -343,6 +352,12 @@ will be displayed without the ChimeraX- prefix.
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax boundary :: General ::
       Creates a hull around the selected particles.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax mask :: General ::
+      Creates a mask from the selected geometric model.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax reorient surface particles :: General ::
+      Reorient the selected particles on the vertices of the selected surface.</ChimeraXClassifier>
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax fit curved line :: General ::
       Fits a smooth line between the selected particles.</ChimeraXClassifier>
