@@ -19,6 +19,6 @@ Features include:
 2. Download the latest release.
 
 3. Open ChimeraX and install the package using the command:
->toolshed install ChimeraX_ArtiaX-$VERSION$-py3-none-any.whl
+>toolshed install ChimeraX_ArtiaX-VERSION-py3-none-any.whl
 
 4. Relaunch ChimeraX.
