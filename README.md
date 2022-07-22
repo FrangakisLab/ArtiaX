@@ -16,7 +16,7 @@ Features include:
 1. Download the latest Version of ChimeraX (version >= 1.3) to your operating system from here: 
 [ChimeraX Download](https://www.rbvi.ucsf.edu/chimerax/download.html#release). 
 
-2. Download the latest release.
+2. Download the latest [release](https://github.com/FrangakisLab/ArtiaX/releases/tag/v0.1).
 
 3. Open ChimeraX and install the package using the command:
 >toolshed install ChimeraX_ArtiaX-VERSION-py3-none-any.whl
