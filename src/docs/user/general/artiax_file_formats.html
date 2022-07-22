@@ -1,11 +1,9 @@
 <html>
   <!--
-=== UCSF ChimeraX Copyright ===Copyright 2018 Regents of the University of California.
-All rights reserved.  This software provided pursuant to alicense agreement containing restrictions on its disclosure,
-duplication and use.  For details see:http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-This notice must be embedded in or attached to all copies,including partial copies, of the software or any revisions
-or derivations thereof.=== UCSF ChimeraX Copyright ===
---><head>
+=== UCSF ChimeraX Copyright ===Copyright 2018 Regents of the University of California.All rights reserved.  This software provided pursuant to alicense agreement containing restrictions on its disclosure,
+duplication and use.  For details see:http://www.rbvi.ucsf.edu/chimerax/docs/licensing.htmlThis notice must be embedded in or attached to all copies,including partial copies, of the software or any revisions
+or derivations thereof.=== UCSF ChimeraX Copyright ===-->
+  <head>
     <meta http-equiv="content-type" content="text/html; charset=windows-1252">
     <link rel="stylesheet" type="text/css" href="../userdocs.css">
     <title>Artiax Options</title>
@@ -13,81 +11,114 @@ or derivations thereof.=== UCSF ChimeraX Copyright ===
   <body> <a name="top"></a> <a href="../artiax_index.html"> <img src="../ArtiaX-docs-icon.svg"
         alt="ArtiaX docs icon" class="clRight" title="User Guide Index" width="60px"></a>
     <h3><a href="../artiax_index.html#general">General</a>: ArtiaX</h3>
-
-    <p>
-        <b>Artiax</b> supports many file formats blablaUTZ
-    </p>
-
-    <center><a name="file-table"><b>File Types</b></a></center>
-    <table border cellpadding="4" cellspacing="0">
+    <p> <b>Artiax</b> supports several common cryoET particle list file
+      formats. Files can be opened and saved using the default ChimeraX <strong><a
+          href="help:user/commands/open.html">open</a></strong> and <strong><a
+          href="help:user/commands/save.html">save</a></strong> commands with
+      some additional parameters. </p>
+    <h3 class="usage"><a href="usageconventions.html">Usage</a>: <br>
+      <a href="help:user/commands/open.html"><b>open</b></a> <i>filename</i> <strong>format</strong>
+      <span class="nowrap"><i>format-name </i>[<strong>csvpath</strong><i>
+          filename | </i><strong>csvsuffix</strong><i> string</i>]<i><br>
+        </i></span></h3>
+    <h3 class="usage"><a href="usageconventions.html">Usage</a>: <br>
+      <a href="help:user/commands/save.html"><b>save</b></a> <i>filename</i> <strong>partlist</strong>
+      <a href="atomspec.html#hierarchy"><i>model-spec</i></a><span class="nowrap"></span><span
+        class="nowrap"> [<strong>csvpath</strong><i> filename | </i><strong>csvsuffix</strong><i>
+          string</i>]</span>
+    </h3>
+    <p class="usage">Examples:<b><br>
+      </b></p>
+    <p class="usage"><b>&nbsp;&nbsp;&nbsp; open example.em format motl<br>
+        &nbsp;&nbsp;&nbsp; open example.star format star</b></p>
+    <p class="usage"><b> &nbsp;&nbsp;&nbsp; save example.mod partlist #1.2.3
+        csvsuffix iter1<br>
+        &nbsp;&nbsp;&nbsp; save example.tbl partlist #1.2.1<br>
+      </b></p>
+    <p></p>
+    <p></p>
+    <a name="file-table"></a><a name="file-table"></a>
+    <div style="text-align: left;">
+      <div style="text-align: left;">
+        <h3><a name="file-table"><b>File Types</b></a></h3>
+      </div>
+    </div>
+    <table cellspacing="0" cellpadding="4" border="">
+      <tbody>
         <tr>
-            <td align="center" style="background-color:#cccccc"><b>format</b></td>
-            <td align="center" style="background-color:#cccccc"><span class="nowrap"><b><i>format-name</i></b></span></td>
-            <td align="center" style="background-color:#cccccc"><b>suffix</b></td>
-            <td align="center" style="background-color:#cccccc"><b>description</b></td>
+          <td style="background-color:#cccccc" align="center"><b>format</b></td>
+          <td style="background-color:#cccccc" align="center"><span class="nowrap"><b><i>format-name</i></b></span></td>
+          <td style="background-color:#cccccc" align="center"><b>suffix</b></td>
+          <td style="background-color:#cccccc" align="center"><b>description</b></td>
         </tr>
         <tr>
-            <td colspan=4 align="center" style="background-color:#eaeaea">
-            <a name="tomograms"></a>
-            <b>Tomograms</b></td>
+          <td colspan="4" style="background-color:#eaeaea" align="center"> <a name="tomograms"></a>
+            <b>Particle lists</b> </td>
         </tr>
         <tr>
-            <td align="center"><a href="https://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/tutorials/framepdbintro.html"
-            target="_blank">PDB (Protein Data Bank)</a></td>
-            <td align="center"><b>pdb</b></td>
-            <td align="center">.pdb, .pdb1<br>.ent, .pqr
-            <br><a href="#compressed">+&nbsp;compressed</td>
-            <td align="center">atomic coordinates and associated annotations;
-            if PQR, sets atomic <a href="../radii.html">radius</a>;
-            see also <a href="altlocs.html">alternate locations</a></td>
+          <td align="center"> <strong>Artiatomi/TOM/AV3</strong> motivelists</td>
+          <td align="center">motl</td>
+          <td align="center">.em</td>
+          <td style="text-align: left;">Binary file in EM format containing
+            matrix of size 20xN. Positions in file[7:10, :], shifts in
+            file[10:13, :], euler angles in file[16:19, :].</td>
         </tr>
         <tr>
-            <td colspan=4 align="center" style="background-color:#eaeaea">
-            <a name="tomograms"></a>
-            <b>Particle lists</b>
+          <td align="center"><strong>IMOD</strong> model2point output</td>
+          <td align="center">coords</td>
+          <td align="center">.coords</td>
+          <td style="text-align: left;">Three column (x, y, z), space delimited
+            text file. One particle per line. No header line.</td>
         </tr>
         <tr>
-            <td align="center"> Artiatomi particle lists</td>
-            <td align="center"><b>??</b></td>
-            <td align="center">.em</td>
-            <td align="center">dont know anything about this utz youll have to do this im afraid</td>
+          <td align="center"><strong>Dynamo</strong> table</td>
+          <td align="center">dynamo</td>
+          <td align="center">.tbl</td>
+          <td style="text-align: left;">See <a href="https://wiki.dynamo.biozentrum.unibas.ch/w/index.php/Table">dynamo
+              documentation</a>. Accepts any table with more than 26 columns.</td>
         </tr>
         <tr>
-            <td align="center">IMOD model2point output</td>
-            <td align="center"><b>??</b></td>
-            <td align="center">.coords</td>
-            <td align="center">??</td>
+          <td align="center">TSV particle lists</td>
+          <td align="center">generic</td>
+          <td align="center">.tsv</td>
+          <td style="text-align: left;">Tab-delimited generic input format with
+            one line per particle and unlimited number of columns.<br>
+            <br>
+            9 Expected Columns:<br>
+            pos_x, pos_y, pos_z, shift_x, shift_y, shift_z, phi, the, psi<br>
+            <br>
+            A header line must be present. Any additional named columns will be
+            imported as metadata values.</td>
         </tr>
         <tr>
-            <td align="center">Dynamo particle table</td>
-            <td align="center"><b>??</b></td>
-            <td align="center">.tbl</td>
-            <td align="center">??</td>
+          <td align="center"><strong>PEET</strong> motivelist model/csv</td>
+          <td align="center">peet</td>
+          <td align="center">.mod</td>
+          <td style="text-align: left;">IMOD model and optionally associated
+            CSV-based motivelist. Use <strong>csvpath </strong>or<strong>
+              csvsuffix </strong>for specifying the optional CSV input or
+            output</td>
         </tr>
         <tr>
-            <td align="center">TSV particle lists</td>
-            <td align="center"><b>??</b></td>
-            <td align="center">.tsv</td>
-            <td align="center">??</td>
+          <td align="center"><strong>Relion</strong> star files</td>
+          <td align="center">star</td>
+          <td align="center">.star</td>
+          <td style="text-align: left;">
+            <div>RELION 2, 3 and 4 STAR files. For multi-section star files, the
+              first loop containing rlnCoordinateZ will be read. If rlnTomoName
+              is present, names are expected to contain 1 underscore, and follow
+              the RELION 4 tutorial <a href="https://relion.readthedocs.io/en/release-4.0/Reference/STA/Programs/import_tomograms.html#program-tomo-import-tomograms">guidelines</a>.
+            </div>
+            <br>
+            rlnCoordinateX/Y/Z must be present. ArtiaX first looks for
+            rlnOriginX/Y/Z and then for the rlnOriginX/Y/ZAngst equivalent if
+            not found. Angles (rlnAngleRot/Tilt/Psi) are optional and read if
+            present.</td>
         </tr>
-        <tr>
-            <td align="center">PEET model/csv</td>
-            <td align="center"><b>??</b></td>
-            <td align="center">.mod</td>
-            <td align="center">??</td>
-        </tr>
-        <tr>
-            <td align="center">Relion star files</td>
-            <td align="center"><b>??</b></td>
-            <td align="center">.star</td>
-            <td align="center">??</td>
-        </tr>
+      </tbody>
     </table>
-
-    <p>
-        write something here too if you want
+    <p><br>
     </p>
-
     <hr>
     <address>BMLS Frangakis Group / June 2022</address>
   </body>

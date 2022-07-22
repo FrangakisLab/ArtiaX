@@ -8,53 +8,59 @@
         alt="ArtiaX docs icon" class="clRight" title="User Guide Index" width="60px"></a>
     <h3><a href="../artiax_index.html#commands">Command</a>: artiax tomo</h3>
     <h3 class="usage"><a href="usageconventions.html">Usage</a>: <br>
-      <b>artiax tomo</b> <a href="atomspec.html#hierarchy"><i>model-spec</i></a>
-      <em>property</em> <i>value</i> </h3>
-    <p> The <b>artiax tomo</b> command enables setting a property of the selected tomogram.</p>
-      <table style="width: 764px; height: 108px;" border="1">
+      <b>artiax tomo</b> <a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;[<strong>contrasCenter</strong>
+      <em>value</em>] [<strong>contrastWidth</strong> <em>value</em>] [<strong>slice</strong>
+      <em>value</em>] [<strong>sliceDirection </strong><i>value</i>]</h3>
+    <p> The <b>artiax tomo</b> command enables setting a property of the
+      selected tomogram.</p>
+    <table style="width: 764px; height: 108px;" border="1">
       <tbody>
         <tr>
           <td style="text-align: center; width: 143.517px;"><em><strong>property</strong></em></td>
           <td style="width: 1580.48px; text-align: center;"><em><strong>meaning</strong></em></td>
-          <td style="width: 1580.48px; text-align: center;"><em><strong>expected value type</strong></em></td>
-          <td style="width: 1580.48px; text-align: center;"><em><strong>default value</strong></em></td>
+          <td style="width: 1580.48px; text-align: center;"><em><strong>expected
+                value type</strong></em></td>
+          <td style="width: 1580.48px; text-align: center;"><em><strong>default
+                value</strong></em></td>
         </tr>
         <tr>
           <td style="height: 19px; text-align: center;"><strong>contrastCenter</strong></td>
-          <td>??</td>
+          <td>image value that will be displayed with 50% of greyscale intensity</td>
           <td style="width: 1580.48px; text-align: center;"><em>float</em></td>
-          <td style="width: 1580.48px; text-align: center;">??</td>
+          <td style="width: 1580.48px; text-align: center;">N/A</td>
         </tr>
         <tr>
           <td style="text-align: center;"><strong>contrastWidth</strong></td>
-          <td>??</td>
+          <td>range centered around contrastCenter that defines minimum and
+            maximum greyscale intensity.</td>
           <td style="width: 1580.48px; text-align: center;"><em>float</em></td>
-          <td style="width: 1580.48px; text-align: center;">??</td>
+          <td style="width: 1580.48px; text-align: center;">N/A</td>
         </tr>
         <tr>
           <td style="text-align: center;"><strong>slice</strong></td>
-          <td>select which slice to show</td>
+          <td>Slice to display. Slice thickness is the grid step of the volume.
+          </td>
           <td style="width: 1580.48px; text-align: center;"><em>integer</em></td>
           <td style="width: 1580.48px; text-align: center;">N/A</td>
         </tr>
         <tr>
           <td style="text-align: center;"><strong>sliceDirection</strong></td>
           <td>normal of the slice plane</td>
-          <td style="width: 1580.48px; text-align: center;"><em>three comma seperated numbers</em></td>
-          <td style="width: 1580.48px; text-align: center;">0,0,1??</td>
+          <td style="width: 1580.48px; text-align: center;"><em>three comma
+              seperated numbers</em></td>
+          <td style="width: 1580.48px; text-align: center;">0,0,1</td>
         </tr>
         <tr>
           <td style="text-align: center;"><strong>pixel</strong></td>
-          <td>pixel size??</td>
+          <td>Pixel Size in Angstrom</td>
           <td style="width: 1580.48px; text-align: center;"><em>float</em></td>
-          <td style="width: 1580.48px; text-align: center;">?</td>
+          <td style="width: 1580.48px; text-align: center;">1</td>
         </tr>
       </tbody>
     </table>
-      <p>
-      Examples: </p>
-    <blockquote> <b>artiax tomo #1.1.1 slice 52 <br>
-      artiax tomo #1.1.4 sliceDirection 1,1,1</b> </blockquote>
+    <p> Examples: </p>
+    <blockquote> <b>artiax tomo #1.1.1 slice 52&nbsp; <br>
+        artiax tomo #1.1.4 sliceDirection 1,1,1</b> </blockquote>
     <p></p>
     <hr>
     <address>BMLS Frangakis Group / June 2022</address>
