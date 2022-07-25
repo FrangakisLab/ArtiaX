@@ -128,6 +128,7 @@ def fit_sphere(session):
     from .Sphere import Sphere
     geomodel = Sphere("sphere", session, particles, b[:3], r)
     artiax.add_geomodel(geomodel)
+    geomodel.selected = True
 
 
 def fit_line(session):
@@ -158,6 +159,7 @@ def fit_line(session):
     from .Line import Line
     geomodel = Line("line", session, particles, start, end)
     artiax.add_geomodel(geomodel)
+    geomodel.selected = True
 
 
 def fit_curved_line(session):
@@ -204,6 +206,7 @@ def fit_curved_line(session):
         name = "curved line"
     geomodel = CurvedLine(name, session, particles, points, der, degree, smooth, resolution)
     artiax.add_geomodel(geomodel)
+    geomodel.selected = True
 
 
 def fit_surface(session):
@@ -220,6 +223,7 @@ def fit_surface(session):
     geomodel = Surface('surface', session, particles, particle_pos, normal, points, resolution, method)
 
     session.ArtiaX.add_geomodel(geomodel)
+    geomodel.selected = True
 
 
 def triangulate_selected(session, furthest_site):
@@ -267,6 +271,7 @@ def surface_from_links(session):
     from .TrangulationSurface import TriangulationSurface
     geomodel = TriangulationSurface("triangulated surface", session, triangles)
     session.ArtiaX.add_geomodel(geomodel)
+    geomodel.selected = True
 
 
 def find_bonds_containing_corner(particle_pairs, corner):
@@ -277,7 +282,7 @@ def find_bonds_containing_corner(particle_pairs, corner):
     return bonds_containing_corner.astype(np.int)
 
 
-def boundry(session):
+def boundary(session):
     particle_pos, particles = get_curr_selected_particles(session)
     if len(particles) < 5:
         session.logger.warning("Select at least five points")
@@ -285,34 +290,18 @@ def boundry(session):
 
     from .Boundary import get_triangles, Boundary
     alpha = 0.7
-    triangles = get_triangles(particle_pos, alpha)
-    geomodel = Boundary("boundary", session, triangles, particles, particle_pos, alpha)
+    triangles, p_index_triangles, ordered_normals = get_triangles(particle_pos, alpha)
+    geomodel = Boundary("boundary", session, triangles, p_index_triangles, ordered_normals, particles, particle_pos,
+                        alpha)
     session.ArtiaX.add_geomodel(geomodel)
+    geomodel.selected = True
 
 
 def reorient_to_surface(session):
-    s_geomodels = selected_geomodels(session)
-    if len(s_geomodels) == 0:
-        session.logger.warning("Select a geometric model.")
+    s_geomodels = selected_geomodels(session, "Boundary")
+    if len(s_geomodels) < 1:
+        session.logger.warning('Select one Boundary model.')
         return
+    s_particles = get_curr_selected_particles(session, return_particles=True, return_pos=False)
 
-    vertices = s_geomodels[0].vertices
-    normals = s_geomodels[0].normals
-    for particle_list in session.ArtiaX.partlists.child_models():
-        for curr_id in particle_list.particle_ids[particle_list.selected_particles]:
-            if curr_id:
-                curr_part = particle_list.get_particle(curr_id)
-                curr_normals = np.zeros((0, 3))
-                for i, v in enumerate(vertices):
-                    if (curr_part.coord == v).all():
-                        curr_normals = np.append(curr_normals, [normals[i]], axis=0)
-                if len(curr_normals) > 0:
-                    normal = np.add.reduce(curr_normals)
-                    #normal = normal / np.linalg.norm(normal)  # - needed to make them point to pos z
-
-                    # TODO: fix this, doesn't rotate it like it should
-                    curr_pos = np.asarray(curr_part.coord)
-                    rot = z_align(curr_pos, curr_pos + normal).zero_translation().inverse()
-                    curr_part.rotation = rot
-        # Updated graphics
-        particle_list.update_places()
+    s_geomodels[0].reorient_particles_to_surface(s_particles)

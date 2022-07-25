@@ -209,8 +209,8 @@ def artiax_boundary(session):
         session.logger.warning("ArtiaX is not currently running, so no boundary can be made.")
         return
 
-    from ..geometricmodel.GeoModel import boundry
-    boundry(session)
+    from ..geometricmodel.GeoModel import boundary
+    boundary(session)
 
 
 def artiax_mask(session):
