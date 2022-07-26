@@ -226,13 +226,19 @@ def artiax_mask(session):
     run(session, "volume onesmask #{}.{}.{}".format(*s_geomodels[0].id))
 
 
-def artiax_reorient_surface_particles(session):
+def artiax_reorient_boundary_particles(session):
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running, so no particles can be reoriented.")
         return
 
-    from ..geometricmodel.GeoModel import reorient_to_surface
-    reorient_to_surface(session)
+    from ..geometricmodel.GeoModel import selected_geomodels, get_curr_selected_particles
+    s_geomodels = selected_geomodels(session, "Boundary")
+    if len(s_geomodels) < 1:
+        session.logger.warning('Select one Boundary model.')
+        return
+    s_particles = get_curr_selected_particles(session, return_particles=True, return_pos=False)
+
+    s_geomodels[0].reorient_particles_to_surface(s_particles)
 
 
 def artiax_remove_links(session):
@@ -252,15 +258,19 @@ def artiax_reorient_sphere_particles(session):
 
     from ..geometricmodel.GeoModel import selected_geomodels
     s_geomodels = selected_geomodels(session, "Sphere")
-    if len(s_geomodels) == 0:
+    if len(s_geomodels) < 1:
         session.logger.warning("Select a sphere.")
-        return
-    elif len(s_geomodels) != 1:
-        session.logger.warning("Select only one sphere.")
         return
 
     s_geomodels[0].orient_particles()
 
+def artiax_flip_z_axis(session):
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running, so no particles can be reoriented.")
+        return
+
+    from ..geometricmodel.GeoModel import flip_z_axis
+    flip_z_axis(session)
 
 def artiax_lock(session, models=None, type=None):
     # No ArtiaX
@@ -810,13 +820,14 @@ def register_artiax(logger):
         )
         register('artiax mask', desc, artiax_mask)
 
-    def register_artiax_reorient_surface_particles():
+    def register_artiax_reorient_boundary_particles():
         desc = CmdDesc(
             # TODO rewrite and get url right
-            synopsis='Reorient the selected particles on the vertices of the selected surface.',
+            synopsis='Reorient the selected particles that define the selected boundary model so that the z-axis of the'
+                     ' particles points along the normal of the boundary.',
             url='help:user/commands/artiax_hide.html'
         )
-        register('artiax reorient surface particles', desc, artiax_reorient_surface_particles)
+        register('artiax reorient boundary particles', desc, artiax_reorient_boundary_particles)
 
     def register_artiax_remove_links():
         desc = CmdDesc(
@@ -844,6 +855,15 @@ def register_artiax(logger):
             url='help:user/commands/artiax_hide.html'
         )
         register('artiax reorient sphere particles', desc, artiax_reorient_sphere_particles)
+
+
+    def register_artiax_flip_z_axis():
+        desc = CmdDesc(
+            # TODO rewrite and get url right
+            synopsis='Rotates the selected particles 180 degrees around their y-axis.',
+            url='help:user/commands/artiax_hide.html'
+        )
+        register('artiax flip z', desc, artiax_flip_z_axis)
 
     def register_artiax_lock():
         desc = CmdDesc(
@@ -941,10 +961,11 @@ def register_artiax(logger):
     register_artiax_triangulate()
     register_artiax_boundary()
     register_artiax_mask()
-    register_artiax_reorient_surface_particles()
+    register_artiax_reorient_boundary_particles()
     register_artiax_remove_links()
     register_artiax_triangles_from_links()
     register_artiax_reorient_sphere_particles()
+    register_artiax_flip_z_axis()
     register_artiax_tomo()
     register_artiax_colormap()
     register_artiax_label()

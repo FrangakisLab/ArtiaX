@@ -18,12 +18,12 @@ from .GeoModel import GeoModel
 class Boundary(GeoModel):
     """Triangulated Plane"""
 
-    def __init__(self, name, session, triangles, p_index_triangles, ordered_normals, particles, particle_pos, alpha):
+    def __init__(self, name, session, triangles, particles, particle_pos, alpha):
         super().__init__(name, session)
 
         self.tri = triangles
-        self.p_index_triangles = p_index_triangles
-        self.ordered_normals = ordered_normals
+        self.p_index_triangles = None
+        self.ordered_normals = None
         self.particles = particles
         self.particle_pos = particle_pos
         self.alpha = alpha
@@ -52,7 +52,7 @@ class Boundary(GeoModel):
     def recalc_and_update(self):
         for i, particle in enumerate(self.particles):
             self.particle_pos[i] = [particle.coord[0], particle.coord[1], particle.coord[2]]
-        self.tri, self.p_index_triangles, self.ordered_normals = get_triangles(self.particle_pos, self.alpha)
+        self.tri = get_triangles(self.particle_pos, self.alpha)
         self.update()
 
     def change_alpha(self, alpha):
@@ -61,6 +61,7 @@ class Boundary(GeoModel):
             self.recalc_and_update()
 
     def reorient_particles_to_surface(self, particles):
+        self.tri, self.p_index_triangles, self.ordered_normals = get_triangles(self.particle_pos, self.alpha, True)
         for i, particle in enumerate(self.particles):
             if particle in particles:
                 curr_normals = np.zeros((0, 3))
@@ -72,15 +73,12 @@ class Boundary(GeoModel):
                     curr_pos = np.asarray(particle.coord)
                     rot = z_align(curr_pos, curr_pos + normal).zero_translation().inverse()
                     particle.rotation = rot
-                    print("particle coord: {}".format(particle.coord))
-                    print("curr normals: {}".format(curr_normals))
-                    print('normal: {}'.format(normal))
 
         for particle_list in self.session.ArtiaX.partlists.child_models():
             particle_list.update_places()
 
 
-def get_triangles(particle_pos, alpha=0.7):
+def get_triangles(particle_pos, alpha=0.7, calc_normals=False):
     tetra = Delaunay(particle_pos, furthest_site=False)
     """ Taken mostly from stack overflow: https://stackoverflow.com/a/58113037
     THANK YOU @Geun, this is pretty clever. """
@@ -111,29 +109,42 @@ def get_triangles(particle_pos, alpha=0.7):
     TriComb = np.array([(0, 1, 2), (0, 1, 3), (0, 2, 3), (1, 2, 3)])
     triangles = tetras[:, TriComb].reshape(-1, 3)
 
-    p_index_triangles = triangles
-    ordered_normals = np.zeros((len(triangles), 3))
-    triangles = np.array([particle_pos[np.asarray(tri)] for tri in triangles])
-
-    # Remove triangles that occur twice, because they are within shapes, and calculate normals that point out
     TrianglesDict = defaultdict(int)
-    for i, tri in enumerate(p_index_triangles):
-        TrianglesDict[tuple(tri)] += 1
+    if not calc_normals:
+        for tri in triangles:
+            TrianglesDict[tuple(tri)] += 1
+        triangles = np.array([particle_pos[np.asarray(tri)] for tri in TrianglesDict if TrianglesDict[tri] == 1])
+        return triangles
+    else:
+        p_index_triangles = triangles
+        ordered_normals = np.zeros((len(triangles), 3))
+        triangles = np.array([particle_pos[np.asarray(tri)] for tri in triangles])
 
-        if TrianglesDict[tuple(tri)] <= 1:
-            tetra_index = i//4
-            missing_vertex = 3 - (i % 4)
-            missing_vertex_pos = particle_pos[tetras[tetra_index][missing_vertex]]
-            tri_pos = triangles[i]
-            normal = np.cross(tri_pos[1] - tri_pos[0], tri_pos[2] - tri_pos[0])
-            to_unused = missing_vertex_pos - tri_pos[0]
-            if np.dot(normal, to_unused) > 0:
-                normal = -normal
-            normal = normal / np.linalg.norm(normal)
-            ordered_normals[i] = normal
+        # Remove triangles that occur twice, because they are within shapes, and calculate normals that point out
+        for i, tri in enumerate(p_index_triangles):
+            TrianglesDict[tuple(tri)] += 1
 
-    triangles = np.array([particle_pos[np.asarray(tri)] for tri in TrianglesDict if TrianglesDict[tri] == 1])
-    p_index_triangles = np.array([p_index_triangles[i] for i, tri in enumerate(TrianglesDict) if TrianglesDict[tri] == 1])
-    ordered_normals = np.array([ordered_normals[i] for i, tri in enumerate(TrianglesDict) if TrianglesDict[tri] == 1])
+            if calc_normals and TrianglesDict[tuple(tri)] <= 1:
+                tetra_index = i//4
+                missing_vertex = 3 - (i % 4)
+                missing_vertex_pos = particle_pos[tetras[tetra_index][missing_vertex]]
+                tri_pos = triangles[i]
+                normal = np.cross(tri_pos[1] - tri_pos[0], tri_pos[2] - tri_pos[0])
+                to_unused = missing_vertex_pos - tri_pos[0]
+                if np.dot(normal, to_unused) > 0:
+                    normal = -normal
+                normal = normal / np.linalg.norm(normal)
+                ordered_normals[i] = normal
 
-    return triangles, p_index_triangles, ordered_normals
+        new_index = 0
+        for i, tri in enumerate(p_index_triangles):
+            if TrianglesDict[tuple(tri)] == 1:
+                triangles[new_index] = particle_pos[tri]
+                p_index_triangles[new_index] = tri
+                ordered_normals[new_index] = ordered_normals[i]
+                new_index += 1
+        triangles = triangles[:new_index]
+        p_index_triangles = p_index_triangles[:new_index]
+        ordered_normals = ordered_normals[:new_index]
+
+        return triangles, p_index_triangles, ordered_normals

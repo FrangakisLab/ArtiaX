@@ -290,18 +290,30 @@ def boundary(session):
 
     from .Boundary import get_triangles, Boundary
     alpha = 0.7
-    triangles, p_index_triangles, ordered_normals = get_triangles(particle_pos, alpha)
-    geomodel = Boundary("boundary", session, triangles, p_index_triangles, ordered_normals, particles, particle_pos,
-                        alpha)
+    triangles = get_triangles(particle_pos, alpha)
+    geomodel = Boundary("boundary", session, triangles, particles, particle_pos, alpha)
     session.ArtiaX.add_geomodel(geomodel)
     geomodel.selected = True
 
 
-def reorient_to_surface(session):
-    s_geomodels = selected_geomodels(session, "Boundary")
-    if len(s_geomodels) < 1:
-        session.logger.warning('Select one Boundary model.')
-        return
-    s_particles = get_curr_selected_particles(session, return_particles=True, return_pos=False)
+def flip_z_axis(session):
+    particle_pos, particles = get_curr_selected_particles(session)
 
-    s_geomodels[0].reorient_particles_to_surface(s_particles)
+    from chimerax.geometry import rotation
+    for particle in particles:
+        x_axes = particle.rotation.transform_vector((1, 0, 0))
+        particle.rotation = rotation(x_axes, 180) * particle.rotation
+
+    for particle_list in session.ArtiaX.partlists.child_models():
+        particle_list.update_places()
+
+
+def remove_triangle(geomodel, triangle):
+    triangles = np.append(geomodel.triangles[:triangle], geomodel.triangles[triangle + 1:], axis=0)
+    for i, t in enumerate(triangles[triangle:]):
+        triangles[i + triangle] = t - [3, 3, 3]
+    normals = np.append(geomodel.normals[:triangle*3], geomodel.normals[(triangle+1)*3:], axis=0)
+    vertices = np.append(geomodel.vertices[:triangle*3], geomodel.vertices[(triangle+1)*3:], axis=0)
+    geomodel.set_geometry(vertices, normals, triangles)
+    geomodel.vertex_colors = np.full((len(vertices), 4), geomodel.color)
+

@@ -42,10 +42,11 @@ _providers = {
     "Fit Surface": "artiax fit surface",
     "Triangulate": "artiax triangulate",
     "Boundary": "artiax boundary",
-    "Reorient Surface Particles": "artiax reorient surface particles",
+    "Reorient Boundary Particles": "artiax reorient boundary particles",
     "Create Mask": "artiax mask",
     "Remove Links": 'artiax remove links',
-    "Triangles From Links": "artiax triangles from links"
+    "Triangles From Links": "artiax triangles from links",
+    "Flip Z": "artiax flip z"
 }
 
 
