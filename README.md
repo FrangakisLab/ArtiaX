@@ -12,6 +12,8 @@ Features include:
 * Interactive particle sub-setting based on metadata
 * Rendering particles using metadata-based colormaps
 
+Read the companion paper on [bioRxiv](https://www.biorxiv.org/content/10.1101/2022.07.26.501574v1).
+
 # Install ArtiaX
 
 1. Download the latest Version of ChimeraX (version >= 1.3) to your operating system from here: 
