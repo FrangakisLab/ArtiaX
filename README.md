@@ -16,6 +16,17 @@ Read the companion paper on [bioRxiv](https://www.biorxiv.org/content/10.1101/20
 
 # Install ArtiaX
 
+## Using the ChimeraX toolshed
+
+1. Run these commands in the ChimeraX shell:
+>toolshed reload available
+
+>toolshed install ArtiaX
+
+2. Relaunch ChimeraX
+
+## Using the wheel file
+
 1. Download the latest Version of ChimeraX (version >= 1.3) to your operating system from here: 
 [ChimeraX Download](https://www.rbvi.ucsf.edu/chimerax/download.html#release). 
 
