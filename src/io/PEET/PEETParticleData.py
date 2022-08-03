@@ -87,12 +87,70 @@ class PEETParticleData(ParticleData):
 
     ROT = GenericEulerRotation
 
+    def __init__(self, session, file_name, oripix=1, trapix=1, additional_files=None):
+        self._imod_xyz_scale = None
+        self._imod_pixel_size = None
+        self._imod_units = None
+        self._imod_pixel_size_angstroms = 1
+        self._imod_xyz_max = [0, 0, 0]
+
+        super().__init__(session, file_name, oripix=oripix, trapix=trapix, additional_files=additional_files)
+
     def read_file(self):
 
         # Read model first
-        from chimerax.imod import imod
-        model = imod.read_imod_model(self.session, self.file_name, meshes=False, contours=True)[0][0]
-        atoms = list(model.atoms)
+        #from chimerax.imod import imod
+        #model = imod.read_imod_model(self.session, self.file_name, meshes=False, contours=True)[0][0]
+
+        # Read model first and figure out scaling
+        from chimerax.imod.imod import read_imod, imod_models
+        from os.path import basename
+
+        # IMOD chunks, decode in ChimeraX
+        clist = read_imod(self.file_name)
+        name = basename(self.file_name)
+        surfaces, msets, pixel_size = imod_models(self.session, clist, name, False, True)
+
+        # If markersets were loaded
+        if len(msets) > 0:
+            tf = None
+            xs = None
+            ys = None
+            zs = None
+
+            # From the chimerax imod module:
+            for c in clist:
+                cid = c['id']
+                if cid == b'IMOD':
+                    self._imod_xyz_scale = c['xscale'], c['yscale'], c['zscale']
+                    self._imod_xyz_max = [c['xmax'], c['ymax'], c['zmax']]
+                    self._imod_pixel_size = c['pixsize']
+                    self._imod_units = c['units']
+                    # Units: 0 = pixels, 3 = km, 1 = m, -2 = cm, -3 = mm,
+                    #        -6 = microns, -9 = nm, -10 = Angstroms, -12 = pm
+                    #            print ('IMOD pixel size =', pixel_size, 'units', units, ' scale', xyz_scale)
+                    #            print 'IMOD flags', bin(c['flags'])
+                    u = -10 if self._imod_units == 0 else (0 if self._imod_units == 1 else self._imod_units)
+                    import math
+                    self._imod_pixel_size_angstroms = self._imod_pixel_size * math.pow(10, 10 + u)
+                    if tf is None:
+                        xs, ys, zs = [s * self._imod_pixel_size_angstroms for s in self._imod_xyz_scale]
+                        from chimerax.geometry import scale
+                        tf = scale((xs, ys, zs))
+
+            # Scales not identical
+            if xs != ys or ys != zs:
+                raise UserError("File {} has anisotropic scaling in x/y/z. This is not supported (yet).".format(self.file_name))
+
+            # Output model will not consider scale factors
+            self._imod_pixel_size_angstroms = xs
+
+        atoms = []
+
+        for ms in msets:
+            atoms += list(ms.atoms)
+
+        #atoms = list(msets[0].atoms)
         expected_len = len(atoms)
 
         # Open csv if present
@@ -126,13 +184,17 @@ class PEETParticleData(ParticleData):
 
         for idx, a in enumerate(atoms):
             p = self.new_particle()
-            p['pos_x'] = a.coord[0]
-            p['pos_y'] = a.coord[1]
-            p['pos_z'] = a.coord[2]
+            # Scale to pixels
+            p['pos_x'] = a.coord[0]/self._imod_pixel_size_angstroms
+            p['pos_y'] = a.coord[1]/self._imod_pixel_size_angstroms
+            p['pos_z'] = a.coord[2]/self._imod_pixel_size_angstroms
 
             if has_csv:
                 for key in list(self._data_keys)[0:20]:
                     p[key] = csv_content[key][idx]
+
+        # Set scale
+        self.pixelsize_ori = self._imod_pixel_size_angstroms
 
     def write_file(self, file_name=None, additional_files=None):
         if file_name is None:
@@ -147,7 +209,7 @@ class PEETParticleData(ParticleData):
         csv_name = additional_files[0]
 
         # Write mod file
-        xyz_max = [0, 0, 0]
+        xyz_max = self._imod_xyz_max
         for _id, p in self:
             xyz_max[0] = max(p['pos_x'], xyz_max[0])
             xyz_max[1] = max(p['pos_y'], xyz_max[1])
@@ -330,8 +392,8 @@ def write_mod(name, xyz_max, parts):
         _wbn(mf, int, (3))                        # res
         _wbn(mf, int, (128))                      # thresh
 
-        _wbn(mf, float, (1))                      # pixsize
-        _wbn(mf, int, (0))                        # units
+        _wbn(mf, float, (parts._imod_pixel_size_angstroms))  # pixsize
+        _wbn(mf, int, (-10))                                 # units
 
         _wbn(mf, int, (0))                        # csum
 
