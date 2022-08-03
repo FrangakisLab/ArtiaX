@@ -29,7 +29,7 @@ jobs:
       - name: Install ChimeraX
         run: |
           wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1b7iKWNEZHVC2O7O1OYgKdJ7KmIkq_KIl' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1b7iKWNEZHVC2O7O1OYgKdJ7KmIkq_KIl" -O chimerax.deb && rm -rf /tmp/cookies.txt
-          sudo agt-get install ./chimerax.deb
+          sudo apt-get install ./chimerax.deb
           chimerax --version
         
       # Runs a set of commands using the runners shell
