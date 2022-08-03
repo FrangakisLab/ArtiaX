@@ -202,7 +202,7 @@ will be displayed without the ChimeraX- prefix.
       description="Rotate picked particle (hold SHIFT to translate)."/>
 
     <!-- ArtiaX tab, Delete Particles-->
-    <Provider tab="ArtiaX" section="Delete Particles" mouse_mode="delete selected particles"
+    <Provider tab="ArtiaX" section="Delete Particles"
       name="Delete Selected Particles" display_name="Delete Selected" icon="delete_selected.png"
       description="Delete picked particle."/>
     <Provider tab="ArtiaX" section="Delete Particles" mouse_mode="delete picked particle"

@@ -1,5 +1,8 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+# This package
+from ..particle.ParticleList import delete_selected_particles
+
 _providers = {
     "Launch": "artiax start",
     "Help": "open help:user/artiax_index.html",
@@ -14,7 +17,7 @@ _providers = {
     "Rotate Selected Particles": 'ui mousemode right "rotate selected particles"',
     "Translate Picked Particle": 'ui mousemode right "translate picked particle"',
     "Rotate Picked Particle": 'ui mousemode right "rotate picked particle"',
-    "Delete Selected Particles": 'ui mousemode right "delete selected particles"',
+    "Delete Selected Particles": delete_selected_particles,
     "Delete Picked Particle": 'ui mousemode right "delete picked particle"',
     "Show Markers": "artiax show markers",
     "Hide Markers": "artiax hide markers",

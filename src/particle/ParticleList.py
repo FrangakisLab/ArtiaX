@@ -1007,3 +1007,12 @@ def lock_particlelist(models, lock_state, what, do_print=True):
 
     if do_print:
         print(text)
+
+def delete_selected_particles(session):
+    """Delete all currently selected particles in the session."""
+    collections, masks = selected_collections(session)
+
+    for col, ma in zip(collections, masks):
+        pl = col.parent
+        ids = col.child_ids[ma]
+        pl.delete_data(list(ids))
