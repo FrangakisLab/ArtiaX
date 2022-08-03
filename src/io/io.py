@@ -7,8 +7,7 @@ import os
 from chimerax.core.errors import UserError
 
 # This package
-from ..particle import ParticleList
-
+#from ..particle import ParticleList
 
 def open_particle_list(session, stream, file_name, format_name=None, from_chimx=False, additional_files=None):
 
@@ -33,6 +32,7 @@ def open_particle_list(session, stream, file_name, format_name=None, from_chimx=
     if format_name in formats:
         modelname = os.path.basename(file_name)
         data = formats[format_name].particle_data(session, file_name, oripix=1, trapix=1, additional_files=additional_files)
+        from ..particle import ParticleList
         model = ParticleList(modelname, session, data)
 
     # # MOTL
@@ -83,6 +83,7 @@ def save_particle_list(session, file_name, partlist, format_name=None, additiona
     if format_name not in get_partlist_fmt_names(session):
         raise UserError("save_particle_list: {} is not a known particle list format.".format(format_name))
 
+    from ..particle import ParticleList
     if not isinstance(partlist, ParticleList):
         raise UserError("save_particle_list: {} is not a particle list.".format(partlist.id_string))
 
