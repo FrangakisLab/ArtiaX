@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # This package
-from ..particle.ParticleList import delete_selected_particles
+from ..particle.ParticleList import delete_selected_particles, invert_selection
 
 _providers = {
     "Launch": "artiax start",
@@ -25,6 +25,7 @@ _providers = {
     "Hide Axes": "artiax hide axes",
     "Show Surfaces": "artiax show surfaces",
     "Hide Surfaces": "artiax hide surfaces",
+    "Invert Selection": invert_selection
 }
 
 

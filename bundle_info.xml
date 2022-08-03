@@ -209,6 +209,11 @@ will be displayed without the ChimeraX- prefix.
       name="Delete Picked Particle" display_name="Delete Picked" icon="delete.png"
       description="Delete picked particle."/>
 
+    <!-- ArtiaX tab, Selection-->
+    <Provider tab="ArtiaX" section="Selection"
+      name="Invert Selection" display_name="Invert Selection" icon="invert_selection.png"
+      description="Invert particle selection."/>
+
 
   </Providers>
 

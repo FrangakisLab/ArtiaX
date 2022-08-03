@@ -1016,3 +1016,13 @@ def delete_selected_particles(session):
         pl = col.parent
         ids = col.child_ids[ma]
         pl.delete_data(list(ids))
+
+def invert_selection(session):
+    """Invert selection of all visible particle lists."""
+    artia = session.ArtiaX
+
+    from numpy import logical_not
+    for plist in artia.partlists.iter():
+        if plist.visible:
+            markerset = plist.markers
+            markerset.atoms.selecteds = logical_not(markerset.atoms.selecteds)
