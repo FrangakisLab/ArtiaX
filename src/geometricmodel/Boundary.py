@@ -61,7 +61,8 @@ class Boundary(GeoModel):
             self.recalc_and_update()
 
     def reorient_particles_to_surface(self, particles):
-        self.tri, self.p_index_triangles, self.ordered_normals = get_triangles(self.particle_pos, self.alpha, True)
+        self.tri, self.p_index_triangles, self.ordered_normals = get_triangles(self.particle_pos, self.alpha,
+                                                                               calc_normals=True)
         for i, particle in enumerate(self.particles):
             if particle in particles:
                 curr_normals = np.zeros((0, 3))
@@ -69,9 +70,11 @@ class Boundary(GeoModel):
                     if i in index_tri:
                         curr_normals = np.append(curr_normals, [self.ordered_normals[j]], axis=0)
                 if len(curr_normals) > 0:
+                    # Rotate to average normal
                     normal = np.add.reduce(curr_normals)
                     curr_pos = np.asarray(particle.coord)
                     rot = z_align(curr_pos, curr_pos + normal).zero_translation().inverse()
+                    # Set rotation
                     particle.rotation = rot
 
         for particle_list in self.session.ArtiaX.partlists.child_models():

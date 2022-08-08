@@ -95,6 +95,7 @@ class OptionsWindow(ToolInstance):
         self._build_geomodel_widget()
         self._build_visualization_widget()
         self._build_manipulation_widget()
+        self._build_reorient_widget()
 
         # Build the final gui
         self._build_full_ui()
@@ -153,11 +154,13 @@ class OptionsWindow(ToolInstance):
         self.tabs.addTab(self.tomo_area, 'Tomogram')
         self.tabs.addTab(self.vis_area, 'Visualization')
         self.tabs.addTab(self.manip_area, 'Select/Manipulate')
-        self.tabs.addTab(self.geomodel_area, 'Geometric Model Tools')
+        self.tabs.addTab(self.reorient_area, 'Reorient')
+        self.tabs.addTab(self.geomodel_area, 'Geometric Model')
         self.tabs.widget(0).setEnabled(False)
         self.tabs.widget(1).setEnabled(False)
         self.tabs.widget(2).setEnabled(False)
         self.tabs.widget(3).setEnabled(False)
+        self.tabs.widget(4).setEnabled(False)
         self.tabs.setCurrentIndex(0)
         self.main_layout.addWidget(self.tabs)
 
@@ -183,15 +186,17 @@ class OptionsWindow(ToolInstance):
         if data is None:
             self.tabs.widget(1).setEnabled(False)
             self.tabs.widget(2).setEnabled(False)
+            self.tabs.widget(3).setEnabled(False)
             self.part_toolbar_1.set_name(None)
             self.part_toolbar_2.set_name(None)
+            self.part_toolbar_3.set_name(None)
         else:
             self._show_tab("partlist")
 
     # Callback for trigger OPTIONS_GEOMODEL_CHANGED
     def _update_geomodel_options(self, name, data):
         if data is None:
-            self.tabs.widget(3).setEnabled(False)
+            self.tabs.widget(4).setEnabled(False)
             self.current_geomodel_label.setText('')
         else:
             self._show_tab("geomodel")
@@ -218,6 +223,7 @@ class OptionsWindow(ToolInstance):
             self.tabs.setCurrentIndex(1)
             self.tabs.widget(1).setEnabled(True)
             self.tabs.widget(2).setEnabled(True)
+            self.tabs.widget(3).setEnabled(True)
 
             # Update the ui
             self._update_partlist_ui()
@@ -229,8 +235,8 @@ class OptionsWindow(ToolInstance):
             geomodel = artia.geomodels.get(artia.options_geomodel)
             text = '#{} -- {}'.format(geomodel.id_string, geomodel.name)
             self.current_geomodel_label.setText(text)
-            self.tabs.setCurrentIndex(3)
-            self.tabs.widget(3).setEnabled(True)
+            self.tabs.setCurrentIndex(4)
+            self.tabs.widget(4).setEnabled(True)
             self.curr_model = type(geomodel).__name__
 
             # Update the ui
@@ -481,8 +487,10 @@ class OptionsWindow(ToolInstance):
         # Connect lock buttons
         ow.translation_lock_button_1.stateChanged.connect(ow._lock_translation)
         ow.translation_lock_button_2.stateChanged.connect(ow._lock_translation)
+        ow.translation_lock_button_3.stateChanged.connect(ow._lock_translation)
         ow.rotation_lock_button_1.stateChanged.connect(ow._lock_rotation)
         ow.rotation_lock_button_2.stateChanged.connect(ow._lock_rotation)
+        ow.rotation_lock_button_3.stateChanged.connect(ow._lock_rotation)
 
         # Connect partlist pixelsize
         ow.pf_edit_ori.editingFinished.connect(ow._origin_pixelsize_changed)
@@ -518,6 +526,11 @@ class OptionsWindow(ToolInstance):
 
         ow.surface_level_widget.valueChanged.connect(ow._surface_level_changed)
         ow.surface_level_widget.editingFinished.connect(partial(ow._surface_level_changed, log=True))
+
+        # Connect reorientation
+        ow.reorient_from_order_button.clicked.connect(ow._reorient_from_order)
+        ow.reorder_from_links_button.clicked.connect(ow._reorder_from_links)
+        ow.reorder_to_closest_button.clicked.connect(ow._reorder_to_closest)
 
         ## Geometric Model Tab
         # Connect colors
@@ -927,6 +940,60 @@ class OptionsWindow(ToolInstance):
         self.vis_widget.setLayout(self.vis_layout)
         self.vis_area.setWidget(self.vis_widget)
 
+    def _build_reorient_widget(self):
+        # This widget is the Visualize particle lists tab
+        self.reorient_area = QScrollArea()
+        self.reorient_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.reorient_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.reorient_area.setWidgetResizable(True)
+
+        # Define the overall layout
+        reorient_layout = QVBoxLayout()
+        reorient_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        #### Top bar with label and tool buttons ####
+        from .widgets import StateButton
+        self.translation_lock_button_3 = StateButton(icon_true='lock_translation.png',
+                                                     icon_false='unlock_translation.png',
+                                                     tooltip_true='Translation locked.',
+                                                     tooltip_false='Translation unlocked.',
+                                                     init_state=False)
+
+        self.rotation_lock_button_3 = StateButton(icon_true='lock_rotation.png',
+                                                  icon_false='unlock_rotation.png',
+                                                  tooltip_true='Rotation locked.',
+                                                  tooltip_false='Rotation unlocked.',
+                                                  init_state=False)
+
+        buttons = [self.translation_lock_button_3, self.rotation_lock_button_3]
+
+        from .widgets import PartlistToolbarWidget
+        self.part_toolbar_3 = PartlistToolbarWidget(self.font, buttons)
+        reorient_layout.addWidget(self.part_toolbar_3)
+        #### Top bar with label and tool buttons ####
+
+        #### Reorient buttons ####
+        reorient_label = QLabel("Reorient particles:")
+        self.reorient_from_order_button = QPushButton("From Particle List Order")
+        reorient_layout.addWidget(reorient_label)
+        reorient_layout.addWidget(self.reorient_from_order_button)
+        #### Reorient buttons ####
+
+        #### Reorder buttons ####
+        reorder_label = QLabel("Create new, reordered particle list:")
+        self.reorder_from_links_button = QPushButton("From Selected Links")
+        self.reorder_to_closest_button = QPushButton("To Closest")
+        reorient_layout.addWidget(reorder_label)
+        reorient_layout.addWidget(self.reorder_from_links_button)
+        reorient_layout.addWidget(self.reorder_to_closest_button)
+        #### Reorient buttons ####
+
+        # And finally set the layout of the widget
+        self.reorient_widget = QWidget()
+        self.reorient_widget.setContentsMargins(0, 0, 0, 0)
+        self.reorient_widget.setLayout(reorient_layout)
+        self.reorient_area.setWidget(self.reorient_widget)
+
     def _update_partlist_ui(self):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
@@ -934,10 +1001,13 @@ class OptionsWindow(ToolInstance):
         # Toolbar
         self.part_toolbar_1.set_name(pl)
         self.part_toolbar_2.set_name(pl)
+        self.part_toolbar_3.set_name(pl)
         self.translation_lock_button_1.setState(pl.translation_locked)
         self.translation_lock_button_2.setState(pl.translation_locked)
+        self.translation_lock_button_3.setState(pl.translation_locked)
         self.rotation_lock_button_1.setState(pl.rotation_locked)
         self.rotation_lock_button_2.setState(pl.rotation_locked)
+        self.rotation_lock_button_3.setState(pl.rotation_locked)
 
         # Set new list
         self.partlist_selection.clear(trigger_update=False)
@@ -1163,6 +1233,74 @@ class OptionsWindow(ToolInstance):
         inst = class_obj(session, "Tomo Bundle")
         inst.line_edit.setText(data['current text'])
         return inst
+
+    def _reorient_from_order(self):
+        artia = self.session.ArtiaX
+        pl = artia.partlists.get(artia.options_partlist)
+        from chimerax.geometry import z_align
+        from numpy import asarray
+        last_part = None
+        rot = None
+        for curr_id in pl.particle_ids:
+            curr_part = pl.get_particle(curr_id)
+            if last_part is not None:
+                curr_pos = asarray(curr_part.coord)
+                last_pos = asarray(last_part.coord)
+                rot = z_align(last_pos, curr_pos).zero_translation().inverse()
+                last_part.rotation = rot
+            last_part = curr_part
+        if rot is not None:
+            last_part.rotation = rot
+        pl.update_places()
+
+    def _reorder_from_links(self):
+        artia = self.session.ArtiaX
+        pl = artia.partlists.get(artia.options_partlist)
+        from chimerax.markers.markers import selected_markers
+        import numpy as np
+
+        atom_pairs = np.asarray(selected_markers(self.session).bonds.unique().atoms)
+        nr_atoms = len(atom_pairs[0]) + 1
+        if nr_atoms > 0:
+            # Find start and check that chain ok
+            starting_atom_index = -1
+            cycle = False
+            for i, atom in enumerate(atom_pairs[0]):
+                if len(np.where(atom_pairs[0] == atom)[0]) != 1:
+                    cycle = True
+                if atom not in atom_pairs[1]:
+                    starting_atom_index = i
+                    break
+            if starting_atom_index == -1 or cycle:
+                self.session.logger.warning("Select a chain of particles with a start.")
+                return
+
+            # Add particles to new list
+            artia.create_partlist(name="reordered " + pl.name)
+            new_pl = artia.partlists.child_models()[-1]
+            next_atom_index = starting_atom_index
+            while len(atom_pairs[0]) > 0:
+                first_part = pl.get_particle(atom_pairs[0][next_atom_index].particle_id)
+                second_part = pl.get_particle(atom_pairs[1][next_atom_index].particle_id)
+                new_pl.new_particle(first_part.origin, first_part.translation, first_part.rotation)
+                new_pl.new_particle(second_part.origin, second_part.translation, second_part.rotation)
+                if next_atom_index+1 < len(atom_pairs[0]):
+                    # TODO this doesnt work, can't change the size of the list.
+                    atom_pairs[0] = np.append(atom_pairs[0][:next_atom_index], atom_pairs[0][next_atom_index+1:])
+                    atom_pairs[1] = np.append(atom_pairs[1][:next_atom_index], atom_pairs[1][next_atom_index+1:])
+                else:
+                    atom_pairs[0] = atom_pairs[0][:next_atom_index]
+                    atom_pairs[1] = atom_pairs[1][:next_atom_index]
+                next_atom_index = np.where(atom_pairs[0] == atom_pairs[1][next_atom_index])[0][0]
+
+    def _reorder_to_closest(self):
+        artia = self.session.ArtiaX
+        pl = artia.partlists.get(artia.options_partlist)
+        import numpy as np
+        coords = np.zeros((len(pl.particle_ids), 3))
+        for i, p_id in enumerate(pl.particle_ids):
+            coords[i] = np.asarray(pl.get_particle(p_id).coord)
+
 
     # ==============================================================================
     # Options Menu for Geometric Models ============================================

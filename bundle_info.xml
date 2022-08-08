@@ -288,6 +288,11 @@ will be displayed without the ChimeraX- prefix.
       name="Flip Z" icon="show_markers.png"
       description="Rotates the selected particles 180 degrees around their y-axis."/>
 
+    <!-- ArtiaX Model tab, Mouse Modes-->
+    <Provider tab="ArtiaX Models" section="Mouse Modes" mouse_mode="delete picked triangle"
+      name="Delete Picked Triangle" display_name="Delete Triangle" icon="delete.png"
+      description="Delete picked triangle."/>
+
   </Providers>
 
   <!-- Python and ChimeraX-specific classifiers

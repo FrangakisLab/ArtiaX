@@ -4,6 +4,7 @@
 from chimerax.mouse_modes.mousemodes import MouseMode
 from chimerax.mouse_modes.std_modes import MoveMouseMode
 from chimerax.atomic.structure import PickedAtom
+from chimerax.graphics.drawing import PickedTriangle
 
 # This package
 from .particle import PickedInstanceTriangle
@@ -254,3 +255,28 @@ class DeleteSelectedParticlesMode(MouseMode):
             pl = col.parent
             ids = col.child_ids[ma]
             pl.delete_data(list(ids))
+
+class DeletePickedTriangleMode(MouseMode):
+    name = 'delete picked triangle'
+    icon_file = './icons/delete.png'
+
+    def __init__(self, session):
+        MouseMode.__init__(self, session)
+
+    def remove_from_pick(self, pick):
+        from .geometricmodel import GeoModel
+        if isinstance(pick, PickedTriangle) and isinstance(pick.drawing(), GeoModel):
+            geomodel = pick.drawing()
+            print(geomodel)
+            print(pick.triangle_number)
+            from .geometricmodel.GeoModel import remove_triangle
+            remove_triangle(geomodel, pick.triangle_number)
+
+    def mouse_down(self, event):
+        x, y = event.position()
+        pick = self.view.picked_object(x, y)
+        self.remove_from_pick(pick)
+
+    def vr_press(self, event):
+        pick = event.picked_object(self.view)
+        self.remove_from_pick(pick)

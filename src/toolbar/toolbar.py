@@ -46,7 +46,8 @@ _providers = {
     "Create Mask": "artiax mask",
     "Remove Links": 'artiax remove links',
     "Triangles From Links": "artiax triangles from links",
-    "Flip Z": "artiax flip z"
+    "Flip Z": "artiax flip z",
+    "Delete Picked Triangle": 'ui mousemode right "delete picked triangle"',
 }
 
 
