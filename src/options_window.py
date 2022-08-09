@@ -975,6 +975,9 @@ class OptionsWindow(ToolInstance):
         #### Reorient buttons ####
         reorient_label = QLabel("Reorient particles:")
         self.reorient_from_order_button = QPushButton("From Particle List Order")
+        self.reorient_from_order_button.setToolTip("Use the reorder buttons to order the particle list if necessary."
+                                                   "Then use this button to reorient the particles to point to the next"
+                                                   "one in the particle list.")
         reorient_layout.addWidget(reorient_label)
         reorient_layout.addWidget(self.reorient_from_order_button)
         #### Reorient buttons ####
@@ -983,6 +986,11 @@ class OptionsWindow(ToolInstance):
         reorder_label = QLabel("Create new, reordered particle list:")
         self.reorder_from_links_button = QPushButton("From Selected Links")
         self.reorder_to_closest_button = QPushButton("To Closest")
+        self.reorder_to_closest_button.setToolTip("Creates a new list with particles identical to this one, except they"
+                                                  "are reaordered according to proximity. Select one particle as the"
+                                                  "starting point, which will be the first particle in the new list,"
+                                                  "with the closest particle to the selected one being the second"
+                                                  "particle in the list, etc.")
         reorient_layout.addWidget(reorder_label)
         reorient_layout.addWidget(self.reorder_from_links_button)
         reorient_layout.addWidget(self.reorder_to_closest_button)
@@ -1263,44 +1271,65 @@ class OptionsWindow(ToolInstance):
         nr_atoms = len(atom_pairs[0]) + 1
         if nr_atoms > 0:
             # Find start and check that chain ok
-            starting_atom_index = -1
+            starting_atom_index = np.zeros((0, 1), dtype=np.int32)
             cycle = False
             for i, atom in enumerate(atom_pairs[0]):
                 if len(np.where(atom_pairs[0] == atom)[0]) != 1:
                     cycle = True
                 if atom not in atom_pairs[1]:
-                    starting_atom_index = i
-                    break
-            if starting_atom_index == -1 or cycle:
-                self.session.logger.warning("Select a chain of particles with a start.")
+                    starting_atom_index = np.append(starting_atom_index, i)
+            if len(starting_atom_index) == 0 or cycle:
+                self.session.logger.warning("Select at least one chain of particles with a start.")
                 return
 
             # Add particles to new list
             artia.create_partlist(name="reordered " + pl.name)
             new_pl = artia.partlists.child_models()[-1]
-            next_atom_index = starting_atom_index
-            while len(atom_pairs[0]) > 0:
-                first_part = pl.get_particle(atom_pairs[0][next_atom_index].particle_id)
-                second_part = pl.get_particle(atom_pairs[1][next_atom_index].particle_id)
-                new_pl.new_particle(first_part.origin, first_part.translation, first_part.rotation)
-                new_pl.new_particle(second_part.origin, second_part.translation, second_part.rotation)
-                if next_atom_index+1 < len(atom_pairs[0]):
-                    # TODO this doesnt work, can't change the size of the list.
-                    atom_pairs[0] = np.append(atom_pairs[0][:next_atom_index], atom_pairs[0][next_atom_index+1:])
-                    atom_pairs[1] = np.append(atom_pairs[1][:next_atom_index], atom_pairs[1][next_atom_index+1:])
-                else:
-                    atom_pairs[0] = atom_pairs[0][:next_atom_index]
-                    atom_pairs[1] = atom_pairs[1][:next_atom_index]
-                next_atom_index = np.where(atom_pairs[0] == atom_pairs[1][next_atom_index])[0][0]
+            for start in starting_atom_index:
+                atom_index = start
+                start_atoms = atom_pairs[0]
+                end_atoms = atom_pairs[1]
+                # First one manually
+                start_part = pl.get_particle(start_atoms[atom_index].particle_id)
+                new_pl.new_particle(start_part.origin, start_part.translation, start_part.rotation)
+                while True:
+                    second_atom = end_atoms[atom_index]
+                    second_part = pl.get_particle(end_atoms[atom_index].particle_id)
+                    new_pl.new_particle(second_part.origin, second_part.translation, second_part.rotation)
+                    start_atoms = np.delete(start_atoms, atom_index)
+                    end_atoms = np.delete(end_atoms, atom_index)
+                    if len(np.where(start_atoms == second_atom)[0]) > 0:
+                        atom_index = np.where(start_atoms == second_atom)[0][0]
+                    else:
+                        break
 
     def _reorder_to_closest(self):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
-        import numpy as np
-        coords = np.zeros((len(pl.particle_ids), 3))
-        for i, p_id in enumerate(pl.particle_ids):
-            coords[i] = np.asarray(pl.get_particle(p_id).coord)
+        if len(pl.particle_ids[pl.selected_particles]) != 1:
+            self.session.logger.warning("Select exactly one particle as a starting point.")
+            return
 
+        artia.create_partlist(name="reordered " + pl.name)
+        new_pl = artia.partlists.child_models()[-1]
+        start_part = pl.get_particle(pl.particle_ids[pl.selected_particles][0])
+        new_pl.new_particle(start_part.origin, start_part.translation, start_part.rotation)
+
+        import numpy as np
+        part_index = np.where(pl.selected_particles)[0][0]
+        particles = [None]*len(pl.particle_ids)
+        for i, p_id in enumerate(pl.particle_ids):
+            particles[i] = pl.get_particle(p_id)
+        while len(particles) > 1:
+            curr_pos = np.asarray(particles[part_index].coord)
+            particles = np.delete(particles, part_index)
+            distances = np.zeros((len(particles), 1))
+            for i, part in enumerate(particles):
+                distances[i] = np.linalg.norm(np.asarray(part.coord) - curr_pos)
+            closest_index = np.argmin(distances)
+            closest_part = particles[closest_index]
+            new_pl.new_particle(closest_part.origin, closest_part.translation, closest_part.rotation)
+            part_index = closest_index
 
     # ==============================================================================
     # Options Menu for Geometric Models ============================================

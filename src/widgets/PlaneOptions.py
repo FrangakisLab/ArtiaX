@@ -59,7 +59,7 @@ class PlaneOptions(QWidget):
         self.base_checkbox.setCheckable(True)
         self.base_checkbox.setChecked(False)
         base_checkbox_layout = QVBoxLayout()
-        self.base_slider = LabelEditRangeSlider((-10,10), "Base level: ")
+        self.base_slider = LabelEditRangeSlider((-10, 10), "Base level: ")
         base_checkbox_layout.addWidget(self.base_slider)
         self.base_checkbox.setLayout(base_checkbox_layout)
         fitting_checkbox_layout.addWidget(self.base_checkbox)
