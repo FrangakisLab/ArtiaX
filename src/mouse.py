@@ -267,10 +267,30 @@ class DeletePickedTriangleMode(MouseMode):
         from .geometricmodel import GeoModel
         if isinstance(pick, PickedTriangle) and isinstance(pick.drawing(), GeoModel):
             geomodel = pick.drawing()
-            print(geomodel)
-            print(pick.triangle_number)
             from .geometricmodel.GeoModel import remove_triangle
             remove_triangle(geomodel, pick.triangle_number)
+
+    def mouse_down(self, event):
+        x, y = event.position()
+        pick = self.view.picked_object(x, y)
+        self.remove_from_pick(pick)
+
+    def vr_press(self, event):
+        pick = event.picked_object(self.view)
+        self.remove_from_pick(pick)
+
+class DeletePickedTetraMode(MouseMode):
+    name = 'delete tetra from boundary'
+    icon_file = './icons/delete.png'
+
+    def __init__(self, session):
+        MouseMode.__init__(self, session)
+
+    def remove_from_pick(self, pick):
+        from .geometricmodel.Boundary import Boundary
+        if isinstance(pick, PickedTriangle) and isinstance(pick.drawing(), Boundary):
+            boundary = pick.drawing()
+            boundary.remove_tetra(pick.triangle_number)
 
     def mouse_down(self, event):
         x, y = event.position()

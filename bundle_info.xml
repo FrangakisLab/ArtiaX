@@ -292,6 +292,9 @@ will be displayed without the ChimeraX- prefix.
     <Provider tab="ArtiaX Models" section="Mouse Modes" mouse_mode="delete picked triangle"
       name="Delete Picked Triangle" display_name="Delete Triangle" icon="delete.png"
       description="Delete picked triangle."/>
+    <Provider tab="ArtiaX Models" section="Mouse Modes" mouse_mode="delete tetra from boundary"
+      name="Delete Tetra From Boundary" display_name="Delete Tetra" icon="delete.png"
+      description="Delete picked tetrahedron from a boundary model."/>
 
   </Providers>
 

@@ -28,6 +28,8 @@ class Boundary(GeoModel):
         self.particle_pos = particle_pos
         self.alpha = alpha
 
+        self.delete_tri_list = np.zeros((0,1), dtype=np.int32)
+
         self.fitting_options = True
 
         self.update()
@@ -52,6 +54,7 @@ class Boundary(GeoModel):
     def recalc_and_update(self):
         for i, particle in enumerate(self.particles):
             self.particle_pos[i] = [particle.coord[0], particle.coord[1], particle.coord[2]]
+        self.delete_tri_list = np.zeros((0,1), dtype=np.int32)
         self.tri = get_triangles(self.particle_pos, self.alpha)
         self.update()
 
@@ -80,8 +83,13 @@ class Boundary(GeoModel):
         for particle_list in self.session.ArtiaX.partlists.child_models():
             particle_list.update_places()
 
+    def remove_tetra(self, tri):
+        self.delete_tri_list = np.append(self.delete_tri_list, tri)
+        self.tri = get_triangles(self.particle_pos, self.alpha, delete_tri_list=self.delete_tri_list)
+        self.update()
 
-def get_triangles(particle_pos, alpha=0.7, calc_normals=False):
+
+def get_triangles(particle_pos, alpha=0.7, calc_normals=False, delete_tri_list=None):
     tetra = Delaunay(particle_pos, furthest_site=False)
     """ Taken mostly from stack overflow: https://stackoverflow.com/a/58113037
     THANK YOU @Geun, this is pretty clever. """
@@ -111,14 +119,35 @@ def get_triangles(particle_pos, alpha=0.7, calc_normals=False):
     # triangles
     TriComb = np.array([(0, 1, 2), (0, 1, 3), (0, 2, 3), (1, 2, 3)])
     triangles = tetras[:, TriComb].reshape(-1, 3)
-
     TrianglesDict = defaultdict(int)
-    if not calc_normals:
+    if delete_tri_list is not None:
+        for delete_tri in delete_tri_list:
+            # Calculate once to find the triangle that is to be removed
+            for tri in triangles:
+                TrianglesDict[tuple(tri)] += 1
+            new_index = 0
+            for i, tri in enumerate(triangles):
+                if TrianglesDict[tuple(tri)] == 1:
+                    if delete_tri == new_index:
+                        delete_tri = i
+                        break
+                    new_index += 1
+            # Now calculate again but remove the triangle
+            for i, tetra_bools in enumerate(np.isin(tetras, triangles[delete_tri])):
+                if int(tetra_bools[0]) + int(tetra_bools[1]) + int(tetra_bools[2]) + int(tetra_bools[3]) == 3:
+                    # Found tetra for triangle to delete
+                    tetras = np.delete(tetras, i, axis=0)
+                    break
+            if len(tetras) > 0:
+                triangles = tetras[:, TriComb].reshape(-1, 3)
+                TrianglesDict = defaultdict(int)
+
+        TrianglesDict = defaultdict(int)
         for tri in triangles:
             TrianglesDict[tuple(tri)] += 1
         triangles = np.array([particle_pos[np.asarray(tri)] for tri in TrianglesDict if TrianglesDict[tri] == 1])
         return triangles
-    else:
+    elif calc_normals:
         p_index_triangles = triangles
         ordered_normals = np.zeros((len(triangles), 3))
         triangles = np.array([particle_pos[np.asarray(tri)] for tri in triangles])
@@ -151,3 +180,8 @@ def get_triangles(particle_pos, alpha=0.7, calc_normals=False):
         ordered_normals = ordered_normals[:new_index]
 
         return triangles, p_index_triangles, ordered_normals
+    else:
+        for tri in triangles:
+            TrianglesDict[tuple(tri)] += 1
+        triangles = np.array([particle_pos[np.asarray(tri)] for tri in TrianglesDict if TrianglesDict[tri] == 1])
+        return triangles

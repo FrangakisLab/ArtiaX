@@ -115,7 +115,8 @@ class ArtiaX(Model):
                             RotatePickedParticleMode,
                             DeletePickedParticleMode,
                             DeleteSelectedParticlesMode,
-                            DeletePickedTriangleMode)
+                            DeletePickedTriangleMode,
+                            DeletePickedTetraMode)
 
         self.translate_selected = TranslateSelectedParticlesMode(self.session)
         self.translate_picked = TranslatePickedParticleMode(self.session)
@@ -124,6 +125,7 @@ class ArtiaX(Model):
         self.delete_selected = DeleteSelectedParticlesMode(self.session)
         self.delete_picked = DeletePickedParticleMode(self.session)
         self.delete_picked_triangle = DeletePickedTriangleMode(self.session)
+        self.delete_picked_tetra = DeletePickedTetraMode(self.session)
         self.session.ui.mouse_modes.add_mode(self.translate_selected)
         self.session.ui.mouse_modes.add_mode(self.rotate_selected)
         self.session.ui.mouse_modes.add_mode(self.translate_picked)
@@ -131,6 +133,7 @@ class ArtiaX(Model):
         self.session.ui.mouse_modes.add_mode(self.delete_selected)
         self.session.ui.mouse_modes.add_mode(self.delete_picked)
         self.session.ui.mouse_modes.add_mode(self.delete_picked_triangle)
+        self.session.ui.mouse_modes.add_mode(self.delete_picked_tetra)
 
     @property
     def selected_tomogram(self):
