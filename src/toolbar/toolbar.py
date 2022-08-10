@@ -47,7 +47,9 @@ _providers = {
     "Remove Links": 'artiax remove links',
     "Triangles From Links": "artiax triangles from links",
     "Flip Z": "artiax flip z",
+    "Select Inside Surface": "artiax select inside surface",
     "Delete Picked Triangle": 'ui mousemode right "delete picked triangle"',
+    "Delete Tetra From Boundary": 'ui mousemode right "delete tetra from boundary"',
 }
 
 

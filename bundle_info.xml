@@ -389,6 +389,9 @@ will be displayed without the ChimeraX- prefix.
     <ChimeraXClassifier>ChimeraX :: Command :: artiax flip z :: General ::
      Rotates the selected particles 180 degrees around their y-axis.</ChimeraXClassifier>
 
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax select inside surface :: General ::
+     Selects all shown particles inside the selected surface.</ChimeraXClassifier>
+
     <ChimeraXClassifier>ChimeraX :: Command :: artiax info :: General ::
       Print information about tomograms or particle lists.</ChimeraXClassifier>
 

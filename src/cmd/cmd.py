@@ -272,6 +272,34 @@ def artiax_flip_z_axis(session):
     from ..geometricmodel.GeoModel import flip_z_axis
     flip_z_axis(session)
 
+
+def artiax_select_inside_surface(session):
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running, so no particles can be selected.")
+        return
+    # TODO: expand to work with any surface
+    from ..geometricmodel.GeoModel import selected_geomodels
+    s_geomodels = selected_geomodels(session, "Boundary")
+    if len(s_geomodels) < 1:
+        session.logger.warning("Select a boundary.")
+        return
+    s_geomodel = s_geomodels[0]
+    bounds = s_geomodel.bounds()
+    height = bounds.xyz_max[2] - bounds.xyz_min[2]
+    from chimerax.geometry._geometry import closest_triangle_intercept
+    # TODO this doesn't really work fully
+    for pl in session.ArtiaX.partlists.child_models():
+        pl.selected_particles = False
+        select_particles = pl.selected_particles
+        for i, p_id in enumerate(pl.particle_ids[pl.displayed_particles]):
+            pos = np.asarray(pl.get_particle(p_id).coord)
+            if not(np.any(pos > bounds.xyz_max) or np.any(pos < bounds.xyz_min)): #  inside bounding box
+                t1 = closest_triangle_intercept(s_geomodel.vertices, s_geomodel.triangles, pos, pos + [0,0,height])
+                t2 = closest_triangle_intercept(s_geomodel.vertices, s_geomodel.triangles, pos, pos - [0,0,height])
+                select_particles[i] = t1 is not None and t2 is not None
+        pl.selected_particles = select_particles
+
+
 def artiax_lock(session, models=None, type=None):
     # No ArtiaX
     if not hasattr(session, 'ArtiaX'):
@@ -865,6 +893,14 @@ def register_artiax(logger):
         )
         register('artiax flip z', desc, artiax_flip_z_axis)
 
+    def register_select_inside_surface():
+        desc = CmdDesc(
+            # TODO rewrite and get url right
+            synopsis='Selects all shown particles inside the selected surface.',
+            url='help:user/commands/artiax_hide.html'
+        )
+        register('artiax select inside surface', desc, artiax_select_inside_surface)
+
     def register_artiax_lock():
         desc = CmdDesc(
             optional=[("models", Or(ModelsArg, EmptyArg)),
@@ -961,6 +997,7 @@ def register_artiax(logger):
     register_artiax_triangulate()
     register_artiax_boundary()
     register_artiax_mask()
+    register_select_inside_surface()
     register_artiax_reorient_boundary_particles()
     register_artiax_remove_links()
     register_artiax_triangles_from_links()
