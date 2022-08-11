@@ -35,7 +35,7 @@ from Qt.QtWidgets import (
 # This package
 from .volume.Tomogram import orthoplane_cmd
 from .widgets import LabelEditSlider, SelectionTableWidget, ColorRangeWidget, ColorGeomodelWidget, PlaneOptions,\
-    CurvedLineOptions, BoundaryOptions
+    CurvedLineOptions, BoundaryOptions, SphereOptions, TriangulateOptions
 from .ArtiaX import (
     OPTIONS_TOMO_CHANGED,
     OPTIONS_GEOMODEL_CHANGED,
@@ -1378,16 +1378,16 @@ class OptionsWindow(ToolInstance):
         self.models = {"Sphere": 0, "CurvedLine": 1, "Surface": 2, "TriangulationSurface": 3, "Boundary": 4}
         self.model_options = QStackedWidget()
 
-        sphere_options = QWidget()
+        self.sphere_options = SphereOptions(self.session)
         self.curved_options = CurvedLineOptions(self.session)
         self.plane_options = PlaneOptions(self.session)
-        triangulation_surface_options = QWidget()
+        self.tri_surface_options = TriangulateOptions(self.session)
         self.boundary_options = BoundaryOptions(self.session)
 
-        self.model_options.addWidget(sphere_options)
+        self.model_options.addWidget(self.sphere_options)
         self.model_options.addWidget(self.curved_options)
         self.model_options.addWidget(self.plane_options)
-        self.model_options.addWidget(triangulation_surface_options)
+        self.model_options.addWidget(self.tri_surface_options)
         self.model_options.addWidget(self.boundary_options)
 
         geomodel_layout.addWidget(group_current_geomodel)
@@ -1406,12 +1406,14 @@ class OptionsWindow(ToolInstance):
 
         # Set new model
         self.geomodel_color_selection.set_geomodel(geomodel)
-        if type(geomodel).__name__ == "CurvedLine":
+        if type(geomodel).__name__ == "Sphere":
+            self.sphere_options.set_sphere(geomodel)
+        elif type(geomodel).__name__ == "CurvedLine":
             self.curved_options.set_line(geomodel)
         elif type(geomodel).__name__ == "Surface":
             self.plane_options.set_plane(geomodel)
-        # elif type(geomodel).__name__ == "TriangulationSurface":
-        #     self.triangulation_surface_options.set_line(geomodel)
+        elif type(geomodel).__name__ == "TriangulationSurface":
+            self.tri_surface_options.set_tri_surface(geomodel)
         elif type(geomodel).__name__ == "Boundary":
             self.boundary_options.set_boundary(geomodel)
 

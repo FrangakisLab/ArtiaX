@@ -26,8 +26,6 @@ from Qt.QtWidgets import (
 
 # This package
 from .LabelEditSlider import LabelEditSlider
-from .LabelEditRangeSlider import LabelEditRangeSlider
-
 
 class BoundaryOptions(QWidget):
     def __init__(self, session, parent=None):
@@ -45,6 +43,11 @@ class BoundaryOptions(QWidget):
                                       "match the desired boundary; simply move the particles that define the boundary "
                                       "and press this button to update the boundary.")
         layout.addWidget(self.update_button)
+
+        self.reorient_button = QPushButton("Reorient particles")
+        self.reorient_button.setToolTip("Reorient the selected particles that define the boundary so that the z-axis "
+                                        "points along the average normal of the corner.")
+        layout.addWidget(self.reorient_button)
 
         #Fitting options
         self.fitting_checkbox = QGroupBox("Change boundary fitting:")
@@ -79,6 +82,7 @@ class BoundaryOptions(QWidget):
         self.update_button.clicked.connect(self._update)
         self.fitting_checkbox.clicked.connect(self._fitting_toggled)
         self.alpha_slider.valueChanged.connect(self._alpha_changed)
+        self.reorient_button.clicked.connect(self._reorient)
 
     def _update(self):
         if self.boundary is not None:
@@ -91,3 +95,9 @@ class BoundaryOptions(QWidget):
     def _alpha_changed(self):
         if self.boundary is not None:
             self.boundary.change_alpha(self.alpha_slider.value)
+
+    def _reorient(self):
+        if self.boundary is not None:
+            from ..geometricmodel.GeoModel import get_curr_selected_particles
+            s_particles = get_curr_selected_particles(self.session, return_particles=True, return_pos=False)
+            self.boundary.reorient_particles_to_surface(s_particles)

@@ -17,12 +17,13 @@ from ..particle.SurfaceCollectionModel import SurfaceCollectionModel
 class Surface(PopulatedModel):
     """Surface"""
 
-    def __init__(self, name, session, particles, particle_pos, normal, points, resolution, method):
+    def __init__(self, name, session, particles, particle_pos, resolution, method):
         super().__init__(name, session)
         self.particles = particles
         self.particle_pos = particle_pos
-        self.normal = normal
-        self.points = points
+
+        self.normal = get_normal_and_pos(particles, particle_pos)
+        self.points = get_grid(particle_pos, self.normal, resolution, method)
 
         self.fitting_options = True
         self.method = method

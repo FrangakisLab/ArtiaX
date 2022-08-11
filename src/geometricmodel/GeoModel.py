@@ -116,57 +116,16 @@ def fit_sphere(session):
         session.logger.warning("At least four points are needed to fit a sphere")
         return
 
-    # Create a (overdetermined) system Ax = b, where A = [[2xi, 2yi, 2zi, 1], ...], x = [xi² + yi² + zi², ...],
-    # and b = [x, y, z, r²-x²-y²-z²], where xi,yi,zi are the positions of the particles, and x,y,z is the center of
-    # the fitted sphere with radius r.
-
-    A = np.append(2 * particle_pos, np.ones((len(particle_pos), 1)), axis=1)
-    x = np.sum(particle_pos ** 2, axis=1)
-    b, residules, rank, singval = np.linalg.lstsq(A, x, rcond=None)
-    r = math.sqrt(b[3] + b[0] ** 2 + b[1] ** 2 + b[2] ** 2)
-
     from .Sphere import Sphere
-    geomodel = Sphere("sphere", session, particles, b[:3], r)
-    artiax.add_geomodel(geomodel)
-    geomodel.selected = True
-
-
-def fit_line(session):
-    # NOT USED
-    """Creates a line between two particles"""
-    artiax = session.ArtiaX
-
-    particle_pos, particles = get_curr_selected_particles(session)
-
-    if len(particle_pos) != 2:
-        session.logger.warning("Only select a start and end point")
-        return
-
-    start = particle_pos[0]
-    end = particle_pos[1]
-
-    # Reorient selected particles so that Z-axis along the line
-    rotation_to_z = z_align(start, end)
-    rotation = rotation_to_z.zero_translation().inverse()
-    for particle_list in session.ArtiaX.partlists.child_models():
-        for curr_id in particle_list.particle_ids[particle_list.selected_particles]:
-            if curr_id:
-                curr_part = particle_list.get_particle(curr_id)
-                curr_part.rotation = rotation
-        # Updated graphics
-        particle_list.update_places()
-
-    from .Line import Line
-    geomodel = Line("line", session, particles, start, end)
+    geomodel = Sphere("sphere", session, particles, particle_pos)
     artiax.add_geomodel(geomodel)
     geomodel.selected = True
 
 
 def fit_curved_line(session):
-    # TODO: set particles along line, rotate particles with spacing, merge with line, select particles, order from lines
     artiax = session.ArtiaX
 
-    particles = get_curr_selected_particles(session, return_pos=False)
+    particle_pos, particles = get_curr_selected_particles(session)
 
     if len(particles) < 2:
         session.logger.warning("Select at least two points")
@@ -178,8 +137,15 @@ def fit_curved_line(session):
 
     smooth = 0
     resolution = 300
-    from .CurvedLine import get_points
-    points, der = get_points(session, particles, smooth, degree, resolution)
+
+    from .CurvedLine import CurvedLine
+    if degree == 1:
+        name = "line"
+    else:
+        name = "curved line"
+    geomodel = CurvedLine(name, session, particle_pos, particles, degree, smooth, resolution)
+    artiax.add_geomodel(geomodel)
+    geomodel.selected = True
 
     # Reorient selected particles so that Z-axis points towards next particle NOW ITS OWN COMMAND
     # particle_index = 0
@@ -199,15 +165,6 @@ def fit_curved_line(session):
     #     # Updated graphics
     #     particle_list.update_places()
 
-    from .CurvedLine import CurvedLine
-    if degree == 1:
-        name = "line"
-    else:
-        name = "curved line"
-    geomodel = CurvedLine(name, session, particles, points, der, degree, smooth, resolution)
-    artiax.add_geomodel(geomodel)
-    geomodel.selected = True
-
 
 def fit_surface(session):
     particle_pos, particles = get_curr_selected_particles(session)
@@ -217,11 +174,32 @@ def fit_surface(session):
     resolution = 50
     method = 'cubic'  # nearest, cubic, or linear
 
-    from .Surface import get_normal_and_pos, get_grid, Surface
-    normal = get_normal_and_pos(particles, particle_pos)
-    points = get_grid(particle_pos, normal, resolution, method)
-    geomodel = Surface('surface', session, particles, particle_pos, normal, points, resolution, method)
+    from .Surface import Surface
+    geomodel = Surface('surface', session, particles, particle_pos, resolution, method)
 
+    session.ArtiaX.add_geomodel(geomodel)
+    geomodel.selected = True
+
+
+def surface_from_links(session):
+    from chimerax.markers.markers import selected_markers
+    particle_pairs = np.asarray(selected_markers(session).bonds.unique().atoms)
+
+    from .TrangulationSurface import TriangulationSurface
+    geomodel = TriangulationSurface("triangulated surface", session, particle_pairs)
+    session.ArtiaX.add_geomodel(geomodel)
+    geomodel.selected = True
+
+
+def boundary(session):
+    particle_pos, particles = get_curr_selected_particles(session)
+    if len(particles) < 5:
+        session.logger.warning("Select at least five points")
+        return
+
+    from .Boundary import Boundary
+    alpha = 0.7
+    geomodel = Boundary("boundary", session, particles, particle_pos, alpha)
     session.ArtiaX.add_geomodel(geomodel)
     geomodel.selected = True
 
@@ -243,71 +221,6 @@ def remove_selected_links(session):
     bonds.delete()
 
 
-def surface_from_links(session):
-    from chimerax.markers.markers import selected_markers
-    particle_pairs = np.asarray(selected_markers(session).bonds.unique().atoms)
-    triangles = np.zeros((0,3,3))
-    triangle_made = False
-    while len(particle_pairs[0]) > 1:
-        first_corner = particle_pairs[0][0]
-        second_corner = particle_pairs[1][0]
-        bonds_that_contain_first = find_bonds_containing_corner(particle_pairs, first_corner)
-        bonds_that_contain_second = find_bonds_containing_corner(particle_pairs, second_corner)
-        for second_side in bonds_that_contain_second:
-            if second_corner == particle_pairs[0][second_side]:
-                third_corner = particle_pairs[1][second_side]
-            else:
-                third_corner = particle_pairs[0][second_side]
-            for third_side in bonds_that_contain_first:
-                if third_corner == particle_pairs[0][third_side] or third_corner == particle_pairs[1][third_side]:
-                    triangle_made = True
-                    triangles = np.append(triangles, [[first_corner.coord, second_corner.coord, third_corner.coord]], axis=0)
-        particle_pairs = np.delete(particle_pairs, 0, 1)
-
-    if not triangle_made:
-        session.logger.warning("Select particles that form at least one triangle.")
-        return
-
-    from .TrangulationSurface import TriangulationSurface
-    geomodel = TriangulationSurface("triangulated surface", session, triangles)
-    session.ArtiaX.add_geomodel(geomodel)
-    geomodel.selected = True
-
-
-def find_bonds_containing_corner(particle_pairs, corner):
-    bonds_containing_corner = np.array([])
-    for bond in range(0, len(particle_pairs[0])):
-        if particle_pairs[0][bond] == corner or particle_pairs[1][bond] == corner:
-            bonds_containing_corner = np.append(bonds_containing_corner, bond)
-    return bonds_containing_corner.astype(np.int)
-
-
-def boundary(session):
-    particle_pos, particles = get_curr_selected_particles(session)
-    if len(particles) < 5:
-        session.logger.warning("Select at least five points")
-        return
-
-    from .Boundary import get_triangles, Boundary
-    alpha = 0.7
-    triangles = get_triangles(particle_pos, alpha)
-    geomodel = Boundary("boundary", session, triangles, particles, particle_pos, alpha)
-    session.ArtiaX.add_geomodel(geomodel)
-    geomodel.selected = True
-
-
-def flip_z_axis(session):
-    particle_pos, particles = get_curr_selected_particles(session)
-
-    from chimerax.geometry import rotation
-    for particle in particles:
-        x_axes = particle.rotation.transform_vector((1, 0, 0))
-        particle.rotation = rotation(x_axes, 180) * particle.rotation
-
-    for particle_list in session.ArtiaX.partlists.child_models():
-        particle_list.update_places()
-
-
 def remove_triangle(geomodel, triangle):
     triangles = np.append(geomodel.triangles[:triangle], geomodel.triangles[triangle + 1:], axis=0)
     for i, t in enumerate(triangles[triangle:]):
@@ -317,3 +230,33 @@ def remove_triangle(geomodel, triangle):
     geomodel.set_geometry(vertices, normals, triangles)
     geomodel.vertex_colors = np.full((len(vertices), 4), geomodel.color)
 
+
+# def fit_line(session):
+#     # NOT USED
+#     """Creates a line between two particles"""
+#     artiax = session.ArtiaX
+#
+#     particle_pos, particles = get_curr_selected_particles(session)
+#
+#     if len(particle_pos) != 2:
+#         session.logger.warning("Only select a start and end point")
+#         return
+#
+#     start = particle_pos[0]
+#     end = particle_pos[1]
+#
+#     # Reorient selected particles so that Z-axis along the line
+#     rotation_to_z = z_align(start, end)
+#     rotation = rotation_to_z.zero_translation().inverse()
+#     for particle_list in session.ArtiaX.partlists.child_models():
+#         for curr_id in particle_list.particle_ids[particle_list.selected_particles]:
+#             if curr_id:
+#                 curr_part = particle_list.get_particle(curr_id)
+#                 curr_part.rotation = rotation
+#         # Updated graphics
+#         particle_list.update_places()
+#
+#     from .Line import Line
+#     geomodel = Line("line", session, particles, start, end)
+#     artiax.add_geomodel(geomodel)
+#     geomodel.selected = True

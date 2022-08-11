@@ -218,6 +218,11 @@ will be displayed without the ChimeraX- prefix.
       name="Select Inside Surface" display_name="Select Inside" icon="invert_selection.png"
       description="Selects all shown particles inside the selected surface."/>
 
+    <!-- ArtiaX tab, Reorient Particles-->
+    <Provider tab="ArtiaX" section="Reorient Particles"
+      name="Flip Z" icon="show_markers.png"
+      description="Rotates the selected particles 180 degrees around their y-axis."/>
+
 
     <!-- ArtiaX models tab -->
     <!-- ArtiaX Model tab, Markers -->
@@ -259,20 +264,16 @@ will be displayed without the ChimeraX- prefix.
     <Provider tab="ArtiaX Models" section="Movement" mouse_mode="pivot"
       name="Pivot Models Tab" display_name="Center On" icon="crosshairs.png" description="Set center of rotation on particle."/>
 
-    <!-- ArtiaX Model tab, Sphere-->
-    <Provider tab="ArtiaX Models" section="Sphere"
+    <!-- ArtiaX Model tab, Fit Geometric Model-->
+        <Provider tab="ArtiaX Models" section="Fit Geometric Model"
       name="Fit Sphere" icon="show_markers.png" description="Fit a sphere to the currently selected particles."/>
-
-    <!-- ArtiaX Model tab, Line-->
-    <Provider tab="ArtiaX Models" section="Line"
+    <Provider tab="ArtiaX Models" section="Fit Geometric Model"
       name="Fit Line" icon="show_axes.png" description="Create a geometric model line between the selected particles."/>
-
-    <!-- ArtiaX Model tab, Surface-->
-    <Provider tab="ArtiaX Models" section="Surface"
+    <Provider tab="ArtiaX Models" section="Fit Geometric Model"
       name="Fit Surface" icon="view_xz.png" description="Create a geometric model plane between the selected particles."/>
-    <Provider tab="ArtiaX Models" section="Surface"
+    <Provider tab="ArtiaX Models" section="Fit Geometric Model"
       name="Triangles From Links" icon="view_xz.png" description="Creates a triangle surface between all particles marked by links."/>
-    <Provider tab="ArtiaX Models" section="Surface"
+    <Provider tab="ArtiaX Models" section="Fit Geometric Model"
       name="Boundary" icon="view_xz.png" description="Creates a hull around the selected particles."/>
 
     <!-- ArtiaX Model tab, Links-->
@@ -285,22 +286,11 @@ will be displayed without the ChimeraX- prefix.
     <Provider tab="ArtiaX Models" section="Mask"
       name="Create Mask" icon="view_xz.png" description="Creates a mask from the selected geometric model."/>
 
-    <!-- ArtiaX Model tab, Reorient Particles-->
-    <Provider tab="ArtiaX Models" section="Reorient Particles"
-      name="Reorient Boundary Particles" icon="view_xz.png" description="Reorient the selected particles that define the
-      selected surface so that the z-axis points along the normal of the surface."/>
-    <Provider tab="ArtiaX Models" section="Reorient Particles"
-      name="Reorient Sphere Particles" icon="show_markers.png"
-      description="Reorients selected particles so that their z-axis points away from the center or the selected sphere"/>
-    <Provider tab="ArtiaX Models" section="Reorient Particles"
-      name="Flip Z" icon="show_markers.png"
-      description="Rotates the selected particles 180 degrees around their y-axis."/>
-
-    <!-- ArtiaX Model tab, Mouse Modes-->
-    <Provider tab="ArtiaX Models" section="Mouse Modes" mouse_mode="delete picked triangle"
+    <!-- ArtiaX Model tab, Delete Surface-->
+    <Provider tab="ArtiaX Models" section="Delete Surface" mouse_mode="delete picked triangle"
       name="Delete Picked Triangle" display_name="Delete Triangle" icon="delete.png"
       description="Delete picked triangle."/>
-    <Provider tab="ArtiaX Models" section="Mouse Modes" mouse_mode="delete tetra from boundary"
+    <Provider tab="ArtiaX Models" section="Delete Surface" mouse_mode="delete tetra from boundary"
       name="Delete Tetra From Boundary" display_name="Delete Tetra" icon="delete.png"
       description="Delete picked tetrahedron from a boundary model."/>
 
@@ -363,9 +353,6 @@ will be displayed without the ChimeraX- prefix.
     <ChimeraXClassifier>ChimeraX :: Command :: artiax fit sphere :: General ::
       Fits a sphere to the currently selected particles.</ChimeraXClassifier>
 
-    <ChimeraXClassifier>ChimeraX :: Command :: artiax reorient sphere particles :: General ::
-      eorients selected particles so that their z-axis points away from the center or the selected sphere</ChimeraXClassifier>
-
     <ChimeraXClassifier>ChimeraX :: Command :: artiax fit line :: General ::
       Fits a line to two selected particles.</ChimeraXClassifier>
 
@@ -377,10 +364,6 @@ will be displayed without the ChimeraX- prefix.
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax mask :: General ::
       Creates a mask from the selected geometric model.</ChimeraXClassifier>
-
-    <ChimeraXClassifier>ChimeraX :: Command :: artiax reorient surface particles :: General ::
-      Reorient the selected particles that define the selected boundary model so that the z-axis of the
-      particles points along the normal of the boundary</ChimeraXClassifier>
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax fit curved line :: General ::
       Fits a smooth line between the selected particles.</ChimeraXClassifier>
@@ -394,8 +377,8 @@ will be displayed without the ChimeraX- prefix.
     <ChimeraXClassifier>ChimeraX :: Command :: artiax triangles from links :: General ::
       Creates a triangle surface between all particles marked by links.</ChimeraXClassifier>
 
-    <ChimeraXClassifier>ChimeraX :: Command :: artiax flip z :: General ::
-     Rotates the selected particles 180 degrees around their y-axis.</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax flip :: General ::
+     Rotates the selected particles 180 degrees around the given axis.</ChimeraXClassifier>
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax select inside surface :: General ::
      Selects all shown particles inside the selected surface.</ChimeraXClassifier>

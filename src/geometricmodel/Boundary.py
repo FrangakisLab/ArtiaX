@@ -18,14 +18,15 @@ from .GeoModel import GeoModel
 class Boundary(GeoModel):
     """Triangulated Plane"""
 
-    def __init__(self, name, session, triangles, particles, particle_pos, alpha):
+    def __init__(self, name, session, particles, particle_pos, alpha):
         super().__init__(name, session)
 
-        self.tri = triangles
-        self.p_index_triangles = None
-        self.ordered_normals = None
         self.particles = particles
         self.particle_pos = particle_pos
+        self.tri = get_triangles(particle_pos, alpha)
+
+        self.p_index_triangles = None
+        self.ordered_normals = None
         self.alpha = alpha
 
         self.delete_tri_list = np.zeros((0,1), dtype=np.int32)

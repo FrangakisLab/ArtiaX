@@ -43,11 +43,9 @@ _providers = {
 
     "Fit Sphere": "artiax fit sphere",
     "Fit Line": "artiax fit line",
-    "Reorient Sphere Particles": "artiax reorient sphere particles",
     "Fit Surface": "artiax fit surface",
     "Triangulate": "artiax triangulate",
     "Boundary": "artiax boundary",
-    "Reorient Boundary Particles": "artiax reorient boundary particles",
     "Create Mask": "artiax mask",
     "Remove Links": 'artiax remove links',
     "Triangles From Links": "artiax triangles from links",

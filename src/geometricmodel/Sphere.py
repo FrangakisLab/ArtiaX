@@ -10,17 +10,20 @@ from .GeoModel import GeoModel
 class Sphere(GeoModel):
     """Sphere"""
 
-    def __init__(self, name, session, particles, pos, r):
+    def __init__(self, name, session, particles, particle_pos, center=None, r=None):
         super().__init__(name, session)
         self.change_transparency(100)
 
         self.particles = particles
+        self.particle_pos = particle_pos
 
-        self.center = pos
+        if center is None or r is None:
+            center, r = lstsq_sphere(particle_pos)
+        self.center = center
         self.r = r
 
         self.update()
-        print("Created sphere with center: {} and radius: {}".format(pos, r))
+        print("Created sphere with center: {} and radius: {}".format(center, r))
 
     def define_sphere(self):
         from chimerax.bild.bild import _BildFile
@@ -37,6 +40,12 @@ class Sphere(GeoModel):
         vertices, normals, triangles, vertex_colors = self.define_sphere()
         self.set_geometry(vertices, normals, triangles)
         self.vertex_colors = np.full(np.shape(vertex_colors), self.color)
+
+    def recalc_and_update(self):
+        for i, particle in enumerate(self.particles):
+            self.particle_pos[i] = [particle.coord[0], particle.coord[1], particle.coord[2]]
+        self.center, self.r = lstsq_sphere(self.particle_pos)
+        self.update()
 
     def orient_particles(self):
         # Reorient selected particles so that Z-axis points towards center of sphere
@@ -60,3 +69,18 @@ class Sphere(GeoModel):
     def translate(self, pos):
         self.center = pos
         self.update()
+
+
+def lstsq_sphere(pos):
+    # Create a (overdetermined) system Ax = b, where A = [[2xi, 2yi, 2zi, 1], ...], x = [xi² + yi² + zi², ...],
+    # and b = [x, y, z, r²-x²-y²-z²], where xi,yi,zi are the positions of the particles, and x,y,z is the center of
+    # the fitted sphere with radius r.
+
+    import math
+    A = np.append(2 * pos, np.ones((len(pos), 1)), axis=1)
+    x = np.sum(pos ** 2, axis=1)
+    b, residules, rank, singval = np.linalg.lstsq(A, x, rcond=None)
+    r = math.sqrt(b[3] + b[0] ** 2 + b[1] ** 2 + b[2] ** 2)
+    center = b[:3]
+
+    return center, r

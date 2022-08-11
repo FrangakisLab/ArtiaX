@@ -23,6 +23,8 @@ from .ArtiaXSaveDialog import ArtiaXSaveDialog
 from .PlaneOptions import PlaneOptions
 from .MethodButtons import MethodButtons
 from .BoundaryOptions import BoundaryOptions
+from .SphereOptions import SphereOptions
+from .TriangulateOptions import TriangulateOptions
 
 def qt_enum_equal(enum_value, comp_value):
     """Compare with Qt enums safely with Qt5 and Qt6."""

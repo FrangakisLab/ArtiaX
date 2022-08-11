@@ -17,12 +17,14 @@ from ..particle.SurfaceCollectionModel import SurfaceCollectionModel
 class CurvedLine(PopulatedModel):
     """Line between points"""
 
-    def __init__(self, name, session, particles, points, der_points, degree, smooth, resolution):
+    def __init__(self, name, session, particle_pos, particles, degree, smooth, resolution):
         super().__init__(name, session)
 
-        self.points = points  # points[0] contains all the x values, points[1] all y values etc
-        self.der_points = der_points
+        self.particle_pos = particle_pos
         self.particles = particles
+
+        # points[0] contains all the x values, points[1] all y values etc
+        self.points, self.der_points = get_points(particle_pos, smooth, degree, resolution)
 
         self.fitting_options = True
         self.degree = degree
@@ -51,8 +53,9 @@ class CurvedLine(PopulatedModel):
         self.vertex_colors = np.full(np.shape(vertex_colors), self.color)
 
     def recalc_and_update(self):
-        self.points, self.der_points = get_points(self.session, self.particles, self.smooth, self.degree,
-                                                  self.resolution)
+        for i, particle in enumerate(self.particles):
+            self.particle_pos[i] = [particle.coord[0], particle.coord[1], particle.coord[2]]
+        self.points, self.der_points = get_points(self.particle_pos, self.smooth, self.degree, self.resolution)
         self.update()
 
     def define_curved_line(self):
@@ -177,13 +180,11 @@ class CurvedLine(PopulatedModel):
             self.recalc_and_update()
 
 
-def get_points(session, particles, smooth, degree, resolution):
+def get_points(pos, smooth, degree, resolution):
     # Find particles
-    x, y, z = np.zeros(len(particles)), np.zeros(len(particles)), np.zeros(len(particles))
-    for i, particle in enumerate(particles):
-        x[i] = particle.coord[0]
-        y[i] = particle.coord[1]
-        z[i] = particle.coord[2]
+    x = pos[:,0]
+    y = pos[:,1]
+    z = pos[:,2]
 
     # s=0 means it will go through all points, s!=0 means smoother, good value between m+-sqrt(2m) (m=no. points)
     # degree can be 1,3, or 5

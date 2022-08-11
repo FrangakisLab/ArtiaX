@@ -226,21 +226,6 @@ def artiax_mask(session):
     run(session, "volume onesmask #{}.{}.{}".format(*s_geomodels[0].id))
 
 
-def artiax_reorient_boundary_particles(session):
-    if not hasattr(session, 'ArtiaX'):
-        session.logger.warning("ArtiaX is not currently running, so no particles can be reoriented.")
-        return
-
-    from ..geometricmodel.GeoModel import selected_geomodels, get_curr_selected_particles
-    s_geomodels = selected_geomodels(session, "Boundary")
-    if len(s_geomodels) < 1:
-        session.logger.warning('Select one Boundary model.')
-        return
-    s_particles = get_curr_selected_particles(session, return_particles=True, return_pos=False)
-
-    s_geomodels[0].reorient_particles_to_surface(s_particles)
-
-
 def artiax_remove_links(session):
     from ..geometricmodel.GeoModel import remove_selected_links
     remove_selected_links(session)
@@ -251,26 +236,26 @@ def artiax_triangles_from_links(session):
     surface_from_links(session)
 
 
-def artiax_reorient_sphere_particles(session):
+def artiax_flip(session, around=None):
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running, so no particles can be reoriented.")
         return
 
-    from ..geometricmodel.GeoModel import selected_geomodels
-    s_geomodels = selected_geomodels(session, "Sphere")
-    if len(s_geomodels) < 1:
-        session.logger.warning("Select a sphere.")
-        return
+    if around is None:
+        around = [1,0,0]
+    else:
+        around = np.asarray(around)
+        around = around / np.linalg.norm(around)
 
-    s_geomodels[0].orient_particles()
+    from ..geometricmodel.GeoModel import get_curr_selected_particles
+    particle_pos, particles = get_curr_selected_particles(session)
+    from chimerax.geometry import rotation
+    for particle in particles:
+        axis = particle.rotation.transform_vector(around)
+        particle.rotation = rotation(axis, 180) * particle.rotation
 
-def artiax_flip_z_axis(session):
-    if not hasattr(session, 'ArtiaX'):
-        session.logger.warning("ArtiaX is not currently running, so no particles can be reoriented.")
-        return
-
-    from ..geometricmodel.GeoModel import flip_z_axis
-    flip_z_axis(session)
+    for particle_list in session.ArtiaX.partlists.child_models():
+        particle_list.update_places()
 
 
 def artiax_select_inside_surface(session):
@@ -716,7 +701,8 @@ def register_artiax(logger):
         FloatArg,
         ColorArg,
         Float3Arg,
-        BoolArg
+        BoolArg,
+        AxisArg
     )
 
     def register_artiax_start():
@@ -853,15 +839,6 @@ def register_artiax(logger):
         )
         register('artiax mask', desc, artiax_mask)
 
-    def register_artiax_reorient_boundary_particles():
-        desc = CmdDesc(
-            # TODO rewrite and get url right
-            synopsis='Reorient the selected particles that define the selected boundary model so that the z-axis of the'
-                     ' particles points along the normal of the boundary.',
-            url='help:user/commands/artiax_hide.html'
-        )
-        register('artiax reorient boundary particles', desc, artiax_reorient_boundary_particles)
-
     def register_artiax_remove_links():
         desc = CmdDesc(
             # TODO rewrite and get url right
@@ -880,23 +857,14 @@ def register_artiax(logger):
         register('artiax triangles from links', desc, artiax_triangles_from_links)
 
 
-    def register_artiax_reorient_sphere_particles():
+    def register_artiax_flip():
         desc = CmdDesc(
             # TODO rewrite and get url right
-            synopsis='Reorients selected particles so that their z-axis points away from the center or the selected '
-                     'sphere.',
-            url='help:user/commands/artiax_hide.html'
-        )
-        register('artiax reorient sphere particles', desc, artiax_reorient_sphere_particles)
-
-
-    def register_artiax_flip_z_axis():
-        desc = CmdDesc(
-            # TODO rewrite and get url right
+            optional=[('axis', AxisArg)],
             synopsis='Rotates the selected particles 180 degrees around their y-axis.',
             url='help:user/commands/artiax_hide.html'
         )
-        register('artiax flip z', desc, artiax_flip_z_axis)
+        register('artiax flip', desc, artiax_flip)
 
     def register_select_inside_surface():
         desc = CmdDesc(
@@ -1003,11 +971,9 @@ def register_artiax(logger):
     register_artiax_boundary()
     register_artiax_mask()
     register_select_inside_surface()
-    register_artiax_reorient_boundary_particles()
     register_artiax_remove_links()
     register_artiax_triangles_from_links()
-    register_artiax_reorient_sphere_particles()
-    register_artiax_flip_z_axis()
+    register_artiax_flip()
     register_artiax_tomo()
     register_artiax_colormap()
     register_artiax_label()
