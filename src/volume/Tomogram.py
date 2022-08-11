@@ -26,7 +26,7 @@ class Tomogram(VolumePlus):
         self.set_parameters(image_levels=self.default_levels, backing_color=(0, 0, 0, 255), color_mode='auto8', colormap_on_gpu=True)
 
         # Origin
-        self.data.origin = np.array([0, 0, 0])
+        self.data.set_origin((0, 0, 0))
         if isinstance(self.data, EMGrid):
             self.pixelsize = 1
 

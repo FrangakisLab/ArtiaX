@@ -1006,3 +1006,22 @@ def lock_particlelist(models, lock_state, what, do_print=True):
 
     if do_print:
         print(text)
+
+def delete_selected_particles(session):
+    """Delete all currently selected particles in the session."""
+    collections, masks = selected_collections(session)
+
+    for col, ma in zip(collections, masks):
+        pl = col.parent
+        ids = col.child_ids[ma]
+        pl.delete_data(list(ids))
+
+def invert_selection(session):
+    """Invert selection of all visible particle lists."""
+    artia = session.ArtiaX
+
+    from numpy import logical_not
+    for plist in artia.partlists.iter():
+        if plist.visible:
+            markerset = plist.markers
+            markerset.atoms.selecteds = logical_not(markerset.atoms.selecteds)

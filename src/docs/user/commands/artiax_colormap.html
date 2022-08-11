@@ -9,78 +9,20 @@
     <h3><a href="../artiax_index.html#commands">Command</a>: artiax colormap</h3>
     <h3 class="usage"><a href="usageconventions.html">Usage</a>: <br>
       <b>artiax colormap</b> <a href="atomspec.html#hierarchy"><i>model-spec</i></a>
-      <em>attribute</em> <i>[minValue value] [maxValue value] [transparency value]</i></h3>
-    <p> The <b>artiax colormap</b> command allows for setting a colormap to the chosen particle lsit.
-      if no minimum or maximum value is chosen the lowest and largest values available in the
-      selected particle list is chosen as minimum and maximum values respectively.</p>
-      <table style="width: 764px; height: 108px;" border="1">
-      <tbody>
-        <tr>
-          <td style="text-align: center; width: 143.517px;"><em><strong>attribute</strong></em></td>
-        </tr>
-        <tr>
-          <td>legacy_x</td>
-        </tr>
-        <tr>
-          <td>legacy_y</td>
-        </tr>
-        <tr>
-          <td>legacy_num</td>
-        </tr>
-        <tr>
-          <td>tomo_number</td>
-        </tr>
-        <tr>
-          <td>part_number</td>
-        </tr>
-        <tr>
-          <td>wedge_number</td>
-        </tr>
-        <tr>
-          <td>position_x</td>
-        </tr>
-        <tr>
-          <td>position_y</td>
-        </tr>
-        <tr>
-          <td>position_z</td>
-        </tr>
-        <tr>
-          <td>shift_x</td>
-        </tr>
-        <tr>
-          <td>shift_y</td>
-        </tr>
-        <tr>
-          <td>shift_z</td>
-        </tr>
-        <tr>
-          <td>legacy_shift_x</td>
-        </tr>
-        <tr>
-          <td>legacy_shift_y</td>
-        </tr>
-        <tr>
-          <td>legacy_shift_z</td>
-        </tr>
-        <tr>
-          <td>phi</td>
-        </tr>
-        <tr>
-          <td>psi</td>
-        </tr>
-        <tr>
-          <td>the</td>
-        </tr>
-        <tr>
-          <td>class_number</td>
-        </tr>
-      </tbody>
-    </table>
-      <p>
-      Examples: </p>
-    <blockquote> <b>artiax colormap #1.2.1 position_x <br>
-      probably add more here </b> </blockquote>
+      <em>attribute</em> [<strong>palette</strong> <em>palette-name</em>] [<strong>minValue</strong><i>
+        value</i>]<i> </i>[<strong>maxValue</strong><i> value</i>] [<strong>transparency</strong><i>
+        value</i>]</h3>
+    <p> The <b>artiax colormap</b> command allows setting the colormap of the
+      specified particle list based on metadata attributes. If no minimum or
+      maximum value is chosen the lowest and largest values available in the
+      selected particle list is chosen as minimum and maximum values
+      respectively.</p>
+    Available attribute names for colormapping can be retrieved using the <b><a
+        href="artiax_info.html">artiax info</a></b> command. <br>
+    <p> Examples: </p>
+    <blockquote> <b>artiax colormap #1.2.1 position_x</b><br>
+      <b>artiax colormap #1.2.1 cross_correlation min 0.3 max 1.0<br>
+      </b></blockquote>
     <p></p>
     <hr>
     <address>BMLS Frangakis Group / June 2022</address>

@@ -8,61 +8,70 @@
         alt="ArtiaX docs icon" class="clRight" title="User Guide Index" width="60px"></a>
     <h3><a href="../artiax_index.html#commands">Command</a>: artiax particles</h3>
     <h3 class="usage"><a href="usageconventions.html">Usage</a>: <br>
-      <b>artiax particles</b> [ <a href="atomspec.html#hierarchy"><i>model-spec</i></a> ]
-      <em>property</em> <i>value</i> </h3>
-    <p> The <b>artiax particles</b> command enables setting a property of the selected particle list.
-      A blank spec will change the property on all particle lists currently open.</p>
-      <table style="width: 764px; height: 108px;" border="1">
+      <b>artiax particles</b> [ <a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+      ] [<strong>radius</strong> <i>value</i>] [<strong>axesSize</strong>
+      <i>value</i>] [<strong>surfaceLevel</strong> <i>value</i>] [<strong>color
+      </strong><a href="user/commands/color.html#colorname"><em>colorname</em></a>]
+      [<strong>originScaleFactor</strong> <em>value</em>] [<strong>transScaleFactor
+        </strong><em>value</em>] </h3>
+    <p> The <b>artiax particles</b> command enables setting a property of the
+      selected particle list. A blank spec will change the property on all
+      particle lists currently open.</p>
+    <table style="width: 1006px; height: 380px;" border="1">
       <tbody>
         <tr>
-          <td style="text-align: center; width: 143.517px;"><em><strong>property</strong></em></td>
-          <td style="width: 1580.48px; text-align: center;"><em><strong>meaning</strong></em></td>
-          <td style="width: 1580.48px; text-align: center;"><em><strong>expected value type</strong></em></td>
-          <td style="width: 1580.48px; text-align: center;"><em><strong>default value</strong></em></td>
+          <td style="text-align: center; width: 176px;"><em><strong>property</strong></em></td>
+          <td style="text-align: center; width: 239.033px;"><em><strong>meaning</strong></em></td>
+          <td style="text-align: center; width: 242.033px;"><em><strong>expected
+                value type</strong></em></td>
+          <td style="text-align: center; width: 418.067px;"><em><strong>default
+                value</strong></em></td>
         </tr>
         <tr>
           <td style="height: 19px; text-align: center;"><strong>radius</strong></td>
-          <td>radius of the particle sphere</td>
-          <td style="width: 1580.48px; text-align: center;"><em>float</em></td>
-          <td style="width: 1580.48px; text-align: center;">4</td>
+          <td>radius of the particle sphere (Angstrom)</td>
+          <td style="text-align: center;"><em>float</em></td>
+          <td style="text-align: center;">4</td>
         </tr>
         <tr>
-          <td style="text-align: center;"><strong>axes</strong></td>
-          <td>size of the xyz axes</td>
-          <td style="width: 1580.48px; text-align: center;"><em>float</em></td>
-          <td style="width: 1580.48px; text-align: center;">15</td>
+          <td style="text-align: center;"><strong>axesSize</strong></td>
+          <td>size of the xyz axes (Angstrom)</td>
+          <td style="text-align: center;"><em>float</em></td>
+          <td style="text-align: center;">15</td>
         </tr>
         <tr>
-          <td style="text-align: center;"><strong>color</strong></td>
-          <td>color of particle sphere</td>
-          <td style="width: 1580.48px; text-align: center;"><em>string</em></td>
-          <td style="width: 1580.48px; text-align: center;">N/A</td>
+          <td style="text-align: center;"><strong style="">color</strong></td>
+          <td>color of particle </td>
+          <td style="text-align: center;"><em>colorname</em></td>
+          <td style="text-align: center; height: 20px;">N/A</td>
         </tr>
         <tr>
-          <td style="text-align: center;"><strong>origin</strong></td>
-          <td>sets the origin scale factor</td>
-          <td style="width: 1580.48px; text-align: center;"><em>float</em></td>
-          <td style="width: 1580.48px; text-align: center;">1</td>
+          <td style="text-align: center;"><strong>surfaceLevel</strong></td>
+          <td>Isosurface threshold for density map associated with this particle
+            list</td>
+          <td style="height: 20px; text-align: center;"><em>float</em></td>
+          <td style="text-align: center;">?</td>
         </tr>
         <tr>
-          <td style="text-align: center;"><strong>surface</strong></td>
-          <td>dont know</td>
-          <td style="width: 1580.48px; text-align: center;"><em>float</em></td>
-          <td style="width: 1580.48px; text-align: center;">?</td>
+          <td style="text-align: center;"><strong>originScaleFactor</strong></td>
+          <td>Scaling factor for particle origins contained in the particle
+            list.</td>
+          <td style="text-align: center;"><em>float</em></td>
+          <td style="text-align: center;">1</td>
         </tr>
         <tr>
-          <td style="text-align: center;"><strong>trans</strong></td>
-          <td>sets the shift pixelsize scale factor</td>
-          <td style="width: 1580.48px; text-align: center;"><em>float</em></td>
-          <td style="width: 1580.48px; text-align: center;">1</td>
+          <td style="text-align: center;"><strong>transScaleFactor</strong></td>
+          <td>Scaling factor for particle alignment shifts contained in the
+            particle list.</td>
+          <td style="text-align: center;"><em>float</em></td>
+          <td style="text-align: center;">1</td>
         </tr>
       </tbody>
     </table>
-      <p>
-      Examples: </p>
+    <p> Examples: </p>
     <blockquote> <b>artiax particles radius 8 <br>
-      artiax particles #1.2.1 color blue <br>
-      artiax particles #1.2.2 origin 5</b> </blockquote>
+        artiax particles #1.2.1 color blue <br>
+        artiax particles #1.2.2 origin 5</b> </blockquote>
     <p></p>
     <hr>
     <address>BMLS Frangakis Group / June 2022</address>

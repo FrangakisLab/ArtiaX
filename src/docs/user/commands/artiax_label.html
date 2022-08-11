@@ -9,80 +9,19 @@
     <h3><a href="../artiax_index.html#commands">Command</a>: artiax label</h3>
     <h3 class="usage"><a href="usageconventions.html">Usage</a>: <br>
       <b>artiax label</b> <a href="atomspec.html#hierarchy"><i>model-spec</i></a>
-      <em>attribute</em> <i>[height value] [offset value]</i></h3>
-    <p> The <b>artiax label</b> command allows for setting a label on each particle in the selected
-        particle list displaying the particles value for the selected attribute. <em>height</em>
-        sets the size of the label, and offset receives a three comma seperated values that determine
-        the <em>offset</em> of the label from the particle center. If no height is given, it is set
-        to 8, and if no offset is given, it is set to 4,4,4.</p>
-      <table style="width: 764px; height: 108px;" border="1">
-      <tbody>
-        <tr>
-          <td style="text-align: center; width: 143.517px;"><em><strong>attribute</strong></em></td>
-        </tr>
-        <tr>
-          <td>legacy_x</td>
-        </tr>
-        <tr>
-          <td>legacy_y</td>
-        </tr>
-        <tr>
-          <td>legacy_num</td>
-        </tr>
-        <tr>
-          <td>tomo_number</td>
-        </tr>
-        <tr>
-          <td>part_number</td>
-        </tr>
-        <tr>
-          <td>wedge_number</td>
-        </tr>
-        <tr>
-          <td>position_x</td>
-        </tr>
-        <tr>
-          <td>position_y</td>
-        </tr>
-        <tr>
-          <td>position_z</td>
-        </tr>
-        <tr>
-          <td>shift_x</td>
-        </tr>
-        <tr>
-          <td>shift_y</td>
-        </tr>
-        <tr>
-          <td>shift_z</td>
-        </tr>
-        <tr>
-          <td>legacy_shift_x</td>
-        </tr>
-        <tr>
-          <td>legacy_shift_y</td>
-        </tr>
-        <tr>
-          <td>legacy_shift_z</td>
-        </tr>
-        <tr>
-          <td>phi</td>
-        </tr>
-        <tr>
-          <td>psi</td>
-        </tr>
-        <tr>
-          <td>the</td>
-        </tr>
-        <tr>
-          <td>class_number</td>
-        </tr>
-      </tbody>
-    </table>
-      <p>
-      Examples: </p>
+      <em>attribute</em> [<b>height</b><i> value</i>] [<strong>offset</strong><i>
+        value</i>]</h3>
+    <p> The <b>artiax label</b> command allows for setting a label on each
+      particle in the selected particle list, displaying the particles value for
+      the selected attribute. <strong>height</strong> sets the size of the
+      label, and offset receives a three comma seperated values that determine
+      the <b>offset</b> of the label from the particle center. If no height is
+      given, it is set to 8, and if no offset is given, it is set to 4,4,4.</p>
+    <p>Available attribute names for labeling can be retrieved using the <b><a
+          href="artiax_info.html">artiax info</a></b> command. </p>
+    <p>Examples: </p>
     <blockquote> <b>artiax label #1.2.1 tomo_number <br>
-      artiax label #1.2.3 position_x height 10 offset 10,10,10 </b> </blockquote>
+        artiax label #1.2.3 position_x height 10 offset 10,10,10 </b> </blockquote>
     <p></p>
     <hr>
     <address>BMLS Frangakis Group / June 2022</address>
