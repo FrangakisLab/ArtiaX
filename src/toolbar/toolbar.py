@@ -32,7 +32,8 @@ _providers = {
     "Hide Axes": "artiax hide axes",
     "Show Surfaces": "artiax show surfaces",
     "Hide Surfaces": "artiax hide surfaces",
-    "Invert Selection": invert_selection
+    "Invert Selection": invert_selection,
+    "Select Inside Surface": "artiax select inside surface",
     "Show Markers Models Tab": "artiax show markers",
     "Hide Markers Models Tab": "artiax hide markers",
     "Show Axes Models Tab": "artiax show axes",
@@ -51,7 +52,6 @@ _providers = {
     "Remove Links": 'artiax remove links',
     "Triangles From Links": "artiax triangles from links",
     "Flip Z": "artiax flip z",
-    "Select Inside Surface": "artiax select inside surface",
     "Delete Picked Triangle": 'ui mousemode right "delete picked triangle"',
     "Delete Tetra From Boundary": 'ui mousemode right "delete tetra from boundary"',
 }

@@ -214,6 +214,9 @@ will be displayed without the ChimeraX- prefix.
     <Provider tab="ArtiaX" section="Selection"
       name="Invert Selection" display_name="Invert Selection" icon="invert_selection.png"
       description="Invert particle selection."/>
+    <Provider tab="ArtiaX" section="Selection"
+      name="Select Inside Surface" display_name="Select Inside" icon="invert_selection.png"
+      description="Selects all shown particles inside the selected surface."/>
 
 
     <!-- ArtiaX models tab -->

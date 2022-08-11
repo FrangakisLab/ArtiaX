@@ -277,27 +277,32 @@ def artiax_select_inside_surface(session):
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running, so no particles can be selected.")
         return
-    # TODO: expand to work with any surface
-    from ..geometricmodel.GeoModel import selected_geomodels
-    s_geomodels = selected_geomodels(session, "Boundary")
-    if len(s_geomodels) < 1:
-        session.logger.warning("Select a boundary.")
+    from chimerax.map import VolumeSurface
+    from ..geometricmodel import GeoModel
+    model = None
+    for m in session.selection.models():
+        if isinstance(m, (VolumeSurface, GeoModel)):
+            model = m
+            break
+    if model is None:
+        session.logger.warning("Select a model with a surface.")
         return
-    s_geomodel = s_geomodels[0]
-    bounds = s_geomodel.bounds()
+
+    bounds = model.bounds()
     height = bounds.xyz_max[2] - bounds.xyz_min[2]
     from chimerax.geometry._geometry import closest_triangle_intercept
-    # TODO this doesn't really work fully
-    for pl in session.ArtiaX.partlists.child_models():
-        pl.selected_particles = False
-        select_particles = pl.selected_particles
-        for i, p_id in enumerate(pl.particle_ids[pl.displayed_particles]):
-            pos = np.asarray(pl.get_particle(p_id).coord)
-            if not(np.any(pos > bounds.xyz_max) or np.any(pos < bounds.xyz_min)): #  inside bounding box
-                t1 = closest_triangle_intercept(s_geomodel.vertices, s_geomodel.triangles, pos, pos + [0,0,height])
-                t2 = closest_triangle_intercept(s_geomodel.vertices, s_geomodel.triangles, pos, pos - [0,0,height])
-                select_particles[i] = t1 is not None and t2 is not None
-        pl.selected_particles = select_particles
+    for pl in session.ArtiaX.partlists.iter():
+        if pl.visible:
+            pl.selected_particles = False
+            atoms = pl.markers.atoms
+            select_particles = np.array(atoms.selecteds)
+            for i, p_id in enumerate(pl.particle_ids[pl.displayed_particles]):
+                pos = np.asarray(pl.get_particle(p_id).coord)
+                if not(np.any(pos > bounds.xyz_max) or np.any(pos < bounds.xyz_min)): #  inside bounding box
+                    dist1, tnum1 = closest_triangle_intercept(model.vertices, model.triangles, pos, pos + [0,0,height])
+                    dist2, tnum2 = closest_triangle_intercept(model.vertices, model.triangles, pos, pos - [0,0,height])
+                    select_particles[i] = dist1 is not None and dist2 is not None
+            atoms.selecteds = select_particles
 
 
 def artiax_lock(session, models=None, type=None):
