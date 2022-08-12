@@ -104,6 +104,13 @@ will be displayed without the ChimeraX- prefix.
               reference_url="https://bio3d.colorado.edu/PEET/PEETmanual.html"
               synopsis="PEET model/csv"/>
 
+    <Provider name="ArtiaX geometric model"
+              suffixes=".axm"
+              category="geometric model"
+              nicknames="geomodel"
+              reference_url="https://numpy.org/doc/stable/reference/generated/numpy.lib.format.html#module-numpy.lib.format"
+              synopsis="ArtiaX geometric model"/>
+
   </Providers>
 
   <Providers manager="open command">
@@ -113,6 +120,7 @@ will be displayed without the ChimeraX- prefix.
     <Provider name="RELION STAR file" want_path="true"/>
     <Provider name="Coords file" want_path="true"/>
     <Provider name="PEET mod/csv" want_path="true"/>
+    <Provider name="ArtiaX geometric model" want_path="true"/>
   </Providers>
 
   <Providers manager="save command">
@@ -122,6 +130,7 @@ will be displayed without the ChimeraX- prefix.
     <Provider name="RELION STAR file" />
     <Provider name="Coords file"/>
     <Provider name="PEET mod/csv"/>
+    <Provider name="ArtiaX geometric model"/>
   </Providers>
 
    <Providers manager="presets">

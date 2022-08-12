@@ -16,10 +16,11 @@ from Qt.QtWidgets import (
 
 class SaveArgsWidget(QFrame):
 
-    def __init__(self, session, parent=None):
+    def __init__(self, session, category='particle list', parent=None):
         super().__init__(parent=parent)
 
         self.session = session
+        self.category = category
 
         if not hasattr(self.session, 'ArtiaX'):
             return
@@ -27,20 +28,26 @@ class SaveArgsWidget(QFrame):
         self._layout = QVBoxLayout()
 
         # Choose Model
-        self._list_combo_layout = QHBoxLayout()
-        self.partlist_label = QLabel('Particle List:')
-        self.partlist_combo = QComboBox()
-
         artia = self.session.ArtiaX
-        for pl in artia.partlists.child_models():
-            txt = "#{} - {}".format(pl.id_string, pl.name)
-            self.partlist_combo.addItem(txt)
+        self._list_combo_layout = QHBoxLayout()
+        if self.category == 'particle list':
+            self.model_label = QLabel('Particle List:')
+            self.manager_model = artia.partlists
+        elif self.category == 'geometric model':
+            self.model_label = QLabel('Geometric Model:')
+            self.manager_model = artia.geomodels
+        self.model_combo = QComboBox()
 
-        if len(artia.partlists.child_models()) > 0:
-            self.partlist_combo.setCurrentIndex(0)
+        
+        for m in self.manager_model.child_models():
+            txt = "#{} - {}".format(m.id_string, m.name)
+            self.model_combo.addItem(txt)
 
-        self._list_combo_layout.addWidget(self.partlist_label, alignment=Qt.AlignmentFlag.AlignLeft)
-        self._list_combo_layout.addWidget(self.partlist_combo, alignment=Qt.AlignmentFlag.AlignLeft)
+        if len(self.manager_model.child_models()) > 0:
+            self.model_combo.setCurrentIndex(0)
+
+        self._list_combo_layout.addWidget(self.model_label, alignment=Qt.AlignmentFlag.AlignLeft)
+        self._list_combo_layout.addWidget(self.model_combo, alignment=Qt.AlignmentFlag.AlignLeft)
 
         self._layout.addLayout(self._list_combo_layout)
 
@@ -81,13 +88,16 @@ class SaveArgsWidget(QFrame):
         return ''
 
     def get_argument_string(self):
-        artia = self.session.ArtiaX
-
         # Model index
-        pl_idx = self.partlist_combo.currentIndex()
-        id_string = artia.partlists.get(pl_idx).id_string
+        mdl_idx = self.model_combo.currentIndex()
+        id_string = self.manager_model.get(mdl_idx).id_string
 
-        txt = "partlist #{} {}".format(id_string, self.additional_argument_string())
+        if self.category == 'particle list':
+            txt = "partlist #{} {}".format(id_string, self.additional_argument_string())
+        elif self.category == 'geometric model':
+            txt = "geomodel #{} {}".format(id_string, self.additional_argument_string())
+        else:
+            txt = ''
 
         return txt
 

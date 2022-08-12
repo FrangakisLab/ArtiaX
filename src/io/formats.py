@@ -9,10 +9,11 @@ from ..widgets import SaveArgsWidget
 
 
 class ArtiaXOpenerInfo(OpenerInfo):
-    """Prototypical opener info for particle list formats. Most formats should only need this."""
+    """Prototypical opener info for particle list/geomodel formats. Most formats should only need this."""
 
-    def __init__(self, name):
+    def __init__(self, name, category='particle list'):
         self.name = name
+        self.category = category
 
     def open(self, session, data, file_name, **kw):
         # Make sure plugin runs
@@ -20,8 +21,12 @@ class ArtiaXOpenerInfo(OpenerInfo):
         get_singleton(session)
 
         # Open list
-        from ..io import open_particle_list
-        return open_particle_list(session, data, file_name, format_name=self.name, from_chimx=True)
+        if self.category == 'particle list':
+            from ..io import open_particle_list
+            return open_particle_list(session, data, file_name, format_name=self.name, from_chimx=True)
+        elif self.category == 'geometric model':
+            from ..io import open_geomodel
+            return open_geomodel(session, data, file_name, format_name=self.name)
 
     @property
     def open_args(self):
@@ -31,25 +36,36 @@ class ArtiaXOpenerInfo(OpenerInfo):
 class ArtiaXSaverInfo(SaverInfo):
     """Prototypical saver info for particle list formats. Most formats should only need this."""
 
-    def __init__(self, name, widget=None):
+    def __init__(self, name, widget=None, category='particle list'):
         self.name = name
+        self.category = category
+
+        self.model_arg = {'particle list': 'partlist',
+                          'geometric model': 'geomodel'}
 
         if widget is None:
             widget = SaveArgsWidget
 
         self.widget = widget
 
-    def save(self, session, path, *, partlist=None):
-        from ..io import save_particle_list
-        save_particle_list(session, path, partlist, format_name=self.name)
+    def save(self, session, path, **kw):
+
+        model = kw[self.model_arg[self.category]]
+
+        if self.category == 'particle list':
+            from ..io import save_particle_list
+            save_particle_list(session, path, model, format_name=self.name)
+        elif self.category == 'geometric model':
+            from ..io import save_geomodel
+            save_geomodel(session, path, model, format_name=self.name)
 
     @property
     def save_args(self):
         from chimerax.core.commands import ModelArg
-        return {'partlist': ModelArg}
+        return {self.model_arg[self.category]: ModelArg}
 
     def save_args_widget(self, session):
-        return self.widget(session)
+        return self.widget(session, self.category)
 
     def save_args_string_from_widget(self, widget):
         return widget.get_argument_string()
@@ -58,12 +74,14 @@ class ArtiaXSaverInfo(SaverInfo):
 class ArtiaXFormat:
     """An ArtiaX particle list format definition."""
 
-    def __init__(self, name, nicks, particle_data, opener_info=None, saver_info=None):
+    def __init__(self, name, nicks, particle_data=None, geomodel_data=None, opener_info=None, saver_info=None):
         self.name = name
         """Name of the format. Same as in bundle_info.xml"""
         self.nicks = nicks
         """List of nicknames of the format. Same as in bundle_info.xml"""
         self.particle_data = particle_data
+        """The particle data class associated with this format."""
+        self.geomodel_data = geomodel_data
         """The particle data class associated with this format."""
 
         if opener_info is None:
