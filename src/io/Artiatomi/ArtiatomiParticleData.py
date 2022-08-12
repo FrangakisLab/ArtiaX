@@ -20,6 +20,7 @@ class ArtiatomiEulerRotation(EulerRotation):
 
     def rot1_from_matrix(self, matrix):
         """Phi"""
+        matrix = np.clip(matrix, -1, 1, out=matrix)
         # Singularity check
         if matrix[2, 2] > 0.9999:
             angle = 0
@@ -30,12 +31,15 @@ class ArtiatomiEulerRotation(EulerRotation):
 
     def rot2_from_matrix(self, matrix):
         """Theta"""
+        matrix = np.clip(matrix, -1, 1, out=matrix)
+
         angle = np.arctan2(np.sqrt(1 - (matrix[2, 2] * matrix[2, 2])), matrix[2, 2]) * 180.0 / np.pi
 
         return angle
 
     def rot3_from_matrix(self, matrix):
         """Psi"""
+        matrix = np.clip(matrix, -1, 1, out=matrix)
         # Singularity check
         if matrix[2, 2] > 0.9999:
             angle = -1.0 * np.sign(matrix[0, 1]) * np.arccos(matrix[0, 0]) * 180.0/np.pi

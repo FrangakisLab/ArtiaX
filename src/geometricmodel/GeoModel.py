@@ -183,10 +183,18 @@ def fit_surface(session):
 
 def surface_from_links(session):
     from chimerax.markers.markers import selected_markers
+    if len(selected_markers(session).bonds.unique().atoms[0]) < 3:
+        session.logger.warning("Select at least three particles that are linked in a triangle")
+        return
     particle_pairs = np.asarray(selected_markers(session).bonds.unique().atoms)
 
-    from .TrangulationSurface import TriangulationSurface
-    geomodel = TriangulationSurface("triangulated surface", session, particle_pairs)
+    from .TrangulationSurface import triangles_from_pairs, TriangulationSurface
+    triangles = triangles_from_pairs(particle_pairs)
+    if len(triangles) < 1:
+        session.logger.warning("Select at least three particles that are linked in a triangle")
+        return
+
+    geomodel = TriangulationSurface("triangulated surface", session, particle_pairs, triangles)
     session.ArtiaX.add_geomodel(geomodel)
     geomodel.selected = True
 
@@ -260,3 +268,4 @@ def remove_triangle(geomodel, triangle):
 #     geomodel = Line("line", session, particles, start, end)
 #     artiax.add_geomodel(geomodel)
 #     geomodel.selected = True
+

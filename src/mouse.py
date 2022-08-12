@@ -264,8 +264,9 @@ class DeletePickedTriangleMode(MouseMode):
         MouseMode.__init__(self, session)
 
     def remove_from_pick(self, pick):
-        from .geometricmodel import GeoModel
-        if isinstance(pick, PickedTriangle) and isinstance(pick.drawing(), GeoModel):
+        from .geometricmodel.Boundary import Boundary
+        from .geometricmodel.Surface import Surface
+        if isinstance(pick, PickedTriangle) and isinstance(pick.drawing(), (Boundary, Surface)):
             geomodel = pick.drawing()
             from .geometricmodel.GeoModel import remove_triangle
             remove_triangle(geomodel, pick.triangle_number)

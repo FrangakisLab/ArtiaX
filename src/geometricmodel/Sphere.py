@@ -70,6 +70,11 @@ class Sphere(GeoModel):
         self.center = pos
         self.update()
 
+    def save(self, file_name):
+        pass
+        # with i
+        # np.savez(, model_type=np.asarray("Sphere"), name=np.asarray(self.name), particle_pos=self.particle_pos, center=self.center, r=self.r)
+
 
 def lstsq_sphere(pos):
     # Create a (overdetermined) system Ax = b, where A = [[2xi, 2yi, 2zi, 1], ...], x = [xi² + yi² + zi², ...],

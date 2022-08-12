@@ -65,15 +65,17 @@ def triangles_from_pairs(particle_pairs):
             bonds_that_contain_first = find_bonds_containing_corner(particle_pairs, first_corner)
             bonds_that_contain_second = find_bonds_containing_corner(particle_pairs, second_corner)
             for second_side in bonds_that_contain_second:
+                third_corner = None
                 if second_corner == particle_pairs[0][second_side]:
-                    third_corner = particle_pairs[1][second_side]
-                else:
+                    if not particle_pairs[1][second_side] == first_corner:
+                        third_corner = particle_pairs[1][second_side]
+                elif not particle_pairs[0][second_side] == first_corner:
                     third_corner = particle_pairs[0][second_side]
-                if not third_corner.deleted:
+                if third_corner is not None and not third_corner.deleted:
                     for third_side in bonds_that_contain_first:
                         if third_corner == particle_pairs[0][third_side] or third_corner == particle_pairs[1][third_side]:
-                            triangles = np.append(triangles, [[first_corner.coord, second_corner.coord, third_corner.coord]]
-                                                  , axis=0)
+                            triangles = np.append(triangles, [[first_corner.coord, second_corner.coord,
+                                                               third_corner.coord]], axis=0)
             particle_pairs = np.delete(particle_pairs, 0, 1)
 
     return triangles

@@ -236,25 +236,25 @@ def artiax_triangles_from_links(session):
     surface_from_links(session)
 
 
-def artiax_flip(session, around=None):
+def artiax_flip(session, axis=None):
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running, so no particles can be reoriented.")
         return
 
-    if around is None:
-        around = [1,0,0]
+    if axis is None:
+        axis = [1,0,0]
     else:
-        around = np.asarray(around)
-        around = around / np.linalg.norm(around)
+        axis = np.asarray(axis.coords)
+        axis = axis/np.linalg.norm(axis)
 
     from ..geometricmodel.GeoModel import get_curr_selected_particles
     particle_pos, particles = get_curr_selected_particles(session)
     from chimerax.geometry import rotation
     for particle in particles:
-        axis = particle.rotation.transform_vector(around)
-        particle.rotation = rotation(axis, 180) * particle.rotation
+        external_axis = particle.rotation.transform_vector(axis)
+        particle.rotation = rotation(external_axis, 180) * particle.rotation
 
-    for particle_list in session.ArtiaX.partlists.child_models():
+    for particle_list in session.ArtiaX.partlists.iter():
         particle_list.update_places()
 
 

@@ -219,9 +219,15 @@ will be displayed without the ChimeraX- prefix.
       description="Selects all shown particles inside the selected surface."/>
 
     <!-- ArtiaX tab, Reorient Particles-->
-    <Provider tab="ArtiaX" section="Reorient Particles"
-      name="Flip Z" icon="show_markers.png"
+    <Provider tab="ArtiaX" section="Flip Particles"
+      name="Flip X" display_name="X" icon="show_markers.png"
+      description="Rotates the selected particles 180 degrees around their x-axis."/>
+    <Provider tab="ArtiaX" section="Flip Particles"
+      name="Flip Y" display_name="Y" icon="show_markers.png"
       description="Rotates the selected particles 180 degrees around their y-axis."/>
+    <Provider tab="ArtiaX" section="Flip Particles"
+      name="Flip Z" display_name="Z" icon="show_markers.png"
+      description="Rotates the selected particles 180 degrees around their z-axis."/>
 
 
     <!-- ArtiaX models tab -->
@@ -287,9 +293,13 @@ will be displayed without the ChimeraX- prefix.
       name="Create Mask" icon="view_xz.png" description="Creates a mask from the selected geometric model."/>
 
     <!-- ArtiaX Model tab, Delete Surface-->
+
+    <!--
     <Provider tab="ArtiaX Models" section="Delete Surface" mouse_mode="delete picked triangle"
       name="Delete Picked Triangle" display_name="Delete Triangle" icon="delete.png"
-      description="Delete picked triangle."/>
+      description="Delete picked triangle from a boundary or surface model."/>
+    -->
+
     <Provider tab="ArtiaX Models" section="Delete Surface" mouse_mode="delete tetra from boundary"
       name="Delete Tetra From Boundary" display_name="Delete Tetra" icon="delete.png"
       description="Delete picked tetrahedron from a boundary model."/>
