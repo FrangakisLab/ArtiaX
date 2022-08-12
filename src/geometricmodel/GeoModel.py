@@ -53,6 +53,12 @@ class GeoModel(Surface):
         self._color = color
         self.vertex_colors = np.full(np.shape(self.vertex_colors), color)
 
+    def write_file(self, file_name):
+        pass
+
+    def read_file(self, file_name):
+        pass
+
 
 def selected_geomodels(session, model=None):
     s_geomodels = np.array([])

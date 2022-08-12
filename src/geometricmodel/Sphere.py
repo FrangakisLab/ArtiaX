@@ -70,10 +70,10 @@ class Sphere(GeoModel):
         self.center = pos
         self.update()
 
-    def save(self, file_name):
-        pass
-        # with i
-        # np.savez(, model_type=np.asarray("Sphere"), name=np.asarray(self.name), particle_pos=self.particle_pos, center=self.center, r=self.r)
+    def write_file(self, file_name):
+        with open(file_name, 'wb') as file:
+            np.savez(file, model_type=np.asarray("Sphere"), particle_pos=np.asarray(self.particle_pos),
+                     center=np.asarray(self.center), r=np.asarray(self.r))
 
 
 def lstsq_sphere(pos):

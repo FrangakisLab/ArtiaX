@@ -289,17 +289,22 @@ class ArtiaXUI(ToolInstance):
         group_geomodel_layout = QVBoxLayout()
 
         # Contents
-        # TODO add support for saving and opening geomodels
-        # self.group_geomodel_open_button = QPushButton("Open tomogram ...")
+        group_geomodel_open_save_layout = QHBoxLayout()
+        self.group_geomodel_open_button = QPushButton("Open Geomodel ...")
+        self.group_geomodel_save_button = QPushButton("Save Geomodel ...")
+
+        group_geomodel_open_save_layout.addWidget(self.group_geomodel_open_button)
+        group_geomodel_open_save_layout.addWidget(self.group_geomodel_save_button)
+
         self.group_geomodel_close_button = QPushButton("Close selected geometric model")
 
-        # group_geomodel_layout.addWidget(self.group_geomodel_open_button)
+        group_geomodel_layout.addLayout(group_geomodel_open_save_layout)
         group_geomodel_layout.addWidget(self.table_geomodel)
         group_geomodel_layout.addWidget(self.group_geomodel_close_button)
 
         # Add layout to the group
         self.group_geomodel.setLayout(group_geomodel_layout)
-        ##### Group Box "Tomograms" #####
+        ##### Group Box "Geometric Models" #####
 
     def _connect_ui(self):
         self._connect_tomo_ui()
@@ -341,11 +346,12 @@ class ArtiaXUI(ToolInstance):
         ow = self.ow
         artia = self.session.ArtiaX
 
-        # Tomo table
+        # Geomodel table
         ui.table_geomodel.itemClicked.connect(self._geomodel_table_selected)
         ui.table_geomodel.itemChanged.connect(self._geomodel_table_name_changed)
 
-        # ui.group_geomodel_open_button.clicked.connect(self._open_geomodel)
+        ui.group_geomodel_open_button.clicked.connect(self._open_geomodel)
+        ui.group_geomodel_save_button.clicked.connect(self._save_geomodel)
         ui.group_geomodel_close_button.clicked.connect(self._close_geomodel)
 
     # ==============================================================================
@@ -422,6 +428,14 @@ class ArtiaXUI(ToolInstance):
             return
 
         artia.close_partlist(artia.selected_partlist)
+
+    def _open_geomodel(self):
+        from .widgets.ArtiaxOpenDialog import show_open_file_dialog
+        show_open_file_dialog(self.session, category='geometric model')
+
+    def _save_geomodel(self):
+        from .widgets.ArtiaXSaveDialog import show_save_file_dialog
+        show_save_file_dialog(self.session, category='geometric model')
 
     def _close_geomodel(self):
         artia = self.session.ArtiaX

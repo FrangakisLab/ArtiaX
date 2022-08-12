@@ -4,6 +4,7 @@
 import os
 
 # ChimeraX
+import numpy as np
 from chimerax.core.errors import UserError
 
 # This package
@@ -66,11 +67,31 @@ def save_particle_list(session, file_name, partlist, format_name=None, additiona
         save_data.write_file(file_name=file_name, additional_files=additional_files)
 
 def open_geomodel(session, stream, file_name, format_name=None):
-    pass
-    #return [model], status
+    model = None
+    status = ''
+
+    # Read file if possible
+    modelname = os.path.basename(file_name)
+    data = np.load(stream)
+    try:
+        model_type = data['model_type']
+        if model_type == "Sphere":
+            from ..geometricmodel.Sphere import Sphere
+            model = Sphere(modelname, session, None, data['particle_pos'], center=data['center'], r=data['r'])
+    except:
+        status = 'Failed to open as Geometric Model: {}'.format(file_name)
+
+    if model is not None:
+        status = 'Opened {}, a {} Geometric Model.'.format(modelname, model_type)
+
+    return [model], status
 
 def save_geomodel(session, file_name, geomodel, format_name=None):
-    pass
+    from ..geometricmodel.GeoModel import GeoModel
+    if not isinstance(geomodel, GeoModel):
+        raise UserError("save_geomodel: {} is not a geometric model.".format(geomodel.id_string))
+
+    geomodel.write_file(file_name)
 
 def get_partlist_formats(session):
     return [fmt for fmt in session.data_formats.formats if fmt.category == "particle list"]

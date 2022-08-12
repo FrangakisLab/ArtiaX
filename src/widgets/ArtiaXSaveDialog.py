@@ -49,9 +49,6 @@ class ArtiaXSaveDialog(MainSaveDialog):
             self._settings.format_name = fmt.name
 
 
-_dlg = None
 def show_save_file_dialog(session, category='particle list', **kw):
-    global _dlg
-    if _dlg is None:
-        _dlg = ArtiaXSaveDialog(category=category)
+    _dlg = ArtiaXSaveDialog(category=category)
     _dlg.display(session, **kw)

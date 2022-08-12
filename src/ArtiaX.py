@@ -421,6 +421,8 @@ class ArtiaX(Model):
         for m in data:
             if isinstance(m, ParticleList) and not (m in self.partlists.child_models()):
                 self.add_particlelist(m)
+            if isinstance(m, GeoModel) and not (m in self.geomodels.child_models()):
+                self.add_geomodel(m)
 
     # Callback for trigger REMOVE_MODELS
     def _model_removed(self, name, data):
