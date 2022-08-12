@@ -4,12 +4,16 @@ from chimerax.save_command.dialog import MainSaveDialog
 
 class ArtiaXSaveDialog(MainSaveDialog):
 
+    def __init__(self, settings=None, category='particle list'):
+        super().__init__(settings)
+        self.category = category
+
     def display(self, session, *, parent=None, format=None, initial_directory=None, initial_file=None):
         if parent is None:
             parent = session.ui.main_window
         from chimerax.ui.open_save import SaveDialog
 
-        fmts = [fmt for fmt in session.data_formats.formats if fmt.category == "particle list"]
+        fmts = [fmt for fmt in session.data_formats.formats if fmt.category == self.category]
 
         dialog = SaveDialog(session, parent, "Save File", installed_only=False, data_formats=fmts)
         self._customize_dialog(session, dialog)
@@ -44,9 +48,10 @@ class ArtiaXSaveDialog(MainSaveDialog):
         if self._settings:
             self._settings.format_name = fmt.name
 
+
 _dlg = None
-def show_save_file_dialog(session, **kw):
+def show_save_file_dialog(session, category='particle list', **kw):
     global _dlg
     if _dlg is None:
-        _dlg = ArtiaXSaveDialog()
+        _dlg = ArtiaXSaveDialog(category=category)
     _dlg.display(session, **kw)

@@ -8,8 +8,11 @@ def set_use_native_open_file_dialog(use):
     global _use_native_open_file_dialog
     _use_native_open_file_dialog = use
 
-def make_qt_name_filters(session, *, no_filter="All files (*)"):
-    openable_formats = [fmt for fmt in session.open_command.open_data_formats if (fmt.suffixes and fmt.category == "particle list")]
+def make_qt_name_filters(session, *, no_filter="All files (*)", category="particle list"):
+
+    # Limit to one category
+    openable_formats = [fmt for fmt in session.open_command.open_data_formats if (fmt.suffixes and fmt.category == category)]
+
     openable_formats.sort(key=lambda fmt: fmt.synopsis.casefold())
     file_filters = ["%s (%s)" % (fmt.synopsis, "*" + " *".join(fmt.suffixes))
         for fmt in openable_formats]
@@ -17,10 +20,12 @@ def make_qt_name_filters(session, *, no_filter="All files (*)"):
         file_filters = [no_filter] + file_filters
     return file_filters, openable_formats, no_filter
 
-def show_open_file_dialog(session, initial_directory=None, format_name=None):
+def show_open_file_dialog(session, initial_directory=None, format_name=None, category="particle list"):
     if initial_directory is None:
         initial_directory = ''
-    file_filters, openable_formats, no_filter = make_qt_name_filters(session)
+
+    file_filters, openable_formats, no_filter = make_qt_name_filters(session, category=category)
+
     fmt_name2filter = dict(zip([fmt.name for fmt in openable_formats], file_filters[1:]))
     filter2fmt = dict(zip(file_filters[1:], openable_formats))
     filter2fmt[no_filter] = None
