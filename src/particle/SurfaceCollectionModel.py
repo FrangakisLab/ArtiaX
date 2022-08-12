@@ -434,6 +434,15 @@ class SurfaceCollectionModel(Model):
 
     positions = property(Drawing.positions.fget, _scm_set_positions)
 
+    def delete(self):
+        # Delete own triggers
+        triggers = list(self.triggers.trigger_names())
+        for t in triggers:
+            if t != 'deleted':
+                self.triggers.delete_trigger(t)
+
+        Model.delete(self)
+
 class SurfaceCollectionDrawing(Drawing):
     """
     A surface collection drawing allows efficient rendering and manipulation of many copies of the same surface.

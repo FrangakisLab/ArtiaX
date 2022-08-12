@@ -70,16 +70,48 @@ class ArtiaXUI(ToolInstance):
         # UI
         self.tool_window = MainToolWindow(self, close_destroys=False)
 
-        # Connect the shortcurts to functions in the options window
-        #self.define_shortcuts(session)
+        # ArtiaX root model present?
+        self.get_root()
+        self._connect_triggers()
 
-        # Base Model if it doesn't exist yet
-        if not hasattr(session, 'ArtiaX'):
-            session.ArtiaX = ArtiaX(self)
+        self._build_ui()
+        self._build_options_window(tool_name)
+        self._connect_ui()
 
-        artia = session.ArtiaX
+# ==============================================================================
+# Shortcut Functions ===========================================================
+# ==============================================================================
 
+    def get_root(self):
+        # Make if not there
+        if not hasattr(self.session, 'ArtiaX'):
+            self.session.ArtiaX = ArtiaX(self)
+
+        # Replace if deleted
+        if self.session.ArtiaX.deleted:
+            self.session.ArtiaX = ArtiaX(self)
+
+            # Update the table models
+            self.update_managers()
+
+            # Update the model chooser widget
+            self.tomo_from_session.exclude = self.session.ArtiaX
+
+            # Connect triggers
+            self._connect_triggers()
+
+            # Update options window
+            self.ow.update_root()
+
+        return self.session.ArtiaX
+
+    def update_managers(self):
+        self.table_tomo.model = self.session.ArtiaX.tomograms
+        self.table_part.model = self.session.ArtiaX.partlists
+
+    def _connect_triggers(self):
         # Trigger callbacks
+        artia = self.session.ArtiaX
         artia.triggers.add_handler(TOMOGRAM_ADD, self._update_tomo_table)
         artia.triggers.add_handler(TOMOGRAM_DEL, self._update_tomo_table)
         artia.triggers.add_handler(PARTICLES_ADD, self._update_partlist_table)
@@ -92,10 +124,6 @@ class ArtiaXUI(ToolInstance):
 
         artia.triggers.add_handler(PARTLIST_DISPLAY_CHANGED, self._update_partlist_shown)
         artia.triggers.add_handler(TOMO_DISPLAY_CHANGED, self._update_tomo_shown)
-
-        self._build_ui()
-        self._build_options_window(tool_name)
-        self._connect_ui()
 
 # ==============================================================================
 # Interface construction =======================================================
@@ -336,7 +364,7 @@ class ArtiaXUI(ToolInstance):
             return None, None
 
     def _create_partlist(self):
-        artia = self.session.ArtiaX
+        artia = self.get_root()
         artia.create_partlist()
 
     def _save_partlist(self):
@@ -379,6 +407,14 @@ class ArtiaXUI(ToolInstance):
     # Callback for triggers TOMOGRAM_ADD, TOMOGRAM_DEL
     def _update_tomo_table(self, name=None, data=None):
         artia = self.session.ArtiaX
+
+        # Special case: The manager model was removed from the session.
+        if artia.tomograms.id is None:
+            self.table_tomo.clear_table(count=0)
+            return
+
+        # Otherwise update (make sure we have the current model set)
+        self.table_tomo.model = artia.tomograms
         self.table_tomo.update_table(artia.options_tomogram)
         self.table_tomo.update_selection(artia.selected_tomogram)
         self.table_tomo.update_options(artia.options_tomogram)
@@ -386,6 +422,14 @@ class ArtiaXUI(ToolInstance):
     # Callback for triggers PARTICLES_ADD, PARTICLES_DEL
     def _update_partlist_table(self, name=None, data=None):
         artia = self.session.ArtiaX
+
+        # Special case: The manager model was removed from the session.
+        if artia.partlists.id is None:
+            self.table_part.clear_table(count=0)
+            return
+
+        # Otherwise update (make sure we have the current model set)
+        self.table_part.model = artia.partlists
         self.table_part.update_table(self.session.ArtiaX.options_partlist)
         self.table_part.update_selection(artia.selected_partlist)
         self.table_part.update_options(artia.options_partlist)
@@ -491,8 +535,6 @@ class ArtiaXUI(ToolInstance):
         if state:
             artia.options_partlist = artia.partlists.get_id(idx)
 
-        #if state:
-        #    self.ow._show_tab("partlist")
 
 # ==============================================================================
 # Shortcut Functions ===========================================================

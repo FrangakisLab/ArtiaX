@@ -215,3 +215,9 @@ class ManagerModel(Model):
         return
 
     positions = property(Drawing.positions.fget, _managermodel_set_positions)
+
+    def delete(self):
+        for model in self.child_models():
+            model.delete()
+
+        Model.delete(self)

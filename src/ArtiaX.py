@@ -49,8 +49,8 @@ class ArtiaX(Model):
         self.standard_colors = ARTIAX_COLORS
 
         # Model Managers
-        self.tomograms = ManagerModel('Tomograms', self.session)
-        self.partlists = ManagerModel('Particle Lists', self.session)
+        self._tomograms = ManagerModel('Tomograms', self.session)
+        self._partlists = ManagerModel('Particle Lists', self.session)
         self.add([self.tomograms])
         self.add([self.partlists])
 
@@ -74,9 +74,9 @@ class ArtiaX(Model):
         self.triggers.add_trigger(TOMO_DISPLAY_CHANGED)
 
         # When a particle list is added to the session, move it to the particle list manager
-        self.session.triggers.add_handler(ADD_MODELS, self._model_added)
-        self.session.triggers.add_handler(REMOVE_MODELS, self._model_removed)
-        self.session.triggers.add_handler(MODEL_DISPLAY_CHANGED, self._model_display_changed)
+        self._add_model_handler = self.session.triggers.add_handler(ADD_MODELS, self._model_added)
+        self._rem_model_handler = self.session.triggers.add_handler(REMOVE_MODELS, self._model_removed)
+        self._mdc_handler = self.session.triggers.add_handler(MODEL_DISPLAY_CHANGED, self._model_display_changed)
 
         # Graphical preset
         run(self.session, "preset artiax default", log=False)
@@ -108,6 +108,24 @@ class ArtiaX(Model):
         self.session.ui.mouse_modes.add_mode(self.rotate_picked)
         self.session.ui.mouse_modes.add_mode(self.delete_selected)
         self.session.ui.mouse_modes.add_mode(self.delete_picked)
+
+    @property
+    def tomograms(self):
+        # Deleted
+        if self._tomograms.deleted:
+            self._tomograms = ManagerModel('Tomograms', self.session)
+            self.add([self._tomograms])
+
+        return self._tomograms
+
+    @property
+    def partlists(self):
+        # Deleted
+        if self._partlists.deleted:
+            self._partlists = ManagerModel('Particle Lists', self.session)
+            self.add([self._partlists])
+
+        return self._partlists
 
     @property
     def selected_tomogram(self):
@@ -199,6 +217,42 @@ class ArtiaX(Model):
     @property
     def partlist_count(self):
         return self.partlists.count
+
+    def delete(self):
+        """
+        Delete children gracefully.
+        """
+
+        # First delete all volumes/partlists
+        for model in self.tomograms.child_models():
+            model.delete()
+        for model in self.partlists.child_models():
+            model.delete()
+
+        self._selected_tomogram = None
+        self._options_tomogram = None
+        self._selected_partlist = None
+        self._options_partlist = None
+
+        self.triggers.activate_trigger(TOMOGRAM_DEL, '')
+        self.triggers.activate_trigger(PARTICLES_DEL, '')
+
+        # Now manager models
+        self.tomograms.delete()
+        self.partlists.delete()
+
+        # Disconnect triggers.
+        self.session.triggers.remove_handler(self._add_model_handler)
+        self.session.triggers.remove_handler(self._rem_model_handler)
+        self.session.triggers.remove_handler(self._mdc_handler)
+
+        # Delete own triggers
+        triggers = list(self.triggers.trigger_names())
+        for t in triggers:
+            if t != 'deleted':
+                self.triggers.delete_trigger(t)
+
+        Model.delete(self)
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # I/O

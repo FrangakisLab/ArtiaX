@@ -19,7 +19,6 @@ class ArtiaXOpenerInfo(OpenerInfo):
         # Make sure plugin runs
         from ..cmd import get_singleton
         get_singleton(session)
-
         # Open list
         if self.category == 'particle list':
             from ..io import open_particle_list

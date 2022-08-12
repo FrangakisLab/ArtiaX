@@ -63,9 +63,9 @@ class ParticleList(Model):
         # Child models that display data
         self.markers = MarkerSetPlus(session, 'Markers')
         """MarkerSetPlus object for displaying and manipulating particles."""
-        self.display_model = ManagerModel('DisplayModel', session)
+        self._display_model = ManagerModel('DisplayModel', session)
         """The model from which to extract the surface displayed in the SurfaceCollectionModel."""
-        self.collection_model = SurfaceCollectionModel('Particles', session)
+        self._collection_model = SurfaceCollectionModel('Particles', session)
         """SurfaceCollectionModel for displaying and manipulating particles."""
 
 
@@ -90,8 +90,8 @@ class ParticleList(Model):
 
 
         # Add the child models
-        self.add([self.display_model])
-        self.add([self.collection_model])
+        self.add([self._display_model])
+        self.add([self._collection_model])
         self.add([self.markers])
 
         # Contains mapping Particle.id -> (Particle, Atom)
@@ -141,6 +141,51 @@ class ParticleList(Model):
         data = datatype.from_particle_data(particle_list._data)
 
         return cls(name, session, data)
+
+    @property
+    def display_model(self):
+        if self._display_model.deleted:
+            self._display_model = ManagerModel('DisplayModel', self.session)
+            self.add([self._display_model])
+
+        return self._display_model
+
+    @property
+    def collection_model(self):
+        if self._collection_model.deleted:
+            self._collection_model = SurfaceCollectionModel('Particles', self.session)
+            self.add([self._collection_model])
+
+            # New triggers
+            self._collection_model.triggers.add_handler(MODELS_MOVED, self._model_moved)
+            self._collection_model.triggers.add_handler(MODELS_SELECTED, self._model_selected)
+
+            # Add axes representation
+            self._collection_model.add_collection('axes')
+            v, n, t, vc = get_axes_surface(self.session, self._axes_size)
+            self._collection_model.set_surface('axes', v, n, t, vertex_colors=vc)
+
+            # Add surface representation
+            self._collection_model.add_collection('surfaces')
+
+            # Recreate particles
+            pids = []
+            pl = []
+            for idx, value in enumerate(self._data):
+                _id = value[0]
+                particle = value[1]
+
+                # Full particle position
+                place = particle.full_transform()
+
+                # Lists for adding particles to collections
+                pids.append(_id)
+                pl.append(place)
+
+            self._collection_model.add_places(pids, pl)
+            self._collection_model.color = self.color
+
+        return self._collection_model
 
     @property
     def data(self):
@@ -499,6 +544,26 @@ class ParticleList(Model):
         if value is self.markers and not self.deleted:
             self.markers = MarkerSetPlus(self.session, 'Markers')
             self.add([self.markers])
+
+            # Repopulate markers
+            if self.data.size > 0:
+                for idx, value in enumerate(self._data):
+                    _id = value[0]
+                    particle = value[1]
+
+                    # Full particle position
+                    place = particle.full_transform()
+
+                    # Create the respective marker and set custom attributes
+                    marker = self.markers.create_marker(place.translation(), self.color, self.radius, id=idx,
+                                                        trigger=False)
+
+                    # Add custom attributes
+                    self._attr_to_marker(marker, particle)
+
+                    # Add to internal map
+                    self._map[particle.id] = (particle, marker)
+
             self._connect_markers()
             #TODO: init
 
@@ -921,7 +986,6 @@ class ParticleList(Model):
         return
 
     positions = property(Drawing.positions.fget, _particlelist_set_positions)
-
 
 def get_axes_surface(session, size):
 

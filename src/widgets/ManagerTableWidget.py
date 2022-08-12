@@ -146,17 +146,7 @@ class ManagerTableWidget(QTableWidget):
             Model id of the toggled "options" child.
         """
 
-        self.clearContents()
-        self.setRowCount(self.model.count)
-
-        # Delete old Buttons
-        for b in self.show_group.buttons():
-            self.show_group.removeButton(b)
-            b.deleteLater()
-
-        for b in self.options_group.buttons():
-            self.options_group.removeButton(b)
-            b.deleteLater()
+        self.clear_table()
 
         # Add new Buttons and connections
         from Qt.QtWidgets import QTableWidgetItem
@@ -213,3 +203,19 @@ class ManagerTableWidget(QTableWidget):
         #    options_id = None
 
         #return (selected_id, options_id)
+
+    def clear_table(self, count=None):
+        self.clearContents()
+        if count is None:
+            self.setRowCount(self.model.count)
+        else:
+            self.setRowCount(count)
+
+        # Delete old Buttons
+        for b in self.show_group.buttons():
+            self.show_group.removeButton(b)
+            b.deleteLater()
+
+        for b in self.options_group.buttons():
+            self.options_group.removeButton(b)
+            b.deleteLater()
