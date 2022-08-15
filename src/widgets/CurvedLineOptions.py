@@ -155,7 +155,7 @@ class CurvedLineOptions(QWidget):
         self.rotate_checkbox.setChecked(line.rotate)
         self.fitting_checkbox.setChecked(line.fitting_options)
         self.degree_buttons.degree = line.degree
-        self.degree_buttons.max_degree = len(line.particles) - 1
+        self.degree_buttons.max_degree = len(line.particle_pos) - 1
 
         if self.line != line:
             self.line_radius_slider.set_range(line.radius_edit_range)

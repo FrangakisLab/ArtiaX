@@ -18,22 +18,30 @@ from .GeoModel import GeoModel
 class Boundary(GeoModel):
     """Triangulated Plane"""
 
-    def __init__(self, name, session, particles, particle_pos, alpha):
+    def __init__(self, name, session, particle_pos, alpha, particles=None, triangles=None, delete_tri_list=None):
         super().__init__(name, session)
 
         self.particles = particles
         self.particle_pos = particle_pos
-        self.tri = get_triangles(particle_pos, alpha)
+
+        if triangles is None:
+            self.tri = get_triangles(particle_pos, alpha)
+        else:
+            self.tri = triangles
 
         self.p_index_triangles = None
         self.ordered_normals = None
         self.alpha = alpha
 
-        self.delete_tri_list = np.zeros((0,1), dtype=np.int32)
+        if delete_tri_list is None:
+            self.delete_tri_list = np.zeros((0,1), dtype=np.int32)
+        else:
+            self.delete_tri_list = delete_tri_list
 
         self.fitting_options = True
 
         self.update()
+        session.logger.info("Created a boundary with {} vertices.".format(len(particle_pos)))
 
     def define_surface(self):
         b = _BildFile(self.session, 'dummy')
@@ -53,8 +61,9 @@ class Boundary(GeoModel):
         self.vertex_colors = np.full((len(vertices), 4), self.color)
 
     def recalc_and_update(self):
-        for i, particle in enumerate(self.particles):
-            self.particle_pos[i] = [particle.coord[0], particle.coord[1], particle.coord[2]]
+        if self.particles is not None:
+            for i, particle in enumerate(self.particles):
+                self.particle_pos[i] = [particle.coord[0], particle.coord[1], particle.coord[2]]
         self.delete_tri_list = np.zeros((0,1), dtype=np.int32)
         self.tri = get_triangles(self.particle_pos, self.alpha)
         self.update()
@@ -65,29 +74,35 @@ class Boundary(GeoModel):
             self.recalc_and_update()
 
     def reorient_particles_to_surface(self, particles):
-        self.tri, self.p_index_triangles, self.ordered_normals = get_triangles(self.particle_pos, self.alpha,
-                                                                               calc_normals=True)
-        for i, particle in enumerate(self.particles):
-            if particle in particles:
-                curr_normals = np.zeros((0, 3))
-                for j, index_tri in enumerate(self.p_index_triangles):
-                    if i in index_tri:
-                        curr_normals = np.append(curr_normals, [self.ordered_normals[j]], axis=0)
-                if len(curr_normals) > 0:
-                    # Rotate to average normal
-                    normal = np.add.reduce(curr_normals)
-                    curr_pos = np.asarray(particle.coord)
-                    rot = z_align(curr_pos, curr_pos + normal).zero_translation().inverse()
-                    # Set rotation
-                    particle.rotation = rot
+        if self.particles is not None:
+            self.tri, self.p_index_triangles, self.ordered_normals = get_triangles(self.particle_pos, self.alpha,
+                                                                                   calc_normals=True)
+            for i, particle in enumerate(self.particles):
+                if particle in particles:
+                    curr_normals = np.zeros((0, 3))
+                    for j, index_tri in enumerate(self.p_index_triangles):
+                        if i in index_tri:
+                            curr_normals = np.append(curr_normals, [self.ordered_normals[j]], axis=0)
+                    if len(curr_normals) > 0:
+                        # Rotate to average normal
+                        normal = np.add.reduce(curr_normals)
+                        curr_pos = np.asarray(particle.coord)
+                        rot = z_align(curr_pos, curr_pos + normal).zero_translation().inverse()
+                        # Set rotation
+                        particle.rotation = rot
 
-        for particle_list in self.session.ArtiaX.partlists.child_models():
-            particle_list.update_places()
+            for particle_list in self.session.ArtiaX.partlists.child_models():
+                particle_list.update_places()
 
     def remove_tetra(self, tri):
         self.delete_tri_list = np.append(self.delete_tri_list, tri)
         self.tri = get_triangles(self.particle_pos, self.alpha, delete_tri_list=self.delete_tri_list)
         self.update()
+
+    def write_file(self, file_name):
+        with open(file_name, 'wb') as file:
+            np.savez(file, model_type="Boundary", particle_pos=self.particle_pos, alpha=self.alpha, triangles=self.tri,
+                     delete_tri_list=self.delete_tri_list)
 
 
 def get_triangles(particle_pos, alpha=0.7, calc_normals=False, delete_tri_list=None):

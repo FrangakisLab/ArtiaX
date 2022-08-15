@@ -14,7 +14,7 @@ from .GeoModel import GeoModel
 class TriangulationSurface(GeoModel):
     """Triangulated Plane"""
 
-    def __init__(self, name, session, particle_pairs, triangles=None):
+    def __init__(self, name, session, particle_pairs=None, triangles=None):
         super().__init__(name, session)
 
         self.particle_pairs = particle_pairs
@@ -23,12 +23,14 @@ class TriangulationSurface(GeoModel):
         self.tri = triangles
 
         self.update()
+        session.logger.info("Created a triangulated surface.")
 
     def define_surface(self):
         b = _BildFile(self.session, 'dummy')
 
         for triangle in self.tri:
-            b.polygon_command(".polygon {} {} {} {} {} {} {} {} {}".format(*triangle[0], *triangle[1], *triangle[2]).split())
+            b.polygon_command(
+                ".polygon {} {} {} {} {} {} {} {} {}".format(*triangle[0], *triangle[1], *triangle[2]).split())
 
         d = AtomicShapeDrawing('shapes')
         d.add_shapes(b.shapes)
@@ -41,15 +43,24 @@ class TriangulationSurface(GeoModel):
         self.vertex_colors = np.full((len(vertices), 4), self.color)
 
     def recalc_and_update(self):
-        self.tri = triangles_from_pairs(self.particle_pairs)
+        if self.particle_pairs is not None:
+            tris = triangles_from_pairs(self.particle_pairs)
+            if len(tris) == 0:  # Particles removed so that no triangles can be made anymore
+                self.particle_pairs = None
+            else:
+                self.tri = tris
         self.update()
+
+    def write_file(self, file_name):
+        with open(file_name, 'wb') as file:
+            np.savez(file, model_type="TriangulationSurface", triangles=self.tri)
 
 
 def make_links(markers, connections):
     from chimerax.markers.markers import create_link
     for polygon in connections:
         for i in range(0, len(polygon)):
-            for j in range(i+1, len(polygon)):
+            for j in range(i + 1, len(polygon)):
                 try:
                     create_link(markers[polygon[i]], markers[polygon[j]])
                 except TypeError:  # bond already exists
@@ -73,10 +84,11 @@ def triangles_from_pairs(particle_pairs):
                     third_corner = particle_pairs[0][second_side]
                 if third_corner is not None and not third_corner.deleted:
                     for third_side in bonds_that_contain_first:
-                        if third_corner == particle_pairs[0][third_side] or third_corner == particle_pairs[1][third_side]:
+                        if third_corner == particle_pairs[0][third_side] or third_corner == particle_pairs[1][
+                            third_side]:
                             triangles = np.append(triangles, [[first_corner.coord, second_corner.coord,
                                                                third_corner.coord]], axis=0)
-            particle_pairs = np.delete(particle_pairs, 0, 1)
+        particle_pairs = np.delete(particle_pairs, 0, 1)
 
     return triangles
 
@@ -87,4 +99,3 @@ def find_bonds_containing_corner(particle_pairs, corner):
         if particle_pairs[0][bond] == corner or particle_pairs[1][bond] == corner:
             bonds_containing_corner = np.append(bonds_containing_corner, bond)
     return bonds_containing_corner.astype(np.int)
-

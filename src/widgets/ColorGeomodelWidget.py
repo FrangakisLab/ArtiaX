@@ -40,6 +40,7 @@ class ColorGeomodelWidget(QWidget):
                       [(153,   0,   0, 255), (255, 255, 128, 255), (255,  80,   5, 255)]]
 
     colorChanged = Signal(tuple, np.ndarray)
+    colorChangeFinished = Signal(tuple, np.ndarray)
     colormapChanged = Signal(tuple, str, str, float, float)
 
     def __init__(self, session, parent=None):
@@ -118,13 +119,14 @@ class ColorGeomodelWidget(QWidget):
 
         #Transparency
         self.transparency_slider.valueChanged.connect(self._transparency_changed)
+        self.transparency_slider.editingFinished.connect(partial(self._transparency_changed, released=True))
 
 
     def _col_clicked(self, color):
         self._color[:3] = np.array(color[:3], dtype=np.uint8)
         self._set_color()
 
-        self._color_changed()
+        self._color_changed(released=True)
 
     def _set_color(self):
         self.current_color_label.setStyleSheet('background-color: rgba({},{},{},255);'.format(*tuple(self._color[:3])))
@@ -145,15 +147,18 @@ class ColorGeomodelWidget(QWidget):
         self._color = np.array([color.red(), color.green(), color.blue(), color.alpha()], dtype=np.uint8)
         self._set_color()
 
-        self._color_changed()
+        self._color_changed(released=True)
 
     def _picker_destroyed_cb(self):
         pass
 
-    def _color_changed(self):
+    def _color_changed(self, released=False):
         self.colorChanged.emit(self.geomodel.id, self._color)
 
-    def _transparency_changed(self, value):
+        if released:
+            self.colorChangeFinished.emit(self.geomodel.id, self._color)
+
+    def _transparency_changed(self, value, released=False):
         alpha = round((100 - value) * 255 / 100)
         self._color[3] = alpha
-        self._color_changed()
+        self._color_changed(released=released)

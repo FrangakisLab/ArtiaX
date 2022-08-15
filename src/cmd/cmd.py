@@ -274,7 +274,6 @@ def artiax_select_inside_surface(session):
         return
 
     bounds = model.bounds()
-    height = bounds.xyz_max[2] - bounds.xyz_min[2]
     from chimerax.geometry._geometry import closest_triangle_intercept
     for pl in session.ArtiaX.partlists.iter():
         if pl.visible:
@@ -284,10 +283,37 @@ def artiax_select_inside_surface(session):
             for i, p_id in enumerate(pl.particle_ids[pl.displayed_particles]):
                 pos = np.asarray(pl.get_particle(p_id).coord)
                 if not(np.any(pos > bounds.xyz_max) or np.any(pos < bounds.xyz_min)): #  inside bounding box
-                    dist1, tnum1 = closest_triangle_intercept(model.vertices, model.triangles, pos, pos + [0,0,height])
-                    dist2, tnum2 = closest_triangle_intercept(model.vertices, model.triangles, pos, pos - [0,0,height])
-                    select_particles[i] = dist1 is not None and dist2 is not None
+                    intersepts = 0
+                    dist_to_end = bounds.xyz_max[2] - pos[2] + 1
+                    dist_to_tri, tnum = closest_triangle_intercept(model.vertices, model.triangles, pos, pos + [0,0,dist_to_end])
+                    start = pos
+                    margin = 0.001
+                    while dist_to_tri is not None:
+                        intersepts += 1
+                        if intersepts > 100:
+                            session.logger.warning("Too many intersepts, terminating.")
+                            break
+                        print("dist to end: {}".format(dist_to_end))
+                        print("dist to tri: {}".format(dist_to_tri))
+                        print("old start {}".format(start))
+                        start = [start[0],start[1],start[2] + dist_to_tri*dist_to_end+margin]
+                        print("new start: {}".format(start))
+                        dist_to_end = bounds.xyz_max[2] - start[2] + 1
+                        end = [start[0],start[1],start[2] + dist_to_end]
+                        dist_to_tri, tnum = closest_triangle_intercept(model.vertices, model.triangles, start, end)
+                    if intersepts % 2:
+                        select_particles[i] = True
+                    print("pos: {}:".format(pos))
+                    print("intersepts: {}".format(intersepts))
             atoms.selecteds = select_particles
+
+
+def artiax_geomodel_color(session, model, color):
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running.")
+        return
+
+    model.color = color.uint8x4()
 
 
 def artiax_lock(session, models=None, type=None):
@@ -856,7 +882,6 @@ def register_artiax(logger):
         )
         register('artiax triangles from links', desc, artiax_triangles_from_links)
 
-
     def register_artiax_flip():
         desc = CmdDesc(
             # TODO rewrite and get url right
@@ -873,6 +898,15 @@ def register_artiax(logger):
             url='help:user/commands/artiax_hide.html'
         )
         register('artiax select inside surface', desc, artiax_select_inside_surface)
+
+    def register_artiax_geomodel_color():
+        desc = CmdDesc(
+            # TODO rewrite and get url right
+            required=[("model", ModelArg), ("color", ColorArg)],
+            synopsis='Set geomodel color.',
+            url='help:user/commands/artiax_particles.html'
+        )
+        register('artiax geomodel color', desc, artiax_geomodel_color)
 
     def register_artiax_lock():
         desc = CmdDesc(
@@ -974,6 +1008,7 @@ def register_artiax(logger):
     register_artiax_remove_links()
     register_artiax_triangles_from_links()
     register_artiax_flip()
+    register_artiax_geomodel_color()
     register_artiax_tomo()
     register_artiax_colormap()
     register_artiax_label()

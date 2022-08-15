@@ -17,13 +17,20 @@ from ..particle.SurfaceCollectionModel import SurfaceCollectionModel
 class Surface(PopulatedModel):
     """Surface"""
 
-    def __init__(self, name, session, particles, particle_pos, resolution, method):
+    def __init__(self, name, session, particle_pos, resolution, method, particles=None, normal=None, points=None):
         super().__init__(name, session)
         self.particles = particles
         self.particle_pos = particle_pos
 
-        self.normal = get_normal_and_pos(particles, particle_pos)
-        self.points = get_grid(particle_pos, self.normal, resolution, method)
+        # Has to get either normal or particles to make a surface
+        if normal is None:
+            self.normal = get_normal_and_pos(particles, particle_pos)
+        else:
+            self.normal = normal
+        if points is None:
+            self.points = get_grid(particle_pos, self.normal, resolution, method)
+        else:
+            self.points = points
 
         self.fitting_options = True
         self.method = method
@@ -37,6 +44,8 @@ class Surface(PopulatedModel):
         self.rotation = 0
 
         self.update()
+        session.logger.info("Created a Surface through {} particles with normal ({:.2f}, {:.2f}, "
+                            "{:.2f}).".format(len(particle_pos), *self.normal))
 
     def define_plane(self):
         nr_points = len(self.points)*len(self.points)
@@ -89,7 +98,8 @@ class Surface(PopulatedModel):
         self.vertex_colors = np.full((len(vertices), 4), self.color)
 
     def recalc_and_update(self):
-        self.normal, self.particle_pos = get_normal_and_pos(self.particles)
+        if self.particles is not None:
+            self.normal, self.particle_pos = get_normal_and_pos(self.particles)
         if self.use_base:
             self.points = get_grid(self.particle_pos, self.normal, self.resolution, self.method, base=self.base_level)
         else:
@@ -152,6 +162,11 @@ class Surface(PopulatedModel):
         if self.rotation != phi:
             self.rotation = phi
             self.create_spheres()
+
+    def write_file(self, file_name):
+        with open(file_name, 'wb') as file:
+            np.savez(file, model_type="Surface", particle_pos=self.particle_pos, resolution=self.resolution,
+                     method=self.method, normal=self.normal, points=self.points)
 
 
 def get_grid(particle_pos, normal, resolution, method, base=None):

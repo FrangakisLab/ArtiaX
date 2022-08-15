@@ -17,20 +17,25 @@ from ..particle.SurfaceCollectionModel import SurfaceCollectionModel
 class CurvedLine(PopulatedModel):
     """Line between points"""
 
-    def __init__(self, name, session, particle_pos, particles, degree, smooth, resolution):
+    def __init__(self, name, session, particle_pos, degree, smooth, resolution, particles=None, points=None,
+                 der_points=None):
         super().__init__(name, session)
 
         self.particle_pos = particle_pos
         self.particles = particles
 
         # points[0] contains all the x values, points[1] all y values etc
-        self.points, self.der_points = get_points(particle_pos, smooth, degree, resolution)
+        if points is None or der_points is None:
+            self.points, self.der_points = get_points(particle_pos, smooth, degree, resolution)
+        else:
+            self.points = points
+            self.der_points = der_points
 
         self.fitting_options = True
         self.degree = degree
         self.smooth = smooth
-        self.smooth_edit_range = [math.floor(len(particles) - math.sqrt(2 * len(particles))),
-                                  math.ceil(len(particles) + math.sqrt(2 * len(particles)))]
+        self.smooth_edit_range = [math.floor(len(particle_pos) - math.sqrt(2 * len(particle_pos))),
+                                  math.ceil(len(particle_pos) + math.sqrt(2 * len(particle_pos)))]
         self.resolution = resolution
         self.resolution_edit_range = (50, 500)
 
@@ -46,6 +51,7 @@ class CurvedLine(PopulatedModel):
         self.start_rotation = 0
 
         self.update()
+        session.logger.info("Created a Curved line through {} particles.".format(len(particle_pos)))
 
     def update(self):
         vertices, normals, triangles, vertex_colors = self.define_curved_line()
@@ -53,8 +59,9 @@ class CurvedLine(PopulatedModel):
         self.vertex_colors = np.full(np.shape(vertex_colors), self.color)
 
     def recalc_and_update(self):
-        for i, particle in enumerate(self.particles):
-            self.particle_pos[i] = [particle.coord[0], particle.coord[1], particle.coord[2]]
+        if self.particles is not None:
+            for i, particle in enumerate(self.particles):
+                self.particle_pos[i] = [particle.coord[0], particle.coord[1], particle.coord[2]]
         self.points, self.der_points = get_points(self.particle_pos, self.smooth, self.degree, self.resolution)
         self.update()
 
@@ -178,6 +185,11 @@ class CurvedLine(PopulatedModel):
         else:
             self.smooth = s
             self.recalc_and_update()
+
+    def write_file(self, file_name):
+        with open(file_name, 'wb') as file:
+            np.savez(file, model_type="CurvedLine", particle_pos=self.particle_pos, degree=self.degree,
+                     smooth=self.smooth, resolution=self.resolution, points=self.points, der_points=self.der_points)
 
 
 def get_points(pos, smooth, degree, resolution):

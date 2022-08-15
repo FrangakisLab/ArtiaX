@@ -396,8 +396,19 @@ class ArtiaX(Model):
         from .util.select import colormap_cmd
         colormap_cmd(self.session, id, palette, attribute, minimum, maximum, transparency, log=log)
 
-    def color_geomodel(self, identifier, color):
-        self.geomodels.get(identifier).color = color
+    def color_geomodel(self, identifier, color, log=False):
+        geomodel = self.geomodels.get(identifier)
+        geomodel.color = color
+        if log:
+            from chimerax.core.commands import log_equivalent_command
+            from chimerax.core.colors import Color
+            c = Color(color)
+            color = c.rgba * 100
+            log_equivalent_command(self.session, "artiax geomodel color #{}.{}.{} {},{},{},{}".format(*geomodel.id,
+                                                                                            round(color[0]),
+                                                                                            round(color[1]),
+                                                                                            round(color[2]),
+                                                                                            round(color[3])))
 
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

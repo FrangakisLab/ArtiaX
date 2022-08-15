@@ -535,6 +535,7 @@ class OptionsWindow(ToolInstance):
         ## Geometric Model Tab
         # Connect colors
         ow.geomodel_color_selection.colorChanged.connect(artia.color_geomodel)
+        ow.geomodel_color_selection.colorChangeFinished.connect(partial(artia.color_geomodel, log=True))
 
     def _update_tomo_ui(self):
         self._update_tomo_sliders()

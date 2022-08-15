@@ -402,6 +402,9 @@ will be displayed without the ChimeraX- prefix.
     <ChimeraXClassifier>ChimeraX :: Command :: artiax select inside surface :: General ::
      Selects all shown particles inside the selected surface.</ChimeraXClassifier>
 
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax geomodel color :: General ::
+     Set geomodel color.</ChimeraXClassifier>
+
     <ChimeraXClassifier>ChimeraX :: Command :: artiax info :: General ::
       Print information about tomograms or particle lists.</ChimeraXClassifier>
 

@@ -10,7 +10,7 @@ from .GeoModel import GeoModel
 class Sphere(GeoModel):
     """Sphere"""
 
-    def __init__(self, name, session, particles, particle_pos, center=None, r=None):
+    def __init__(self, name, session, particle_pos, particles=None, center=None, r=None):
         super().__init__(name, session)
         self.change_transparency(100)
 
@@ -23,7 +23,7 @@ class Sphere(GeoModel):
         self.r = r
 
         self.update()
-        print("Created sphere with center: {} and radius: {}".format(center, r))
+        session.logger.info("Created sphere with center: ({:.2f}, {:.2f}, {:.2f}) and radius: {:.2f}.".format(*center, r))
 
     def define_sphere(self):
         from chimerax.bild.bild import _BildFile
@@ -42,8 +42,9 @@ class Sphere(GeoModel):
         self.vertex_colors = np.full(np.shape(vertex_colors), self.color)
 
     def recalc_and_update(self):
-        for i, particle in enumerate(self.particles):
-            self.particle_pos[i] = [particle.coord[0], particle.coord[1], particle.coord[2]]
+        if self.particles is not None:
+            for i, particle in enumerate(self.particles):
+                self.particle_pos[i] = [particle.coord[0], particle.coord[1], particle.coord[2]]
         self.center, self.r = lstsq_sphere(self.particle_pos)
         self.update()
 
@@ -72,8 +73,8 @@ class Sphere(GeoModel):
 
     def write_file(self, file_name):
         with open(file_name, 'wb') as file:
-            np.savez(file, model_type=np.asarray("Sphere"), particle_pos=np.asarray(self.particle_pos),
-                     center=np.asarray(self.center), r=np.asarray(self.r))
+            np.savez(file, model_type="Sphere", particle_pos=self.particle_pos,
+                     center=self.center, r=self.r)
 
 
 def lstsq_sphere(pos):

@@ -123,7 +123,7 @@ def fit_sphere(session):
         return
 
     from .Sphere import Sphere
-    geomodel = Sphere("sphere", session, particles, particle_pos)
+    geomodel = Sphere("sphere", session, particle_pos, particles=particles)
     artiax.add_geomodel(geomodel)
     geomodel.selected = True
 
@@ -149,7 +149,7 @@ def fit_curved_line(session):
         name = "line"
     else:
         name = "curved line"
-    geomodel = CurvedLine(name, session, particle_pos, particles, degree, smooth, resolution)
+    geomodel = CurvedLine(name, session, particle_pos, degree, smooth, resolution, particles=particles)
     artiax.add_geomodel(geomodel)
     geomodel.selected = True
 
@@ -181,7 +181,7 @@ def fit_surface(session):
     method = 'cubic'  # nearest, cubic, or linear
 
     from .Surface import Surface
-    geomodel = Surface('surface', session, particles, particle_pos, resolution, method)
+    geomodel = Surface('surface', session, particle_pos, resolution, method, particles=particles)
 
     session.ArtiaX.add_geomodel(geomodel)
     geomodel.selected = True
@@ -213,7 +213,7 @@ def boundary(session):
 
     from .Boundary import Boundary
     alpha = 0.7
-    geomodel = Boundary("boundary", session, particles, particle_pos, alpha)
+    geomodel = Boundary("boundary", session, particle_pos, alpha, particles=particles)
     session.ArtiaX.add_geomodel(geomodel)
     geomodel.selected = True
 
@@ -244,6 +244,29 @@ def remove_triangle(geomodel, triangle):
     geomodel.set_geometry(vertices, normals, triangles)
     geomodel.vertex_colors = np.full((len(vertices), 4), geomodel.color)
 
+
+def open_model(session, modelname, model_type, data):
+    model = None
+    if model_type == "Sphere":
+        from .Sphere import Sphere
+        model = Sphere(modelname, session, data['particle_pos'], center=data['center'], r=data['r'])
+    elif model_type == "CurvedLine":
+        from .CurvedLine import CurvedLine
+        model = CurvedLine(modelname, session, data['particle_pos'], int(data['degree']), float(data['smooth']),
+                           float(data['resolution']), points=data['points'], der_points=data['der_points'])
+    elif model_type == "Surface":
+        from .Surface import Surface
+        model = Surface(modelname, session, data['particle_pos'], float(data['resolution']), str(data['method']),
+                        normal=data['normal'], points=data['points'])
+    elif model_type == "TriangulationSurface":
+        from .TrangulationSurface import TriangulationSurface
+        model = TriangulationSurface(modelname, session, triangles=data['triangles'])
+    elif model_type == "Boundary":
+        from .Boundary import Boundary
+        model = Boundary(modelname, session, data['particle_pos'], float(data['alpha']), triangles=data['triangles'],
+                         delete_tri_list=data['delete_tri_list'])
+
+    return model
 
 # def fit_line(session):
 #     # NOT USED
