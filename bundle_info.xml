@@ -224,18 +224,18 @@ will be displayed without the ChimeraX- prefix.
       name="Invert Selection" display_name="Invert Selection" icon="invert_selection.png"
       description="Invert particle selection."/>
     <Provider tab="ArtiaX" section="Selection"
-      name="Select Inside Surface" display_name="Select Inside" icon="invert_selection.png"
+      name="Select Inside Surface" display_name="Select Inside" icon="select_inside.png"
       description="Selects all shown particles inside the selected surface."/>
 
     <!-- ArtiaX tab, Reorient Particles-->
     <Provider tab="ArtiaX" section="Flip Particles"
-      name="Flip X" display_name="X" icon="show_markers.png"
+      name="Flip X" display_name="X" icon="flip_x.png"
       description="Rotates the selected particles 180 degrees around their x-axis."/>
     <Provider tab="ArtiaX" section="Flip Particles"
-      name="Flip Y" display_name="Y" icon="show_markers.png"
+      name="Flip Y" display_name="Y" icon="flip_y.png"
       description="Rotates the selected particles 180 degrees around their y-axis."/>
     <Provider tab="ArtiaX" section="Flip Particles"
-      name="Flip Z" display_name="Z" icon="show_markers.png"
+      name="Flip Z" display_name="Z" icon="flip_z.png"
       description="Rotates the selected particles 180 degrees around their z-axis."/>
 
 
@@ -281,25 +281,25 @@ will be displayed without the ChimeraX- prefix.
 
     <!-- ArtiaX Model tab, Fit Geometric Model-->
         <Provider tab="ArtiaX Models" section="Fit Geometric Model"
-      name="Fit Sphere" icon="show_markers.png" description="Fit a sphere to the currently selected particles."/>
+      name="Sphere" icon="show_markers.png" description="Fit a sphere to the currently selected particles."/>
     <Provider tab="ArtiaX Models" section="Fit Geometric Model"
-      name="Fit Line" icon="show_axes.png" description="Create a geometric model line between the selected particles."/>
+      name="Line" icon="fit_line.png" description="Create a geometric model line between the selected particles."/>
     <Provider tab="ArtiaX Models" section="Fit Geometric Model"
-      name="Fit Surface" icon="view_xz.png" description="Create a geometric model plane between the selected particles."/>
+      name="Surface" icon="fit_surface.png" description="Create a geometric model plane between the selected particles."/>
     <Provider tab="ArtiaX Models" section="Fit Geometric Model"
-      name="Triangles From Links" icon="view_xz.png" description="Creates a triangle surface between all particles marked by links."/>
+      name="Boundary" icon="boundary.png" description="Creates a hull around the selected particles."/>
     <Provider tab="ArtiaX Models" section="Fit Geometric Model"
-      name="Boundary" icon="view_xz.png" description="Creates a hull around the selected particles."/>
+      name="Triangles From Links" icon="triangles_from_links.png" description="Creates a triangle surface between all particles marked by links."/>
 
     <!-- ArtiaX Model tab, Links-->
     <Provider tab="ArtiaX Models" section="Links"
-      name="Triangulate" icon="show_axes.png" description="Triangulate all selected particles using links."/>
+      name="Triangulate" icon="triangulate.png" description="Triangulate all selected particles using links."/>
     <Provider tab="ArtiaX Models" section="Links"
-      name="Remove Links" icon="show_axes.png" description="Removes links from selected particles."/>
+      name="Remove Selected" icon="remove_links.png" description="Removes links from selected particles."/>
 
     <!-- ArtiaX Model tab, Mask-->
     <Provider tab="ArtiaX Models" section="Mask"
-      name="Create Mask" icon="view_xz.png" description="Creates a mask from the selected geometric model."/>
+      name="Create Mask" icon="create_mesh.png" description="Creates a mask from the selected geometric model."/>
 
     <!-- ArtiaX Model tab, Delete Surface-->
 
@@ -310,7 +310,7 @@ will be displayed without the ChimeraX- prefix.
     -->
 
     <Provider tab="ArtiaX Models" section="Delete Surface" mouse_mode="delete tetra from boundary"
-      name="Delete Tetra From Boundary" display_name="Delete Tetra" icon="delete.png"
+      name="Delete Tetra From Boundary" display_name="Delete Tetra" icon="delete_tetra.png"
       description="Delete picked tetrahedron from a boundary model."/>
 
   </Providers>
