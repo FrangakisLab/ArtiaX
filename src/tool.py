@@ -70,8 +70,8 @@ class ArtiaXUI(ToolInstance):
         # UI
         self.tool_window = MainToolWindow(self, close_destroys=False)
 
-        # ArtiaX root model present?
-        self.get_root()
+        # Create root model, but don't update UI elements, as they don't exist yet
+        self.get_root(update_ui=False)
         self._connect_triggers()
 
         self._build_ui()
@@ -82,26 +82,24 @@ class ArtiaXUI(ToolInstance):
 # Shortcut Functions ===========================================================
 # ==============================================================================
 
-    def get_root(self):
+    def get_root(self, update_ui=True):
         # Make if not there
         if not hasattr(self.session, 'ArtiaX'):
             self.session.ArtiaX = ArtiaX(self)
 
-        # Replace if deleted
-        if self.session.ArtiaX.deleted:
-            self.session.ArtiaX = ArtiaX(self)
+            # Update UI if UI exists already, but model was deleted by user.
+            if update_ui:
+                # Update the table models
+                self.update_managers()
 
-            # Update the table models
-            self.update_managers()
+                # Update the model chooser widget
+                self.tomo_from_session.exclude = self.session.ArtiaX
 
-            # Update the model chooser widget
-            self.tomo_from_session.exclude = self.session.ArtiaX
+                # Connect triggers
+                self._connect_triggers()
 
-            # Connect triggers
-            self._connect_triggers()
-
-            # Update options window
-            self.ow.update_root()
+                # Update options window
+                self.ow.update_root()
 
         return self.session.ArtiaX
 
@@ -330,7 +328,7 @@ class ArtiaXUI(ToolInstance):
 # ==============================================================================
 
     def _open_volume(self):
-        artia = self.session.ArtiaX
+        artia = self.get_root()
 
         file = self._choose_volume()
 
@@ -338,8 +336,6 @@ class ArtiaXUI(ToolInstance):
             artia.open_tomogram(file[0])
 
     def _add_volume(self, model):
-        artia = self.session.ArtiaX
-
         run(self.session, "artiax add tomo #{}".format(model.id_string))
 
     def _choose_volume(self):
@@ -368,6 +364,13 @@ class ArtiaXUI(ToolInstance):
         artia.create_partlist()
 
     def _save_partlist(self):
+        # Make sure root model exists.
+        artia = self.get_root()
+
+        # Make sure there is something to save
+        if artia.partlists.count == 0:
+            return
+
         from .widgets.ArtiaXSaveDialog import show_save_file_dialog
         show_save_file_dialog(self.session)
         # artia = self.session.ArtiaX
@@ -385,7 +388,7 @@ class ArtiaXUI(ToolInstance):
             return None, None
 
     def _close_volume(self):
-        artia = self.session.ArtiaX
+        artia = self.get_root()
 
         if artia.selected_tomogram is None or artia.tomograms.count == 0:
             return
@@ -393,7 +396,7 @@ class ArtiaXUI(ToolInstance):
         artia.close_tomogram(artia.selected_tomogram)
 
     def _close_partlist(self):
-        artia = self.session.ArtiaX
+        artia = self.get_root()
 
         if artia.selected_partlist is None or artia.partlists.count == 0:
             return
@@ -406,7 +409,7 @@ class ArtiaXUI(ToolInstance):
 
     # Callback for triggers TOMOGRAM_ADD, TOMOGRAM_DEL
     def _update_tomo_table(self, name=None, data=None):
-        artia = self.session.ArtiaX
+        artia = self.get_root()
 
         # Special case: The manager model was removed from the session.
         if artia.tomograms.id is None:
@@ -421,7 +424,7 @@ class ArtiaXUI(ToolInstance):
 
     # Callback for triggers PARTICLES_ADD, PARTICLES_DEL
     def _update_partlist_table(self, name=None, data=None):
-        artia = self.session.ArtiaX
+        artia = self.get_root()
 
         # Special case: The manager model was removed from the session.
         if artia.partlists.id is None:
@@ -438,7 +441,7 @@ class ArtiaXUI(ToolInstance):
     def _update_tomo_selection(self, name=None, data=None):
         self.table_tomo.update_selection(data)
 
-        artia = self.session.ArtiaX
+        artia = self.get_root()
         if data is None:
             text = "Tomograms -- Selected: "
             self.group_tomo.setTitle(text)
@@ -450,7 +453,7 @@ class ArtiaXUI(ToolInstance):
     def _update_partlist_selection(self, name=None, data=None):
         self.table_part.update_selection(data)
 
-        artia = self.session.ArtiaX
+        artia = self.get_root()
         if data is None:
             text = "Particle Lists -- Selected: "
             self.group_partlist.setTitle(text)
@@ -475,20 +478,20 @@ class ArtiaXUI(ToolInstance):
         self.table_part.update_shown()
 
     def _tomo_table_selected(self, item):
-        artia = self.session.ArtiaX
+        artia = self.get_root()
 
         if item is not None:
             artia.selected_tomogram = artia.tomograms.get_id(item.row())
 
     def _tomo_table_name_changed(self, item):
-        artia = self.session.ArtiaX
+        artia = self.get_root()
         if (item is not None) and (item.column() == 1):
             name = item.text()
             row = item.row()
             artia.tomograms.set_name(row, name)
 
     def _show_tomo(self, idx, state):
-        artia = self.session.ArtiaX
+        artia = self.get_root()
         artia.selected_tomogram = artia.tomograms.get_id(idx)
 
         from .widgets import qt_enum_equal
@@ -499,27 +502,27 @@ class ArtiaXUI(ToolInstance):
             artia.hide_tomogram(idx)
 
     def _show_tomo_options(self, idx, state):
-        artia = self.session.ArtiaX
+        artia = self.get_root()
 
         if state:
             artia.options_tomogram = artia.tomograms.get_id(idx)
 
 
     def _partlist_table_selected(self, item):
-        artia = self.session.ArtiaX
+        artia = self.get_root()
 
         if item is not None:
             artia.selected_partlist = artia.partlists.get_id(item.row())
 
     def _partlist_table_name_changed(self, item):
-        artia = self.session.ArtiaX
+        artia = self.get_root()
         if (item is not None) and (item.column() == 1):
             name = item.text()
             row = item.row()
             artia.partlists.set_name(row, name)
 
     def _show_partlist(self, idx, state):
-        artia = self.session.ArtiaX
+        artia = self.get_root()
         artia.selected_partlist = artia.partlists.get_id(idx)
 
         from .widgets import qt_enum_equal
@@ -530,7 +533,7 @@ class ArtiaXUI(ToolInstance):
             artia.hide_partlist(idx)
 
     def _show_partlist_options(self, idx, state):
-        artia = self.session.ArtiaX
+        artia = self.get_root()
 
         if state:
             artia.options_partlist = artia.partlists.get_id(idx)

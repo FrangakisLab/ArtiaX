@@ -252,6 +252,9 @@ class ArtiaX(Model):
             if t != 'deleted':
                 self.triggers.delete_trigger(t)
 
+        # Delete self from session
+        delattr(self.session, 'ArtiaX')
+
         Model.delete(self)
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

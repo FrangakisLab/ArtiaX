@@ -44,7 +44,18 @@ class MarkerSetPlus(MarkerSet):
         self.session.triggers.add_handler('mouse hover', self._catch_hover)
 
     def delete(self):
+        # # Delete all the triggers
+        # self.triggers.delete_trigger(MARKER_DELETED)
+        # self.triggers.delete_trigger(MARKER_CREATED)
+        # self.triggers.delete_trigger(MARKER_MOVED)
+        # self.triggers.delete_trigger(MARKER_COLOR_CHANGED)
+        # self.triggers.delete_trigger(MARKER_SELECTED)
+        # self.triggers.delete_trigger(MARKER_DISPLAY_CHANGED)
+
+        # Delete self
         MarkerSet.delete(self)
+
+        # Let particle list know
         self.triggers.activate_trigger(MARKERSET_DELETED, self)
 
     def position_mask(self, atom=None):
@@ -188,21 +199,3 @@ class MarkerSetPlus(MarkerSet):
 
                 pu.setText(model + particle + position)
                 pu.resize(pu.sizeHint())
-
-# class PickedParticle(PickedAtom):
-#
-#     def __init__(self, atom, distance, copy, position_mask):
-#         PickedAtom.__init__(self, atom, distance)
-#         self._copy = copy
-#         self._position_mask = position_mask
-#
-#     def position_mask(self):
-#         return self._position_mask
-#
-#     def description(self):
-#         model = '#{}, '.format(self.drawing().id_string)
-#         particle = 'particle {}/{}, '.format(self._copy+1, self._position_mask.shape[0])
-#         position = 'x: {}, y: {}, z: {}'.format(round(self.atom.coord[0], 2),
-#                                                 round(self.atom.coord[1], 2),
-#                                                 round(self.atom.coord[2], 2))
-#         return model + particle + position

@@ -138,7 +138,6 @@ class OptionsWindow(ToolInstance):
         artia.triggers.add_handler(OPTIONS_PARTLIST_CHANGED, self._update_partlist_options)
 
     def update_root(self):
-
         self._connect_triggers()
 
 # ==============================================================================
@@ -905,7 +904,7 @@ class OptionsWindow(ToolInstance):
         self.vis_widget.setLayout(self.vis_layout)
         self.vis_area.setWidget(self.vis_widget)
 
-
+    @line_profile
     def _update_partlist_ui(self):
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
@@ -925,7 +924,11 @@ class OptionsWindow(ToolInstance):
 
         # Set sliders
         self.radius_widget.value = pl.radius
+        print('pre set')
+        prev = self.axes_size_widget.blockSignals(True)
         self.axes_size_widget.value = pl.axes_size
+        self.axes_size_widget.blockSignals(prev)
+        print('post set')
 
         if pl.has_display_model() and pl.display_is_volume():
             self.surface_level_widget.setEnabled(True)
@@ -979,9 +982,12 @@ class OptionsWindow(ToolInstance):
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _axes_size_changed(self, value, log=False):
+        print('axes size changed {}'.format(value))
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
         pl.axes_size = value
+
+
 
         if log:
             from chimerax.core.commands import log_equivalent_command
