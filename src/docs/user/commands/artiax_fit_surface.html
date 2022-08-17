@@ -1,0 +1,33 @@
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="../userdocs.css" />
+    <title>Command: artiax fit surface</title>
+  </head>
+
+  <body>
+    <a name="top"></a>
+    <a href="../artiax_index.html">
+    <img width="60px" src="../ArtiaX-docs-icon.svg" alt="ChimeraX docs icon"
+    class="clRight" title="User Guide Index"/></a>
+    <h3><a href="../artiax_index.html#commands">Command</a>: artiax fit surface</h3>
+    <h3 class="usage"><a href="usageconventions.html">Usage</a>:
+    <br><b>artiax fit surface</b></h3>
+
+    <p>
+    The <b>artiax fit surface</b> command fits a surface that goes through the currently selected particles. The
+      surface is assumed to be defined by a function w = f(u,v), where w is taken to be the normal of the selected
+      points, which is calculated before the surface is interpolated using the singular value decomposition. The plane
+      orthogonal to the normal is taken as the u,v plane. The surface can be created using a linear, cubic, or nearest
+      neighbor approach. The number of points used to define the surface can be changed with the resolution setting. A
+      base level can also be set, allowing the surface to be defined in the whole bounding box surrounding the
+      particles. Particles can also be created along the surface.
+    </p>
+    <p> Examples: </p>
+    <blockquote> <b>artiax fit surface
+      </b> </blockquote>
+    <p></p>
+    <hr>
+
+    <address>BMLS Frangakis Group / June 2022</address>
+  </body>
+</html>

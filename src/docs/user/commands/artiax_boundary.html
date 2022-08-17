@@ -1,0 +1,34 @@
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="../userdocs.css" />
+    <title>Command: artiax boundary</title>
+  </head>
+
+  <body>
+    <a name="top"></a>
+    <a href="../artiax_index.html">
+    <img width="60px" src="../ArtiaX-docs-icon.svg" alt="ChimeraX docs icon"
+    class="clRight" title="User Guide Index"/></a>
+    <h3><a href="../artiax_index.html#commands">Command</a>: artiax boundary</h3>
+    <h3 class="usage"><a href="usageconventions.html">Usage</a>:
+    <br><b>artiax boundary</b></h3>
+
+    <p>
+    The <b>artiax boundary</b> command creates a boundary model around all currently selected particles. The boundary
+      is an alpha shape which can be controlled by the alpha setting. An alpha value of 1 creates the convex hull of
+      the selected points, whereas an alpha value of 0 only leaves the smallest tetrahedron possible. The <b>Delete
+      Tetra</b> mouse mode can be used to delete unwanted tetrahedrons. Note however that the computation time
+      increases linearly with every deleted tetrahedron. The boundary model can be used to reorient particles.
+      Particles that are being used as vertices on the boundary will be reoriented such that their z-axis points along
+      the average normal of all triangles connected to the vertex. All particles which are not used as a vertex get
+      reoriented along the normal of the closest triangle.
+    </p>
+    <p> Examples: </p>
+    <blockquote> <b>artiax boundary
+      </b> </blockquote>
+    <p></p>
+    <hr>
+
+    <address>BMLS Frangakis Group / June 2022</address>
+  </body>
+</html>

@@ -1,0 +1,31 @@
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="../userdocs.css" />
+    <title>Command: artiax triangulate</title>
+  </head>
+
+  <body>
+    <a name="top"></a>
+    <a href="../artiax_index.html">
+    <img width="60px" src="../ArtiaX-docs-icon.svg" alt="ChimeraX docs icon"
+    class="clRight" title="User Guide Index"/></a>
+    <h3><a href="../artiax_index.html#commands">Command</a>: artiax triangulate</h3>
+    <h3 class="usage"><a href="usageconventions.html">Usage</a>:
+    <br><b>artiax triangulate</b> [<strong>furthestSite</strong> <i>value</i>] </h3>
+
+    <p>
+    The <b>artiax triangulate</b> command creates links between the selected particles using Delaunay triangulation.
+      Useful in combination with the <a href="artiax_triangles_from_links.html">triangles from links</a> command. The
+      furthestSite option decides whether only the convex hull of the particles should be created, True, or whether
+      internal triangles should also be created, False. The default value is True.
+    </p>
+    <p> Examples: </p>
+    <blockquote> <b>artiax triangulate<br>
+      artiax triangulate furthestSite False
+      </b> </blockquote>
+    <p></p>
+    <hr>
+
+    <address>BMLS Frangakis Group / June 2022</address>
+  </body>
+</html>
