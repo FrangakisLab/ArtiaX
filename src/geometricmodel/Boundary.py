@@ -74,25 +74,58 @@ class Boundary(GeoModel):
             self.recalc_and_update()
 
     def reorient_particles_to_surface(self, particles):
-        if self.particles is not None:
-            self.tri, self.p_index_triangles, self.ordered_normals = get_triangles(self.particle_pos, self.alpha,
-                                                                                   calc_normals=True)
-            for i, particle in enumerate(self.particles):
-                if particle in particles:
-                    curr_normals = np.zeros((0, 3))
-                    for j, index_tri in enumerate(self.p_index_triangles):
-                        if i in index_tri:
-                            curr_normals = np.append(curr_normals, [self.ordered_normals[j]], axis=0)
-                    if len(curr_normals) > 0:
-                        # Rotate to average normal
-                        normal = np.add.reduce(curr_normals)
-                        curr_pos = np.asarray(particle.coord)
-                        rot = z_align(curr_pos, curr_pos + normal).zero_translation().inverse()
-                        # Set rotation
-                        particle.rotation = rot
+        if self.particles is None:
+            return
 
-            for particle_list in self.session.ArtiaX.partlists.child_models():
-                particle_list.update_places()
+        self.tri, self.p_index_triangles, self.ordered_normals = get_triangles(self.particle_pos, self.alpha,
+                                                                               calc_normals=True)
+        aligned = [None]*len(particles)
+        aligned_index = 0
+        unaligned = [None]*len(particles)
+        unaligned_index = 0
+        normals_dict = dict()
+        for unaligned_index, particle in enumerate(self.particles):
+            if particle in particles:
+                curr_normals = np.zeros((0, 3))
+                for j, index_tri in enumerate(self.p_index_triangles):
+                    if unaligned_index in index_tri:
+                        curr_normals = np.append(curr_normals, [self.ordered_normals[j]], axis=0)
+                if len(curr_normals) > 0:
+                    normals_dict[particle] = curr_normals
+                    # Rotate to average normal
+                    normal = np.add.reduce(curr_normals)
+                    curr_pos = np.asarray(particle.coord)
+                    rot = z_align(curr_pos, curr_pos + normal).zero_translation().inverse()
+                    # Set rotation
+                    particle.rotation = rot
+                    aligned[aligned_index] = particle
+                    aligned_index += 1
+                else:
+                    unaligned[unaligned_index] = particle
+                    unaligned_index += 1
+
+        aligned = aligned[:aligned_index]
+        unaligned = unaligned[:unaligned_index]
+        unaligned_coord = np.array([p.coord for p in unaligned])
+        aligned_coord = np.array([p.coord for p in aligned])
+        from chimerax.geometry._geometry import find_closest_points
+        # TODO: change distance from 100 to something... more dynamic.
+        unaligned_indices, aligned_indices, closest_indices = find_closest_points(unaligned_coord, aligned_coord, 100)
+        for (unaligned_index, closest_index) in zip(unaligned_indices, closest_indices):
+            curr_part = unaligned[unaligned_index]
+            closest_part = aligned[closest_index]
+            curr_pos = np.asarray(curr_part.coord)
+            closest_to_current = curr_pos - np.asarray(closest_part.coord)
+            closest_normals = normals_dict[closest_part]
+            # Find normal most similar to the vector from the vertex to the particles
+            orientation = closest_normals[
+                np.argmax(np.array([np.dot(closest_to_current, normal) for normal in closest_normals]))]
+            rot = z_align(curr_pos, curr_pos + orientation).zero_translation().inverse()
+            # Set rotation
+            curr_part.rotation = rot
+
+        for particle_list in self.session.ArtiaX.partlists.child_models():
+            particle_list.update_places()
 
     def remove_tetra(self, tri):
         self.delete_tri_list = np.append(self.delete_tri_list, tri)
