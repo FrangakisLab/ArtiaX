@@ -1,0 +1,107 @@
+<html>
+  <!--
+=== UCSF ChimeraX Copyright ===Copyright 2018 Regents of the University of California.All rights reserved.  This software provided pursuant to alicense agreement containing restrictions on its disclosure,
+duplication and use.  For details see:http://www.rbvi.ucsf.edu/chimerax/docs/licensing.htmlThis notice must be embedded in or attached to all copies,including partial copies, of the software or any revisions
+or derivations thereof.=== UCSF ChimeraX Copyright ===-->
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=windows-1252">
+    <link rel="stylesheet" type="text/css" href="../userdocs.css">
+    <title>ArtiaX Model Toolbar</title>
+  </head>
+  <body> <a name="top"></a> <a href="../artiax_index.html"> <img src="../ArtiaX-docs-icon.svg"
+        alt="ArtiaX docs icon" class="clRight" title="User Guide Index" width="60px"></a>
+    <h3><a href="../artiax_index.html#tools">Tool</a>: Model Toolbar</h3>
+    <p> The ArtiaX <b>Model Toolbar</b> is seperated into 9 parts, with the first 5 being the same as in the ArtiaX
+      <b><a href="artiax_toolbar.html">Toolbar</a></b>, see that documentation for a description of the buttons in
+      those sections.</p>
+    <p> The <b>Fit Geometric Model</b> section creates geometric models from the currently selected particles.</p>
+    <table cellspacing="0" cellpadding="4" border="">
+      <tbody>
+        <tr>
+          <td align="center"><b>icon</b></td>
+          <td align="center"><b>description</b></td>
+          <td align="center"><b>command equivalent</b></td>
+        </tr>
+        <tr>
+          <td align="center"><img src="../../../icons/show_markers.png" width="35px"></td>
+          <td align="center">fits a sphere to the currently selected particles using a least squares approach.</td>
+          <td align="center"> <b><a href="../commands/artiax_fit_sphere.html">artiax fit sphere</a></b></td>
+        </tr>
+        <tr>
+          <td align="center"><img src="../../../icons/fit_line.png" width="35px"></td>
+          <td align="center">fits a line that goes through the currently selected particles.</td>
+          <td align="center"> <b><a href="../commands/artiax_fit_line.html">artiax fit line</a></b></td>
+        </tr>
+        <tr>
+          <td align="center"><img src="../../../icons/fit_surface.png" width="35px"></td>
+          <td align="center">fits a surface that goes through the currently selected particles.</td>
+          <td align="center"> <b><a href="../commands/artiax_fit_surface.html">artiax fit surface</a></b></td>
+        </tr>
+        <tr>
+          <td align="center"><img src="../../../icons/boundary.png" width="35px"></td>
+          <td align="center">creates a boundary around the currently selected particles.</td>
+          <td align="center"> <b><a href="../commands/artiax_boundary.html">artiax boundary</a></b></td>
+        </tr>
+        <tr>
+          <td align="center"><img src="../../../icons/triangles_from_links.png" width="35px"></td>
+          <td align="center">creates triangles between all currently selected particles that are conencted with
+            links.</td>
+          <td align="center"> <b><a href="../commands/artiax_triangles_from_links.html">artiax triangles from
+            links</a></b></td>
+        </tr>
+      </tbody>
+    </table>
+    <p> The <b>Links</b> section creates and removes links. This can also be done manually with
+      the <b><a href="markers.html">Markers</a></b> mouse modes.</p>
+    <table cellspacing="0" cellpadding="4" border="">
+      <tbody>
+        <tr>
+          <td align="center"><b>icon</b></td>
+          <td align="center"><b>description</b></td>
+          <td align="center"><b>command equivalent</b></td>
+        </tr>
+        <tr>
+          <td align="center"><img src="../../../icons/triangulate.png" width="35px"></td>
+          <td align="center">creates Delaunay triangles between the currently selected particles.</td>
+          <td align="center"> <b><a href="../commands/artiax_triangulate.html">artiax triangulate</a></b>
+            furthestSite True </td>
+        </tr>
+        <tr>
+          <td align="center"><img src="../../../icons/remove_links.png" width="35px"></td>
+          <td align="center">removes all links connected to the currently selected particles.</td>
+          <td align="center"> <b><a href="../commands/artiax_remove_links.html">artiax remove links</a></b></td>
+        </tr>
+      </tbody>
+    </table>
+    <p> The <b>Mask</b> section is used to create a mask from a selected geometric model.
+    <table cellspacing="0" cellpadding="4" border="">
+      <tbody>
+        <tr>
+          <td align="center"><b>icon</b></td>
+          <td align="center"><b>description</b></td>
+          <td align="center"><b>command equivalent</b></td>
+        </tr>
+        <tr>
+          <td align="center"><img src="../../../icons/create_mesh.png" width="35px"></td>
+          <td align="center">creates a mask from the currently selected geometric model.</td>
+          <td align="center"> <b><a href="../commands/artiax_mask.html">artiax mask</a></b></td>
+        </tr>
+      </tbody>
+    </table>
+    <p> The <b>Delete Surface</b> section sets the users mouse mode to allow for deleting parts of models.
+    <table cellspacing="0" cellpadding="4" border="">
+      <tbody>
+        <tr>
+          <td align="center"><b>icon</b></td>
+          <td align="center"><b>description</b></td>
+        </tr>
+        <tr>
+          <td align="center"><img src="../../../icons/delete_tetra.png" width="35px"></td>
+          <td align="center">Deletes the picked tetrahedron from a boundary model.</td>
+        </tr>
+      </tbody>
+    </table>
+    <hr>
+    <address>BMLS Frangakis Group / June 2022</address>
+  </body>
+</html>

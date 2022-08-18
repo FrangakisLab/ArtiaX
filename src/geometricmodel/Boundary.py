@@ -115,8 +115,8 @@ class Boundary(GeoModel):
         unaligned_coord = np.array([p.coord for p in unaligned])
         aligned_coord = np.array([p.coord for p in aligned])
         from chimerax.geometry._geometry import find_closest_points
-        # TODO: change distance from 100 to something... more dynamic.
-        unaligned_indices, aligned_indices, closest_indices = find_closest_points(unaligned_coord, aligned_coord, 100)
+        max_dist = max(max(aligned_coord.flatten()), max(unaligned_coord.flatten()))
+        unaligned_indices, aligned_indices, closest_indices = find_closest_points(unaligned_coord, aligned_coord, max_dist)
         for (unaligned_index, closest_index) in zip(unaligned_indices, closest_indices):
             curr_part = unaligned[unaligned_index]
             closest_part = aligned[closest_index]

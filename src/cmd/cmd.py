@@ -198,6 +198,9 @@ def artiax_fit_surface(session):
 
 
 def artiax_triangulate(session, furthestSite=None):
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running, links can be created between particles.")
+        return
     if furthestSite is None:
         furthestSite = True
     from ..geometricmodel.GeoModel import triangulate_selected
@@ -818,93 +821,82 @@ def register_artiax(logger):
 
     def register_artiax_fit_sphere():
         desc = CmdDesc(
-            # TODO rewrite and get url right
             synopsis='Create a geometric model sphere to the currently selected particles.',
-            url='help:user/commands/artiax_hide.html'
+            url='help:user/commands/artiax_fit_sphere.html'
         )
         register('artiax fit sphere', desc, artiax_fit_sphere)
 
     def register_artiax_fit_line():
         desc = CmdDesc(
-            # TODO rewrite and get url right
             synopsis='Create a geometric model line that goes through the selected particles.',
-            url='help:user/commands/artiax_hide.html'
+            url='help:user/commands/artiax_fit_line.html'
         )
         register('artiax fit line', desc, artiax_fit_line)
 
     def register_artiax_fit_surface():
         desc = CmdDesc(
-            # TODO rewrite and get url right
             synopsis='Create a geometric model surface that goes through the selected particles.',
-            url='help:user/commands/artiax_hide.html'
+            url='help:user/commands/artiax_fit_surface.html'
         )
         register('artiax fit surface', desc, artiax_fit_surface)
 
     def register_artiax_triangulate():
         desc = CmdDesc(
-            # TODO rewrite and get url right
             keyword=[("furthestSite", BoolArg)],
             synopsis='Triangulates all selected particles using links.',
-            url='help:user/commands/artiax_hide.html'
+            url='help:user/commands/artiax_triangulate.html'
         )
         register('artiax triangulate', desc, artiax_triangulate)
 
     def register_artiax_boundary():
         desc = CmdDesc(
-            # TODO rewrite and get url right
-            synopsis='Creates a hull around the selected particles.',
-            url='help:user/commands/artiax_hide.html'
+            synopsis='Creates a boundary around the selected particles.',
+            url='help:user/commands/artiax_boundary.html'
         )
         register('artiax boundary', desc, artiax_boundary)
 
     def register_artiax_mask():
         desc = CmdDesc(
-            # TODO rewrite and get url right
             synopsis='Creates a mask from the selected geometric model.',
-            url='help:user/commands/artiax_hide.html'
+            url='help:user/commands/artiax_mask.html'
         )
         register('artiax mask', desc, artiax_mask)
 
     def register_artiax_remove_links():
         desc = CmdDesc(
-            # TODO rewrite and get url right
             synopsis='Removes links from selected particles',
-            url='help:user/commands/artiax_hide.html'
+            url='help:user/commands/artiax_remove_links.html'
         )
         register('artiax remove links', desc, artiax_remove_links)
 
     def register_artiax_triangles_from_links():
         desc = CmdDesc(
-            # TODO rewrite and get url right
             synopsis='Creates a triangle surface between all particles marked by links. Useful together with artiax '
                      'triangulate.',
-            url='help:user/commands/artiax_hide.html'
+            url='help:user/commands/artiax_triangles_from_links.html'
         )
         register('artiax triangles from links', desc, artiax_triangles_from_links)
 
     def register_artiax_flip():
         desc = CmdDesc(
-            # TODO rewrite and get url right
             optional=[('axis', AxisArg)],
             synopsis='Rotates the selected particles 180 degrees around their y-axis.',
-            url='help:user/commands/artiax_hide.html'
+            url='help:user/commands/artiax_flip.html'
         )
         register('artiax flip', desc, artiax_flip)
 
     def register_select_inside_surface():
         desc = CmdDesc(
-            # TODO rewrite and get url right
             synopsis='Selects all shown particles inside the selected surface.',
-            url='help:user/commands/artiax_hide.html'
+            url='help:user/commands/artiax_select_inside_surface.html'
         )
         register('artiax select inside surface', desc, artiax_select_inside_surface)
 
     def register_artiax_geomodel_color():
         desc = CmdDesc(
-            # TODO rewrite and get url right
             required=[("model", ModelArg), ("color", ColorArg)],
             synopsis='Set geomodel color.',
-            url='help:user/commands/artiax_particles.html'
+            url='help:user/commands/artiax_geomodel_color.html'
         )
         register('artiax geomodel color', desc, artiax_geomodel_color)
 
