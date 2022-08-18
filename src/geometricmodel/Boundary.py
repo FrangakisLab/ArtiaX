@@ -4,7 +4,6 @@ import math
 import numpy as np
 from scipy.spatial import Delaunay
 from collections import defaultdict
-from statistics import median
 
 # ChimeraX imports
 from chimerax.bild.bild import _BildFile
@@ -16,27 +15,38 @@ from .GeoModel import GeoModel
 
 
 class Boundary(GeoModel):
-    """Triangulated Plane"""
+    """
+    An alpha surface boundary, computed using scipy Delaunay. Can be used to create concave shapes. Is
+    created from the particle positions and alpha value. The alpha value is set between 0-1, with 0
+    being only one tetrahedron, adn 1 being the convex hull of the particles. Can be used to reorient particles.
+    """
 
     def __init__(self, name, session, particle_pos, alpha, particles=None, triangles=None, delete_tri_list=None):
         super().__init__(name, session)
 
         self.particles = particles
+        """n-long list containing all particles used to define the sphere."""
         self.particle_pos = particle_pos
+        """(n x 3) list containing all xyz positions of the particles."""
 
         if triangles is None:
             self.tri = get_triangles(particle_pos, alpha)
         else:
             self.tri = triangles
+        """(n x 3 x 3) list of floats, where every row is a triangle with 3 points. The triangles that
+        define the surface. If the triangles are not provided they get calculated."""
 
         self.p_index_triangles = None
         self.ordered_normals = None
+        """Used to reorient particles"""
         self.alpha = alpha
+        """Used to calculate the shape. Decides how many tetrahedrons get used in the shape."""
 
         if delete_tri_list is None:
             self.delete_tri_list = np.zeros((0,1), dtype=np.int32)
         else:
             self.delete_tri_list = delete_tri_list
+        """List of ints, where each int is the index of a triangle to delete."""
 
         self.fitting_options = True
 
@@ -44,6 +54,7 @@ class Boundary(GeoModel):
         session.logger.info("Created a boundary with {} vertices.".format(len(particle_pos)))
 
     def define_surface(self):
+        """Could probably be done manually to improve performance."""
         b = _BildFile(self.session, 'dummy')
 
         for triangle in self.tri:
@@ -61,6 +72,7 @@ class Boundary(GeoModel):
         self.vertex_colors = np.full((len(vertices), 4), self.color)
 
     def recalc_and_update(self):
+        """Recalculates the boundary, and resets the list of triangles to delete."""
         if self.particles is not None:
             for i, particle in enumerate(self.particles):
                 self.particle_pos[i] = [particle.coord[0], particle.coord[1], particle.coord[2]]
@@ -74,6 +86,9 @@ class Boundary(GeoModel):
             self.recalc_and_update()
 
     def reorient_particles_to_surface(self, particles):
+        """Reorients particles so that they point away from the surface. The particles that are in vertices
+        get pointed towards the vertex average normal, and particles not in vertices point along the normal
+        of the closest triangle."""
         if self.particles is None:
             return
 
@@ -145,6 +160,27 @@ class Boundary(GeoModel):
 
 
 def get_triangles(particle_pos, alpha=0.7, calc_normals=False, delete_tri_list=None):
+    """Creates the triangles that define the boundary. Gets kinda complicated with the addition of calculating normals
+    and deleting tetras. Calculating normals is only done when reorienting particles. Deleting triangles works
+    by doing the triangulation, figuring out which tetra the triangle belongs to, and recalculating the boundary
+    without that tetra. This gets repeated for every tetra that is deleted. Can probably be speed up quite a lot,
+    if there is a way to figure out what tetra the triangle belongs to without redoing the calculation every time.
+
+    Parameters
+    ----------
+    particle_pos: (n x 3) list containing all xyz positions of the particles
+    alpha: float between 0 and 1. 0 means only smallest tetra, 1 means convex hull.
+    calc_normals: bool, if the normals should be calculated or not.
+    delete_tri_list: list of ints with indices for every triangle that should be removed.
+
+    Returns
+    triangles: (n x 3 x 3) list of floats, where every row is a triangle with 3 points. The triangles that
+        define the surface. If the triangles are not provided they get calculated.
+    p_index_triangles: (n, 3) list of ints with indices of triangle in particle_pos. Eg a row might be [1,4,88], meaning
+        particle_pos[1], particle_pos[4], and particle_pos[88] together make up a triangle.
+    ordered_normals: (n, 3) list of floats, where every row is the normal for the n:th triangle.
+
+    """
     tetra = Delaunay(particle_pos, furthest_site=False)
     """ Taken mostly from stack overflow: https://stackoverflow.com/a/58113037
     THANK YOU @Geun, this is pretty clever. """

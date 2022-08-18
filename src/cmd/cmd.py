@@ -276,6 +276,10 @@ def artiax_select_inside_surface(session):
         session.logger.warning("Select a model with a surface.")
         return
 
+    """looks for intersections from particle to outside bounding box in the z-direction. If theres an intersection,
+     a new intersection is looked for from that point to the outside of the bounding box. Continues until there are no
+     more intersections. If there was an even number of intersections, the particle is outside the volume, if
+     there was an odd number of intersections, it's inside."""
     bounds = model.bounds()
     from chimerax.geometry._geometry import closest_triangle_intercept
     for pl in session.ArtiaX.partlists.iter():
@@ -288,7 +292,11 @@ def artiax_select_inside_surface(session):
                 if not(np.any(pos > bounds.xyz_max) or np.any(pos < bounds.xyz_min)): #  inside bounding box
                     intersepts = 0
                     dist_to_end = bounds.xyz_max[2] - pos[2] + 1
-                    dist_to_tri, tnum = closest_triangle_intercept(model.vertices, model.triangles, pos, pos + [0,0,dist_to_end])
+                    if isinstance(model, VolumeSurface):
+                        vertices = model.parent.position.transform_points(model.vertices)
+                    else:
+                        vertices = model.vertices
+                    dist_to_tri, tnum = closest_triangle_intercept(vertices, model.triangles, pos, pos + [0,0,dist_to_end])
                     start = pos
                     margin = 0.001
                     while dist_to_tri is not None:
@@ -296,18 +304,12 @@ def artiax_select_inside_surface(session):
                         if intersepts > 100:
                             session.logger.warning("Too many intersepts, terminating.")
                             break
-                        print("dist to end: {}".format(dist_to_end))
-                        print("dist to tri: {}".format(dist_to_tri))
-                        print("old start {}".format(start))
                         start = [start[0],start[1],start[2] + dist_to_tri*dist_to_end+margin]
-                        print("new start: {}".format(start))
                         dist_to_end = bounds.xyz_max[2] - start[2] + 1
                         end = [start[0],start[1],start[2] + dist_to_end]
-                        dist_to_tri, tnum = closest_triangle_intercept(model.vertices, model.triangles, start, end)
+                        dist_to_tri, tnum = closest_triangle_intercept(vertices, model.triangles, start, end)
                     if intersepts % 2:
                         select_particles[i] = True
-                    print("pos: {}:".format(pos))
-                    print("intersepts: {}".format(intersepts))
             atoms.selecteds = select_particles
 
 

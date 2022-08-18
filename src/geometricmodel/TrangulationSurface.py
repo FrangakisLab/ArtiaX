@@ -12,15 +12,18 @@ from .GeoModel import GeoModel
 
 
 class TriangulationSurface(GeoModel):
-    """Triangulated Plane"""
+    """Creates triangles between the particles connected in the particle_pairs list. Can also be made from the triangles
+    if they are already known."""
 
     def __init__(self, name, session, particle_pairs=None, triangles=None):
         super().__init__(name, session)
 
         self.particle_pairs = particle_pairs
+        """(n x 2) list of particles, where every row is two connected particles."""
         if triangles is None:
             triangles = triangles_from_pairs(self.particle_pairs)
         self.tri = triangles
+        """(n x 3 x 3) list of floats, where every row is a triangle with 3 points."""
 
         self.update()
         session.logger.info("Created a triangulated surface.")
@@ -57,6 +60,13 @@ class TriangulationSurface(GeoModel):
 
 
 def make_links(markers, connections):
+    """Creates links between the markers where using the connections.
+
+    Parameters
+    ----------
+    markers: particle markers. needs to be markers and not particles as only markers can be linked.
+    connections: simplices gotten from scipy triangulation. A list of polygons.
+    """
     from chimerax.markers.markers import create_link
     for polygon in connections:
         for i in range(0, len(polygon)):
@@ -68,6 +78,17 @@ def make_links(markers, connections):
 
 
 def triangles_from_pairs(particle_pairs):
+    """ Creates a list of triangles using pairs of particles. Kinda complicated, could probably be made simpler.
+
+    Parameters
+    ----------
+    particle_pairs: (n x 2) list of particles, where every row is two connected particles.
+
+
+    Returns
+    -------
+    triangles: (n x 3 x 3) list of floats, where every row is a triangle with 3 points.
+    """
     triangles = np.zeros((0, 3, 3))
     while len(particle_pairs[0]) > 1:
         first_corner = particle_pairs[0][0]

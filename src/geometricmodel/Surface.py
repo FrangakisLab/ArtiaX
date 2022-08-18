@@ -5,49 +5,62 @@ from scipy import interpolate
 
 # ChimeraX imports
 from chimerax.geometry import z_align, rotation, translation
-from chimerax.bild.bild import _BildFile
-from chimerax.atomic import AtomicShapeDrawing
 
 # ArtiaX imports
 from .GeoModel import GEOMODEL_CHANGED
 from .PopulatedModel import PopulatedModel
-from ..particle.SurfaceCollectionModel import SurfaceCollectionModel
 
 
 class Surface(PopulatedModel):
-    """Surface"""
+    """
+    Fits a surface through the given particles. Assumes the given particles define a 2D function w = f(u,v),
+    where w is taken to be the normal to the best fit plane of the points. The normal and the plane is calculated
+    if it is not provided. The points that define the surface are also calculated from if not provided.
+    Can be used to create particles along the surface.
+    """
 
     def __init__(self, name, session, particle_pos, resolution, method, particles=None, normal=None, points=None):
         super().__init__(name, session)
         self.particles = particles
+        """n-long list containing all particles used to define the sphere."""
         self.particle_pos = particle_pos
+        """(n x 3) list containing all xyz positions of the particles."""
 
         # Has to get either normal or particles to make a surface
         if normal is None:
             self.normal = get_normal_and_pos(particles, particle_pos)
         else:
             self.normal = normal
+        """The normal is taken to be the w axis, the function value axis."""
         if points is None:
             self.points = get_grid(particle_pos, self.normal, resolution, method)
         else:
             self.points = points
+        """Defines the discrete surface."""
 
         self.fitting_options = True
         self.method = method
+        """which method to use to interpolate the surface"""
         self.allowed_methods = ['nearest', 'linear', 'cubic']
         self.resolution = resolution
+        """the surface is defined by resolution*resolution number of points."""
         self.resolution_edit_range = (10, 100)
         self.use_base = False
         self.base_level = 0
+        """Can add a base level for points that can't be interpolated."""
         self.base_level_edit_range = (-10, 10)
 
         self.rotation = 0
+        """how much to rotate """
 
         self.update()
         session.logger.info("Created a Surface through {} particles with normal ({:.2f}, {:.2f}, "
                             "{:.2f}).".format(len(particle_pos), *self.normal))
 
     def define_plane(self):
+        """Created manually and not with chimerax.bild to save time, as every triangle has to be made individually.
+        Goes through the points one by one and creates triangles. Adds the vertices for every triangle, even if it
+        already exists in the list. Also adds the normal to all three vertices... because otherwise it looked odd."""
         nr_points = len(self.points)*len(self.points)
         vertices = np.zeros((nr_points*6, 3), dtype=np.float32)
         triangles = np.zeros((nr_points*2, 3), dtype=np.int32)
@@ -55,6 +68,8 @@ class Surface(PopulatedModel):
         nr_cols = len(self.points[0])
         vertex_index = 0
         triangles_index = 0
+        # Used to know which normals are associated with each vertex, which makes it easier to create the fake
+        # particles later
         self.ordered_normals = np.ones((len(self.points), len(self.points), 6), dtype=np.int32) * -1
 
         for i, row in enumerate(self.points):
@@ -98,6 +113,7 @@ class Surface(PopulatedModel):
         self.vertex_colors = np.full((len(vertices), 4), self.color)
 
     def recalc_and_update(self):
+        """Recalculates the points from the particles and then redraws."""
         if self.particles is not None:
             self.normal, self.particle_pos = get_normal_and_pos(self.particles)
         if self.use_base:
@@ -121,6 +137,8 @@ class Surface(PopulatedModel):
         self.recalc_and_update()
 
     def create_spheres(self):
+        """Creates the fake particles in every vertex of the surface. One axis is set to point along the average
+        normal of the vertex, and the other is set to point to the next particle. """
         self.has_particles = True
         self.triggers.activate_trigger(GEOMODEL_CHANGED, self)
         # Remove old spheres if any exist
@@ -136,6 +154,7 @@ class Surface(PopulatedModel):
                     for k, index in enumerate(normal_indices):
                         normals[k] = self.normals[index]
 
+                    # calculates the average normal for the vertex.
                     normal = np.add.reduce(normals)
                     normal = - normal / np.linalg.norm(normal)  # - needed to make them point to pos z
                     rot_to_normal = z_align(vertex, vertex + normal).zero_translation().inverse()
@@ -170,6 +189,21 @@ class Surface(PopulatedModel):
 
 
 def get_grid(particle_pos, normal, resolution, method, base=None):
+    """ Interpolates the surface from the given particles and normal. See start of class for explanation of normal
+    First translates the system to a new base (x,y,z) -> (u,v,w). Uses scipy to do the interpolation.
+
+    Parameters
+    ----------
+    particle_pos
+    normal
+    resolution
+    method
+    base
+
+    Returns
+    -------
+    points: (n x n x 3) list of floats. The grid containing the points defining the surface.
+    """
     # Create ON system u,v,n
     u = np.array([1,0,0], dtype=np.float64)
     u -= u.dot(normal) * normal
@@ -201,6 +235,19 @@ def get_grid(particle_pos, normal, resolution, method, base=None):
 
 
 def get_normal_and_pos(particles, particle_pos=None):
+    """ Calculates the best fit normal to the given particles.
+
+    Parameters
+    ----------
+    particles: particles to calculate normal from.
+    particle_pos: if positions are already known, they can be supplied here.
+
+    Returns
+    -------
+    normal: (3x1) list of floats. The normal vector.
+    particle_pos: (nx3) list of floats. The coordinates of the particles. Only returned if particle
+                   pos was not already provided.
+    """
     return_pos = False
     if particle_pos is None:
         return_pos = True

@@ -5,14 +5,16 @@ from scipy.spatial import Delaunay
 
 # ChimeraX imports
 from chimerax.core.models import Surface
-from chimerax.geometry import z_align
 
 # Triggers
 GEOMODEL_CHANGED = 'geomodel changed'  # Data is the modified geometric model.
 
 
 class GeoModel(Surface):
-    """Handles geometric models"""
+    """
+    Parent class for all geometric models. Also handles static methods for creating models from particles,
+    helping functions, and opening saved geomodels.
+    """
 
     def __init__(self, name, session):
         super().__init__(name, session)
@@ -61,6 +63,17 @@ class GeoModel(Surface):
 
 
 def selected_geomodels(session, model=None):
+    """ Returns selected geomodels, either all models or only the ones matching the name provided.
+
+    Parameters
+    ----------
+    model: str
+        name of a geomodel class.
+
+    Returns
+    -------
+    s_geomodels: A list with all selected geomodels that matches the criteria.
+    """
     s_geomodels = np.array([])
     if model is None:  # Return all selected geomodels
         for geomodel in session.ArtiaX.geomodels.child_models():
@@ -75,6 +88,24 @@ def selected_geomodels(session, model=None):
 
 
 def get_curr_selected_particles(session, return_particles=True, return_pos=True, return_markers=False):
+    """ Returns selected particles, particle position, or markers.
+
+    Parameters
+    ----------
+    session
+    return_particles: Bool
+        Decides whether to return the list of all selected particles.
+    return_pos: Bool
+        Decides whether to return the list particle positions.
+    return_markers: Bool
+        Decides whether to return the list of markers belonging to all selected particles.
+
+    Returns
+    -------
+    particle_pos: (n x 3) numpy array containing the xyz positions of the n selected particles.
+    particles: A list with all currently selected particles.
+    marksers: A list with all markers belonging to all selected particles.
+    """
     artiax = session.ArtiaX
 
     # Find selected particles
@@ -236,6 +267,17 @@ def remove_selected_links(session):
 
 
 def remove_triangle(geomodel, triangle):
+    """ Not used, but can be used to delete individual triangles from surface, triangulated surface or boundary models.
+
+    Parameters
+    ----------
+    geomodel: GeoModel
+        Geomodel to remove the triangle from.
+    triangle: int
+        index of the triangle to remove.
+    """
+    # Have to reshuffle the other triangles to make sure the order of the vertices stays the same,
+    # otherwise the model looks wierd.
     triangles = np.append(geomodel.triangles[:triangle], geomodel.triangles[triangle + 1:], axis=0)
     for i, t in enumerate(triangles[triangle:]):
         triangles[i + triangle] = t - [3, 3, 3]
@@ -246,6 +288,21 @@ def remove_triangle(geomodel, triangle):
 
 
 def open_model(session, modelname, model_type, data):
+    """ Used to create models from saved data.
+
+    Parameters
+    ----------
+    modelname: str
+        name of the model.
+    model_type: str
+        name of model class.
+    data: dict
+        contains all saved data from the model.
+    Returns
+    -------
+    model: GeoModel
+        The model created from the file.
+    """
     model = None
     if model_type == "Sphere":
         from .Sphere import Sphere

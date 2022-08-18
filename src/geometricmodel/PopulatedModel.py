@@ -11,24 +11,32 @@ from ..particle.SurfaceCollectionModel import SurfaceCollectionModel
 
 
 class PopulatedModel(GeoModel):
-    """Line between points"""
+    """
+    Parent class to the models that can create particles. Used to draw the markers that show
+    how the particles would be created.
+    """
 
     def __init__(self, name, session):
         super().__init__(name, session)
         self.has_particles = False
+        """Whether the model should display how particles would look when created."""
         self.marker_axis_display_options = True
         self.marker_size = 4
         self.marker_size_edit_range = (1, 7)
         self.axes_size = 15
         self.axes_size_edit_range = (10, 20)
+        """Options for the widget."""
 
         self.collection_model = SurfaceCollectionModel('Spheres', session)
+        """Collection model for collecting the fake particles so that not every one has to be drawn separately."""
         self.add([self.collection_model])
         self.collection_model.add_collection('direction_markers')
         v, n, t, vc = self.get_direction_marker_surface()
         self.collection_model.set_surface('direction_markers', v, n, t)
         self.spheres_places = np.array([])
+        """List containing the place object for every fake particle."""
         self.indices = []
+        """list of strings with the indices for all fake particles. Used to delete them from the collection model."""
 
     @GeoModel.color.setter
     def color(self, color):
@@ -51,7 +59,6 @@ class PopulatedModel(GeoModel):
             self.collection_model.set_surface('direction_markers', v, n, t)
 
     def get_direction_marker_surface(self):
-        # Axes from https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/bild.html
         b = _BildFile(self.session, 'dummy')
 
         b.sphere_command('.sphere 0 0 0 {}'.format(self.marker_size).split())
@@ -66,12 +73,14 @@ class PopulatedModel(GeoModel):
         return d.vertices, d.normals, d.triangles, d.vertex_colors
 
     def remove_spheres(self):
+        """Removes fake particles."""
         self.collection_model.delete_places(self.indices)
         self.indices = []
         self.has_particles = False
         self.triggers.activate_trigger(GEOMODEL_CHANGED, self)
 
     def create_particle_list(self):
+        """Creates a new particle list with the positions from sphere_places."""
         artia = self.session.ArtiaX
         artia.create_partlist(name=self.name + " particles")
         partlist = artia.partlists.child_models()[-1]

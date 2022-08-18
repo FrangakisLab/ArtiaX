@@ -11,54 +11,69 @@ from chimerax.atomic import AtomicShapeDrawing
 # ArtiaX imports
 from .GeoModel import GEOMODEL_CHANGED
 from .PopulatedModel import PopulatedModel
-from ..particle.SurfaceCollectionModel import SurfaceCollectionModel
 
 
 class CurvedLine(PopulatedModel):
-    """Line between points"""
+    """
+    Fits a curved line through the given particles. Can be used to create particles along the line.
+    Calculates the points and tangents if not provided.
+    """
 
     def __init__(self, name, session, particle_pos, degree, smooth, resolution, particles=None, points=None,
                  der_points=None):
         super().__init__(name, session)
 
-        self.particle_pos = particle_pos
         self.particles = particles
+        """n-long list containing all particles used to define the sphere."""
+        self.particle_pos = particle_pos
+        """(n x 3) list containing all xyz positions of the particles."""
 
-        # points[0] contains all the x values, points[1] all y values etc
         if points is None or der_points is None:
             self.points, self.der_points = get_points(particle_pos, smooth, degree, resolution)
         else:
             self.points = points
             self.der_points = der_points
+        """(3 x n) list with all the points/derivatives used to define the line. points[0] contains all the x values, 
+        points[1] all y values etc"""
 
-        self.fitting_options = True
         self.degree = degree
+        """Polynomial degree used to fit line."""
         self.smooth = smooth
+        """Decides how much to smooth the polynomial. smooth = 0 forces the line to go through all particles."""
         self.smooth_edit_range = [math.floor(len(particle_pos) - math.sqrt(2 * len(particle_pos))),
                                   math.ceil(len(particle_pos) + math.sqrt(2 * len(particle_pos)))]
         self.resolution = resolution
+        """How many points to define the line by."""
         self.resolution_edit_range = (50, 500)
 
+        self.fitting_options = True
         self.display_options = True
         self.radius = 1
+        """Line (which is drawn as a cylinder) radius"""
         self.radius_edit_range = (0, 2)
 
         self.spacing_edit_range = (1, 100)
         self.spacing = (self.spacing_edit_range[1] + self.spacing_edit_range[0]) / 2
+        """Spacing between created particles."""
         self.rotate = False
+        """Whether to rotate particles around the line."""
         self.rotation = 0
+        """Degrees to rotate per Angstrom"""
         self.rotation_edit_range = (0, 1)
         self.start_rotation = 0
+        """Rotation of first particle."""
 
         self.update()
         session.logger.info("Created a Curved line through {} particles.".format(len(particle_pos)))
 
     def update(self):
+        """Redraws the line."""
         vertices, normals, triangles, vertex_colors = self.define_curved_line()
         self.set_geometry(vertices, normals, triangles)
         self.vertex_colors = np.full(np.shape(vertex_colors), self.color)
 
     def recalc_and_update(self):
+        """Recalculates the points and derivatives that define the line before redrawing the line."""
         if self.particles is not None:
             for i, particle in enumerate(self.particles):
                 self.particle_pos[i] = [particle.coord[0], particle.coord[1], particle.coord[2]]
@@ -85,6 +100,7 @@ class CurvedLine(PopulatedModel):
             self.update()
 
     def create_spheres(self):
+        """Creates sphere markers with axes to show how particles would be created."""
         self.has_particles = True
         self.triggers.activate_trigger(GEOMODEL_CHANGED, self)
         # Remove old spheres if any exist
@@ -193,6 +209,20 @@ class CurvedLine(PopulatedModel):
 
 
 def get_points(pos, smooth, degree, resolution):
+    """Uses scipy to interpolate a line through the points
+
+    Parameters
+    ----------
+    pos: (n x 3) list of floats with n coordinates
+    smooth: how much to smoothen the line.
+    degree: which degree polynomial to fit the line with.
+    resolution: how many points to return.
+
+    Returns
+    -------
+    points: (m x 3) list of floats with m coordinates. n=resolution
+    der_points: same as points but the derivatives.
+    """
     # Find particles
     x = pos[:,0]
     y = pos[:,1]
