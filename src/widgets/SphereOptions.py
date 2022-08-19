@@ -29,7 +29,7 @@ class SphereOptions(QWidget):
 
         #Reorient
         self.reorient_button = QPushButton("Reorient particles")
-        self.reorient_button.setToolTip("Reorient the selected particles that their z-axis points away from sphere"
+        self.reorient_button.setToolTip("Reorient the selected particles so that their z-axis points away from sphere"
                                         " center")
         layout.addWidget(self.reorient_button)
 

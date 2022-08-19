@@ -224,6 +224,7 @@ def surface_from_links(session):
         session.logger.warning("Select at least three particles that are linked in a triangle")
         return
     particle_pairs = np.asarray(selected_markers(session).bonds.unique().atoms)
+    particles = get_curr_selected_particles(session, return_particles=True, return_pos=False)
 
     from .TrangulationSurface import triangles_from_pairs, TriangulationSurface
     triangles = triangles_from_pairs(particle_pairs)
@@ -231,7 +232,7 @@ def surface_from_links(session):
         session.logger.warning("Select at least three particles that are linked in a triangle")
         return
 
-    geomodel = TriangulationSurface("triangulated surface", session, particle_pairs, triangles)
+    geomodel = TriangulationSurface("triangulated surface", session, particle_pairs, particles, triangles)
     session.ArtiaX.add_geomodel(geomodel)
     geomodel.selected = True
 

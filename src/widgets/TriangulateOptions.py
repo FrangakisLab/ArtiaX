@@ -26,6 +26,12 @@ class TriangulateOptions(QWidget):
                                       "boundary and press this button to update the boundary.")
         layout.addWidget(self.update_button)
 
+        #Reorient
+        self.reorient_button = QPushButton("Reorient particles")
+        self.reorient_button.setToolTip("Reorient the selected particles so that their z-axis points away from the "
+                                        "surface")
+        layout.addWidget(self.reorient_button)
+
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addStretch()
         self.setLayout(layout)
@@ -37,8 +43,15 @@ class TriangulateOptions(QWidget):
 
     def _connect(self):
         self.update_button.clicked.connect(self._update)
+        self.reorient_button.clicked.connect(self._reorient)
 
     def _update(self):
         if self.triangulation_surface is not None:
             self.triangulation_surface.recalc_and_update()
+
+    def _reorient(self):
+        if self.triangulation_surface is not None:
+            from ..geometricmodel.GeoModel import get_curr_selected_particles
+            s_particles = get_curr_selected_particles(self.session, return_particles=True, return_pos=False)
+            self.triangulation_surface.orient_particles(s_particles)
 
