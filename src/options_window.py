@@ -64,7 +64,7 @@ class OptionsWindow(ToolInstance):
     DEBUG = False
 
     SESSION_ENDURING = False    # Does this instance persist when session closes
-    SESSION_SAVE = False        # We do save/restore in sessions
+    SESSION_SAVE = True        # We do save/restore in sessions
     help = "help:user/tools/artiax_options.html"
                             # Let ChimeraX know about our help page
 
@@ -1156,20 +1156,22 @@ class OptionsWindow(ToolInstance):
     def _color_particles_byattribute(self, *args, **kwargs):
         self.session.ArtiaX.color_particles_byattribute(*args, **kwargs)
 
-
     def take_snapshot(self, session, flags):
-        return
-        {
-            'version': 1,
-            'current text': self.line_edit.text()
-        }
+        print('Snapshot OW')
+        data = {}#ToolInstance.take_snapshot(self, session, flags)
+        return data
 
     @classmethod
-    def restore_snapshot(class_obj, session, data):
+    def restore_snapshot(cls, session, data):
         # Instead of using a fixed string when calling the constructor below,
         # we could have save the tool name during take_snapshot()
         # (from self.tool_name, inherited from ToolInstance) and used that saved
         # tool name. There are pros and cons to both approaches.
-        inst = class_obj(session, "Tomo Bundle")
-        inst.line_edit.setText(data['current text'])
-        return inst
+        print('Restore OW')
+        # The tool should already exist
+        from .cmd import get_singleton
+        tool = get_singleton(session)
+        return tool.ow
+        # inst = class_obj(session, "Tomo Bundle")
+        # return inst
+

@@ -3,6 +3,7 @@
 # General imports
 from __future__ import annotations
 import numpy as np
+from importlib import import_module
 
 # ChimeraX imports
 from chimerax.core.commands import run
@@ -997,6 +998,80 @@ class ParticleList(Model):
         return
 
     positions = property(Drawing.positions.fget, _particlelist_set_positions)
+
+    def take_snapshot(self, session, flags):
+
+        # Store data format
+        data_class = self.data.__class__.__name__
+        data_module = self.data.__class__.__module__
+
+        print('data_class {}'.format(data_class))
+        print('data_module {}'.format(data_module))
+
+        data = {
+            'id': self.id,
+            'name': self.name,
+            'data': self._data,#self.data.take_snapshot(session, flags),
+            #'data_class': data_class,
+            #'data_module': data_module,
+            'selected': self._selected_particles,
+            'displayed': self._displayed_particles,
+            'colors': self._particle_colors,
+            'translation_locked': self.translation_locked,
+            'rotation_locked': self.rotation_locked,
+            'selection_settings': self.selection_settings,
+            'color_settings': self.color_settings,
+            'radius': self._radius,
+            'axes_size': self._axes_size
+        }
+
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+
+        from numpy import copy
+        pl = cls(data['name'], session, data['data'])
+
+        # Restore particle data
+        # print(data['data_module'])
+        # import_module(data['data_module'])
+        # data_class = getattr(import_module(data['data_module']), data['data_class'])
+        # pd = data_class.restore_snapshot(session, data['data'])
+        #
+        # # Create particle list and apply settings
+        # from numpy import copy
+        # pl = cls(data['name'], session, pd)
+
+        pl._selected_particles = data['selected']
+        pl.markers.selected_markers = copy(pl._selected_particles)
+        pl.collection_model.selected_child_positions = copy(pl._selected_particles)
+
+        pl._displayed_particles = data['displayed']
+        pl.markers.displayed_markers = copy(pl._displayed_particles)
+        pl.collection_model.displayed_child_positions = copy(pl._displayed_particles)
+
+        pl._particle_colors = data['colors']
+        pl.display_model.color = copy(pl._particle_colors[0, :])
+        pl.collection_model.colors = copy(pl._particle_colors)
+        pl.markers.marker_colors = copy(pl._particle_colors)
+
+        pl.translation_locked = data['translation_locked']
+        pl.rotation_locked = data['rotation_locked']
+        pl.selection_settings = data['selection_settings']
+        pl.color_settings = data['color_settings']
+        pl._radius = data['radius']
+        pl._axes_size = data['axes_size']
+
+        # Attach to session
+        # from ..cmd import get_singleton
+        # get_singleton(session)
+        # artia = session.ArtiaX
+        # print('PARTICLELIST {}'.format(pl.id))
+        #artia.add_particlelist(pl)
+        #session.models.assign_id(pl, data['id'])
+
+        return pl
 
 def get_axes_surface(session, size):
 

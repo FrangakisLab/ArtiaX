@@ -46,7 +46,7 @@ class ArtiaXUI(ToolInstance):
     # Does this instance persist when session closes
     SESSION_ENDURING = False
     # We do save/restore in sessions
-    SESSION_SAVE = False
+    SESSION_SAVE = True
     # Let ChimeraX know about our help page
     help = "help:user/tools/artiax.html"
 
@@ -57,7 +57,7 @@ class ArtiaXUI(ToolInstance):
     def __init__(self, session, tool_name):
         # 'session'     - chimerax.core.session.Session instance
         # 'tool_name'   - string
-
+        print('INITIALIZED')
         # Initialize base class
         super().__init__(session, tool_name)
 
@@ -85,7 +85,7 @@ class ArtiaXUI(ToolInstance):
     def get_root(self, update_ui=True):
         # Make if not there
         if not hasattr(self.session, 'ArtiaX'):
-            self.session.ArtiaX = ArtiaX(self)
+            self.session.ArtiaX = ArtiaX(self.session)
 
             # Update UI if UI exists already, but model was deleted by user.
             if update_ui:
@@ -122,6 +122,14 @@ class ArtiaXUI(ToolInstance):
 
         artia.triggers.add_handler(PARTLIST_DISPLAY_CHANGED, self._update_partlist_shown)
         artia.triggers.add_handler(TOMO_DISPLAY_CHANGED, self._update_tomo_shown)
+
+    def delete(self):
+        # This is not nice, but I can't figure out the destructor for the widget.
+        # TODO: do this in a nicer way.
+        self.session.triggers.remove_handler(self.tomo_from_session.handler_add)
+        self.session.triggers.remove_handler(self.tomo_from_session.handler_del)
+
+        ToolInstance.delete(self)
 
 # ==============================================================================
 # Interface construction =======================================================
@@ -569,20 +577,24 @@ class ArtiaXUI(ToolInstance):
         self.ow = OptionsWindow(self.session, tool_name)
 
     def take_snapshot(self, session, flags):
-        return
-        {
-            'version': 1,
-            'current text': self.line_edit.text()
-        }
+        print('Snapshot ArtiaXUI')
+        data = {}#ToolInstance.take_snapshot(self, session, flags)
+        return data
 
     @classmethod
-    def restore_snapshot(class_obj, session, data):
+    def restore_snapshot(cls, session, data):
         # Instead of using a fixed string when calling the constructor below,
         # we could have save the tool name during take_snapshot()
         # (from self.tool_name, inherited from ToolInstance) and used that saved
         # tool name. There are pros and cons to both approaches.
-        inst = class_obj(session, "Tomo Bundle")
-        inst.line_edit.setText(data['current text'])
-        return inst
+        print('Restore ArtiaXUI')
+
+        # The tool should already exist
+        from .cmd import get_singleton
+        tool = get_singleton(session)
+
+        return tool
+        #inst = class_obj(session, "Tomo Bundle")
+        #return inst
 
 

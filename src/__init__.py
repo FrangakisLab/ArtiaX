@@ -30,11 +30,26 @@ class _MyAPI(BundleAPI):
 
     @staticmethod
     def get_class(class_name):
-        # class_name will be a string
-        if class_name == "Rotate_Euler":
-            from . import start_rotate_euler
-            return start_rotate_euler.Rotate_Euler
-        raise ValueError("Unknown class name '%s'" % class_name)
+
+        from .tool import ArtiaXUI
+        from .options_window import OptionsWindow
+        from .ArtiaX import ArtiaX
+        from .util import ManagerModel
+        from .particle import ParticleList, MarkerSetPlus, SurfaceCollectionModel, SurfaceCollectionDrawing
+        from .io.ParticleData import Particle, ParticleData
+
+        classes = {
+            'ArtiaXUI': ArtiaXUI,
+            'OptionsWindow': OptionsWindow,
+            'ArtiaX': ArtiaX,
+            'ManagerModel': ManagerModel,
+            'ParticleList': ParticleList,
+            'MarkerSetPlus': MarkerSetPlus,
+            'SurfaceCollectionModel': SurfaceCollectionModel,
+            'SurfaceCollectionDrawing': SurfaceCollectionDrawing
+        }
+
+        return classes.get(class_name)
 
     # ==========================================================================
     # Open and save a new file format ==========================================

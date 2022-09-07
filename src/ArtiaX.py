@@ -4,6 +4,7 @@
 from chimerax.core import errors
 from chimerax.core.commands import run
 from chimerax.core.models import Model, ADD_MODELS, REMOVE_MODELS, MODEL_DISPLAY_CHANGED
+from chimerax.core.state import State
 from chimerax.map import Volume, open_map
 
 # This package
@@ -35,11 +36,12 @@ class ArtiaX(Model):
 
     DEBUG = False
 
-    def __init__(self, ui):
-        super().__init__('ArtiaX', ui.session)
+    def __init__(self, session):
+        super().__init__('ArtiaX', session)
 
         # GUI
-        self.ui = ui
+
+        #self.ui = ui
 
         # Add self to session
         self.session.models.add([self])
@@ -419,4 +421,23 @@ class ArtiaX(Model):
             self.triggers.activate_trigger(PARTLIST_DISPLAY_CHANGED, data)
         elif isinstance(data, Tomogram):
             self.triggers.activate_trigger(TOMO_DISPLAY_CHANGED, data)
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# Save/Load
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    def take_snapshot(self, session, flags):
+        print('Snapshot ArtiaX')
+        data = Model.take_snapshot(self, session, flags)
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        print('Restore ArtiaX')
+
+        # First make sure UI is running. This also creates the model.
+        from .cmd import get_singleton
+        get_singleton(session)
+
+        return session.ArtiaX
 

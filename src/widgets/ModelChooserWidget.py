@@ -28,8 +28,8 @@ class ModelChooserWidget(QWidget):
         self._models = []
         self._model_idx = 0
 
-        self.session.triggers.add_handler(ADD_MODELS, self._update_models)
-        self.session.triggers.add_handler(REMOVE_MODELS, self._update_models)
+        self.handler_add = self.session.triggers.add_handler(ADD_MODELS, self._update_models)
+        self.handler_del = self.session.triggers.add_handler(REMOVE_MODELS, self._update_models)
 
         self._layout = QHBoxLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)
