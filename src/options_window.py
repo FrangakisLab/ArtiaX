@@ -136,10 +136,16 @@ class OptionsWindow(ToolInstance):
         # We are on top
         run(self.session, 'ui tool show "ArtiaX Options"', log=False)
 
+        self._connect_triggers()
+
+    def _connect_triggers(self):
         artia = self.session.ArtiaX
         artia.triggers.add_handler(OPTIONS_TOMO_CHANGED, self._update_tomo_options)
         artia.triggers.add_handler(OPTIONS_PARTLIST_CHANGED, self._update_partlist_options)
         artia.triggers.add_handler(OPTIONS_GEOMODEL_CHANGED, self._update_geomodel_options)
+
+    def update_root(self):
+        self._connect_triggers()
 
 # ==============================================================================
 # Show selected GUI ============================================================
@@ -507,15 +513,15 @@ class OptionsWindow(ToolInstance):
         ow.add_from_session.clicked.connect(ow._add_display_volume)
 
         # Connect selector
-        ow.partlist_selection.displayChanged.connect(artia.show_particles)
-        ow.partlist_selection.selectionChanged.connect(artia.select_particles)
+        ow.partlist_selection.displayChanged.connect(ow._show_particles)
+        ow.partlist_selection.selectionChanged.connect(ow._select_particles)
 
         # Connect colors
-        ow.color_selection.colorChanged.connect(artia.color_particles)
-        ow.color_selection.colormapChanged.connect(artia.color_particles_byattribute)
+        ow.color_selection.colorChanged.connect(ow._color_particles)
+        ow.color_selection.colormapChanged.connect(ow._color_particles_byattribute)
 
-        ow.color_selection.colorChangeFinished.connect(partial(artia.color_particles, log=True))
-        ow.color_selection.colormapChangeFinished.connect(partial(artia.color_particles_byattribute, log=True))
+        ow.color_selection.colorChangeFinished.connect(partial(ow._color_particles, log=True))
+        ow.color_selection.colormapChangeFinished.connect(partial(ow._color_particles_byattribute, log=True))
 
         # Connect sliders
         ow.radius_widget.valueChanged.connect(ow._radius_changed)
@@ -1025,7 +1031,11 @@ class OptionsWindow(ToolInstance):
 
         # Set sliders
         self.radius_widget.value = pl.radius
+        #print('pre set')
+        prev = self.axes_size_widget.blockSignals(True)
         self.axes_size_widget.value = pl.axes_size
+        self.axes_size_widget.blockSignals(prev)
+        #print('post set')
 
         if pl.has_display_model() and pl.display_is_volume():
             self.surface_level_widget.setEnabled(True)
@@ -1057,8 +1067,6 @@ class OptionsWindow(ToolInstance):
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Motl Group Functions +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    #
-
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _radius_changed(self, value, log=False):
         artia = self.session.ArtiaX
@@ -1225,6 +1233,33 @@ class OptionsWindow(ToolInstance):
             run(self.session, 'artiax lock #{} rotation'.format(pl.id_string))
         else:
             run(self.session, 'artiax unlock #{} rotation'.format(pl.id_string))
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# Wrappers for ArtiaX  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# # Connect selector
+# ow.partlist_selection.displayChanged.connect(artia.show_particles)
+# ow.partlist_selection.selectionChanged.connect(artia.select_particles)
+#
+# # Connect colors
+# ow.color_selection.colorChanged.connect(artia.color_particles)
+# ow.color_selection.colormapChanged.connect(artia.color_particles_byattribute)
+#
+# ow.color_selection.colorChangeFinished.connect(partial(artia.color_particles, log=True))
+# ow.color_selection.colormapChangeFinished.connect(partial(artia.color_particles_byattribute, log=True))
+
+    def _show_particles(self, *args, **kwargs):
+        self.session.ArtiaX.show_particles(*args, **kwargs)
+
+    def _select_particles(self, *args, **kwargs):
+        self.session.ArtiaX.select_particles(*args, **kwargs)
+
+    def _color_particles(self, *args, **kwargs):
+        self.session.ArtiaX.color_particles(*args, **kwargs)
+
+    def _color_particles_byattribute(self, *args, **kwargs):
+        self.session.ArtiaX.color_particles_byattribute(*args, **kwargs)
+
 
     def take_snapshot(self, session, flags):
         return

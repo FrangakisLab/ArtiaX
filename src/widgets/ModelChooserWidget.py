@@ -24,7 +24,7 @@ class ModelChooserWidget(QWidget):
 
         self.session = session
         self._type = type
-        self._exclude = exclude
+        self.exclude = exclude
         self._models = []
         self._model_idx = 0
 
@@ -55,7 +55,7 @@ class ModelChooserWidget(QWidget):
 
     def _update_models(self, name=None, data=None):
         tentative = set(self.session.models.list(type=self._type))
-        exclude = descendant_models([self._exclude])
+        exclude = descendant_models([self.exclude])
         self._models = list(tentative - exclude)
         self._populate()
 

@@ -18,8 +18,10 @@ def get_singleton(session, create=True):
 
     from chimerax.core import tools
     from ..tool import ArtiaXUI
-    return tools.get_singleton(session, ArtiaXUI, 'ArtiaX', create=create)
 
+    t = tools.get_singleton(session, ArtiaXUI, 'ArtiaX', create=create)
+    t.get_root()
+    return t
 
 def artiax_start(session):
     """Start ArtiaX UI."""
