@@ -540,8 +540,8 @@ class OptionsWindow(ToolInstance):
 
         ## Geometric Model Tab
         # Connect colors
-        ow.geomodel_color_selection.colorChanged.connect(artia.color_geomodel)
-        ow.geomodel_color_selection.colorChangeFinished.connect(partial(artia.color_geomodel, log=True))
+        ow.geomodel_color_selection.colorChanged.connect(ow._color_geomodel)
+        ow.geomodel_color_selection.colorChangeFinished.connect(partial(ow._color_geomodel, log=True))
 
     def _update_tomo_ui(self):
         self._update_tomo_sliders()
@@ -1260,6 +1260,8 @@ class OptionsWindow(ToolInstance):
     def _color_particles_byattribute(self, *args, **kwargs):
         self.session.ArtiaX.color_particles_byattribute(*args, **kwargs)
 
+    def _color_geomodel(self, *args, **kwargs):
+        self.session.ArtiaX.color_geomodel(*args, **kwargs)
 
     def take_snapshot(self, session, flags):
         return
