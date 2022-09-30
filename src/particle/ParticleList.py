@@ -649,7 +649,7 @@ class ParticleList(Model):
         # this trigger after being deleted below. The parent model is deleted if surface was deleted.
         # if data.id is None:
         #     return
-        print('called delete model {}'.format(data))
+        #print('called delete model {}'.format(data))
         if data.id in self._map.keys():
             particle_id = data.id
         else:
@@ -663,7 +663,7 @@ class ParticleList(Model):
 
         triggered by MARKER_DELETED
         """
-        print('called delete marker {}'.format(data))
+        #print('called delete marker {}'.format(data))
         # Data should be list of deleted markers
         self.delete_data([m.particle_id for m in data if m not in self._marker_cache])
         # for m in data:
@@ -672,14 +672,13 @@ class ParticleList(Model):
     def id_mask(self, particle_id):
         return particle_id == self.particle_ids
 
-    @line_profile
     def delete_data(self, particle_ids, cache_markers=True):
         """ Delete Marker and Particle instances if they exist."""
 
         # if not isinstance(particle_ids, list):
         #     particle_ids = [particle_ids]
 
-        print('called delete data {}'.format(particle_ids))
+        #print('called delete data {}'.format(particle_ids))
 
         if len(particle_ids) == 0:
             return

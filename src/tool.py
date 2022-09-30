@@ -2,6 +2,7 @@
 
 # General
 from functools import partial
+from sys import platform
 
 # ChimeraX
 from chimerax.core.tools import ToolInstance
@@ -38,7 +39,6 @@ from .ArtiaX import (
     OPTIONS_PARTLIST_CHANGED,
     OPTIONS_GEOMODEL_CHANGED,
     SEL_GEOMODEL_CHANGED,
-    OPTIONS_PARTLIST_CHANGED,
     TOMO_DISPLAY_CHANGED,
     PARTLIST_DISPLAY_CHANGED,
     GEOMODEL_DISPLAY_CHANGED
@@ -70,7 +70,10 @@ class ArtiaXUI(ToolInstance):
         self.display_name = "ArtiaX"
 
         # Set the font
-        self.font = QFont("Arial", 7)
+        if platform == "darwin":
+            self.font = QFont("Arial", 10)
+        else:
+            self.font = QFont("Arial", 7)
 
         # UI
         self.tool_window = MainToolWindow(self, close_destroys=False)

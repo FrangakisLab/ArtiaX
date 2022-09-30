@@ -3,6 +3,7 @@
 # General
 from functools import partial
 from pathlib import Path
+from sys import platform
 
 # ChimeraX
 from chimerax.core.commands import run
@@ -85,7 +86,10 @@ class OptionsWindow(ToolInstance):
         self.tool_window = MainToolWindow(self, close_destroys=False)
 
         # Set the font
-        self.font = QFont("Arial", 7)
+        if platform == "darwin":
+            self.font = QFont("Arial", 10)
+        else:
+            self.font = QFont("Arial", 7)
 
         # Icon path
         self.iconpath = Path(__file__).parent / 'icons'

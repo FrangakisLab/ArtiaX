@@ -1,0 +1,85 @@
+<html>
+  <!--
+=== UCSF ChimeraX Copyright ===Copyright 2018 Regents of the University of California.All rights reserved.  This software provided pursuant to alicense agreement containing restrictions on its disclosure,duplication and use.  For details see:http://www.rbvi.ucsf.edu/chimerax/docs/licensing.htmlThis notice must be embedded in or attached to all copies,including partial copies, of the software or any revisions
+or derivations thereof.=== UCSF ChimeraX Copyright ===-->
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=windows-1252">
+    <link rel="stylesheet" type="text/css" href="../userdocs.css">
+    <title>Displaying and selecting subsets using commands</title>
+  </head>
+  <body> <a name="top"></a> <a href="../artiax_index.html"> <img src="../ArtiaX-docs-icon.svg"
+        alt="ArtiaX docs icon" class="clRight" title="User Guide Index" width="60px"></a>
+    <h3><a href="../artiax_index.html#general">General</a>: <strong>Displaying
+        and selecting subsets using commands</strong></h3>
+    <p> Using the Selection/Display box in the Select/Manipulate tab of the
+      <a href="tools/artiax_options.html"> ArtiaX Options</a> tool window, one
+      can select or show/hide particles based on user defined metadata
+      thresholds. This is also possible using the command line interface of
+      ChimeraX, since all metadata are stored as <a href="help:user/commands/atomspec.html#attributes">attributes</a>
+      of the MarkerSet associated with a particle list. </p>
+    <p><strong>Example</strong></p>
+    <ol>
+    </ol>
+    <ol>
+      <li>Download the <a href="https://doi.org/10.5281/zenodo.7116187">demo
+          data</a>, unpack and change to the empiar_10304 directory using the <a
+          href="help:user/commands/cd.html">cd command</a> in ChimeraX.</li>
+      <li>Open the provided tomogram of the EMPIAR-10304 dataset (<strong>tomogram/empiar_10304_tomo_10_SART.em</strong>)
+        in <strong>ArtiaX</strong><br>
+        <br>
+        <strong>artiax open tomo tomogram/empiar_10304_tomo_10_SART.em<br>
+          <br>
+        </strong></li>
+      <li>Set the tomogram pixelsize to 8.4 Angstrom, either in the user
+        interface (ArtiaX Options-&gt;Physical Coordinates-&gt;Pixel Size) or
+        using the command:<br>
+        <a href="cxcmd:artiax%20tomo%20#1.1.1%20pixel%208.4"><br>
+          artiax tomo #1.1.1 pixel 8.4 <br>
+          <br>
+        </a></li>
+      <li><span style="color: #0000ee;"></span>Open the provided particle list (<strong>particle_list/empiar_10304_tomo_10_particles.em</strong>)
+        in <strong>ArtiaX</strong><br>
+        <br>
+        <strong>open particle_list/empiar_10304_tomo_10_particles.em format motl<br>
+          <br>
+          <br>
+        </strong></li>
+      <li><span style="color: #0000ee;"></span>Set the particle list pixelsize
+        to 8.4 Angstrom, either in the user interface (ArtiaX
+        Options-&gt;Select/Manipulate-&gt;Pixelsize Factors Origin) or using the
+        command:<br>
+        <br>
+        <a href="cxcmd:artiax%20particles%20#1.2.1%20originScaleFactor%208.4">artiax
+          particles #1.2.1 originScaleFactor 8.4<br>
+          <br>
+        </a></li>
+      <li>To select all particles with cross-correlation values larger than 0.5
+        use the following command:<br>
+        <a href="cxcmd:select%20#1.2.1@@cross_correlation%3E0.5"><br>
+          select #1.2.1@@cross_correlation&gt;0.5<br>
+          <br>
+        </a></li>
+      <li>To select particles based on multiple metadata values
+        (cross_correlation &gt; 0.5, part_number &lt; 500), chain attribute
+        selection like this:<br>
+        <br>
+        <a href="cxcmd:select%20#1.2.1@@cross_correlation%3E0.5%20&amp;%20#1.2.1@@part_number%3C500">select
+          #1.2.1@@cross_correlation&gt;0.5 &amp; #1.2.1@@part_number&lt;500<br>
+          <br>
+        </a></li>
+      <li>Use the same commands to selectively show and hide particles:<br>
+        <br>
+        <a href="cxcmd:hide%20all">hide all</a><br>
+        <a href="cxcmd:show%20#1.2.1@@cross_correlation%3E0.5%20&amp;%20#1.2.1@@part_number%3C500">show
+          #1.2.1@@cross_correlation&gt;0.5 &amp; #1.2.1@@part_number&lt;500</a></li>
+    </ol>
+    <ol>
+    </ol>
+    <ul>
+    </ul>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp; <br>
+    </p>
+    <hr>
+    <address>BMLS Frangakis Group / June 2022</address>
+  </body>
+</html>
