@@ -1,0 +1,43 @@
+# Chimerax Plugin continuous integration
+name: CI
+
+on:
+  push:
+    branches: [ "devel_release" ]
+  pull_request:
+    branches: [ "devel_release" ]
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Check out devel_release branch
+      - uses: actions/checkout@v3
+        with:
+          ref: 'devel_release'
+
+      # Download and install ChimeraX
+      - name: Install ChimeraX
+        run: |
+          wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1b7iKWNEZHVC2O7O1OYgKdJ7KmIkq_KIl' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1b7iKWNEZHVC2O7O1OYgKdJ7KmIkq_KIl" -O chimerax.deb && rm -rf /tmp/cookies.txt
+          sudo apt-get update
+          sudo apt-get install ./chimerax.deb
+          chimerax --version
+        
+      # Build the plugin
+      - name: Build ArtiaX
+        run: |
+          chimerax --nogui --cmd "devel clean ${GITHUB_WORKSPACE} ; exit;"
+          chimerax --nogui --cmd "devel build ${GITHUB_WORKSPACE} ; exit;"
+      
+      # Update the "latest build" release
+      - name: Update development release
+        uses: eine/tip@master
+        with:
+          tag: latest_build
+          rm: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: dist/*.whl
