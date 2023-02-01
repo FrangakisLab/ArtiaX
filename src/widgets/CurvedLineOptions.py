@@ -21,13 +21,15 @@ from Qt.QtWidgets import (
     QLabel,
     QLineEdit,
     QLayout,
-    QSizePolicy
+    QSizePolicy,
+    QCheckBox
 )
 
 # This package
 from .LabelEditSlider import LabelEditSlider
 from .LabelEditRangeSlider import LabelEditRangeSlider
 from .DegreeButtons import DegreeButtons
+from .CenteredCheckBox import CenteredCheckBox
 
 
 class CurvedLineOptions(QWidget):
@@ -56,6 +58,11 @@ class CurvedLineOptions(QWidget):
                                       "desired path; simply move the particles that define the line and press this"
                                       "button to update the line.")
         layout.addWidget(self.update_button)
+
+        self.update_on_move_checkbox = QCheckBox("Update on move")
+        self.update_on_move_checkbox.setToolTip("Updates the line to fit the particles every time a particle is moved."
+                                                " Can be quite resource intensive.")
+        layout.addWidget(self.update_on_move_checkbox)
 
         # Fitting options
         self.fitting_checkbox = QGroupBox("Change line fitting:")
@@ -140,6 +147,7 @@ class CurvedLineOptions(QWidget):
         self.rotate_checkbox.blockSignals(True)
         self.rotation_slider.blockSignals(True)
         self.start_rotation.blockSignals(True)
+        self.update_on_move_checkbox.blockSignals(True)
 
         if self.line is not None:
             self.spacing_checkbox.setChecked(line.has_particles)
@@ -156,6 +164,7 @@ class CurvedLineOptions(QWidget):
         self.fitting_checkbox.setChecked(line.fitting_options)
         self.degree_buttons.degree = line.degree
         self.degree_buttons.max_degree = len(line.particle_pos) - 1
+        self.update_on_move_checkbox.setChecked(line.update_on_move)
 
         if self.line != line:
             self.line_radius_slider.set_range(line.radius_edit_range)
@@ -190,6 +199,7 @@ class CurvedLineOptions(QWidget):
         self.rotate_checkbox.blockSignals(False)
         self.rotation_slider.blockSignals(False)
         self.start_rotation.blockSignals(False)
+        self.update_on_move_checkbox.blockSignals(False)
         self.line = line
 
     def _connect(self):
@@ -197,6 +207,7 @@ class CurvedLineOptions(QWidget):
         self.line_radius_slider.valueChanged.connect(self._radius_changed)
 
         self.update_button.clicked.connect(self._update_button_clicked)
+        self.update_on_move_checkbox.stateChanged.connect(self._update_on_move_clicked)
 
         self.spacing_checkbox.clicked.connect(self._spacing_toggled)
         self.marker_axis_display_checkbox.clicked.connect(self._marker_axis_display_toggled)
@@ -227,6 +238,10 @@ class CurvedLineOptions(QWidget):
     def _update_button_clicked(self):
         if self.line is not None:
             self.line.recalc_and_update()
+
+    def _update_on_move_clicked(self):
+        if self.line is not None:
+            self.line.update_on_move = self.update_on_move_checkbox.isChecked()
 
     def _spacing_toggled(self):
         if self.spacing_checkbox.isChecked():

@@ -112,9 +112,12 @@ def get_curr_selected_particles(session, return_particles=True, return_pos=True,
     particles = np.array([])
     markers = np.array([])
     particle_pos = np.zeros((0, 3))  # each row is one currently selected particle, with columns being x,y,z
+    particle_lists = np.array([])
     for particle_list in artiax.partlists.child_models():
+        particle_list_used = False
         for curr_id in particle_list.particle_ids[particle_list.selected_particles]:
             if curr_id:
+                particle_list_used = True
                 curr_part = particle_list.get_particle(curr_id)
                 if return_particles:
                     particles = np.append(particles, curr_part)
@@ -126,6 +129,8 @@ def get_curr_selected_particles(session, return_particles=True, return_pos=True,
                 if return_markers:
                     curr_marker = particle_list.get_marker(curr_id)
                     markers = np.append(markers, curr_marker)
+        if particle_list_used:
+            particle_lists = np.append(particle_lists, particle_list)
 
     if return_pos and return_particles and return_markers:
         return particle_pos, particles, markers
@@ -162,7 +167,23 @@ def fit_sphere(session):
 def fit_curved_line(session):
     artiax = session.ArtiaX
 
-    particle_pos, particles = get_curr_selected_particles(session)
+    # Find selected particles
+    particles = np.array([])
+    particle_pos = np.zeros((0, 3))  # each row is one currently selected particle, with columns being x,y,z
+    surface_collection_models = np.array([])
+    for particle_list in artiax.partlists.child_models():
+        particle_list_used = False
+        for curr_id in particle_list.particle_ids[particle_list.selected_particles]:
+            if curr_id:
+                particle_list_used = True
+                curr_part = particle_list.get_particle(curr_id)
+                particles = np.append(particles, curr_part)
+                x_pos = curr_part.coord[0]
+                y_pos = curr_part.coord[1]
+                z_pos = curr_part.coord[2]
+                particle_pos = np.append(particle_pos, [[x_pos, y_pos, z_pos]], axis=0)
+        if particle_list_used:
+            surface_collection_models = np.append(surface_collection_models, particle_list.collection_model)
 
     if len(particles) < 2:
         session.logger.warning("Select at least two points")
@@ -180,7 +201,8 @@ def fit_curved_line(session):
         name = "line"
     else:
         name = "curved line"
-    geomodel = CurvedLine(name, session, particle_pos, degree, smooth, resolution, particles=particles)
+    geomodel = CurvedLine(name, session, particle_pos, degree, smooth, resolution,
+                          surface_collection_models=surface_collection_models, particles=particles)
     artiax.add_geomodel(geomodel)
     geomodel.selected = True
 

@@ -986,9 +986,9 @@ class OptionsWindow(ToolInstance):
         #### Reorient buttons ####
         reorient_label = QLabel("Reorient particles:")
         self.reorient_from_order_button = QPushButton("From Particle List Order")
-        self.reorient_from_order_button.setToolTip("Use the reorder buttons to order the particle list if necessary."
+        self.reorient_from_order_button.setToolTip("Use the reorder buttons to order the particle list if necessary. "
                                                    "Then use this button to reorient the particles to point to the next"
-                                                   "one in the particle list.")
+                                                   " one in the particle list.")
         reorient_layout.addWidget(reorient_label)
         reorient_layout.addWidget(self.reorient_from_order_button)
         #### Reorient buttons ####
@@ -998,10 +998,10 @@ class OptionsWindow(ToolInstance):
         self.reorder_from_links_button = QPushButton("From Selected Links")
         self.reorder_to_closest_button = QPushButton("To Closest")
         self.reorder_to_closest_button.setToolTip("Creates a new list with particles identical to this one, except they"
-                                                  "are reaordered according to proximity. Select one particle as the"
-                                                  "starting point, which will be the first particle in the new list,"
-                                                  "with the closest particle to the selected one being the second"
-                                                  "particle in the list, etc.")
+                                                  " are reordered according to proximity. Select one particle as the"
+                                                  " starting point, which will be the first particle in the new list,"
+                                                  " with the closest particle to the selected one being the second"
+                                                  " particle in the list, etc.")
         reorient_layout.addWidget(reorder_label)
         reorient_layout.addWidget(self.reorder_from_links_button)
         reorient_layout.addWidget(self.reorder_to_closest_button)

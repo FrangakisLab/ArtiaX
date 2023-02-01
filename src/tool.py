@@ -657,9 +657,10 @@ class ArtiaXUI(ToolInstance):
         artia = self.get_root()
         artia.selected_geomodel = artia.geomodels.get_id(idx)
 
-        if state == Qt.Checked:
+        from .widgets import qt_enum_equal
+        if qt_enum_equal(Qt.CheckState.Checked, state):
             artia.show_geomodel(idx)
-        elif state == Qt.Unchecked:
+        elif qt_enum_equal(Qt.CheckState.Unchecked, state):
             artia.hide_geomodel(idx)
 
     def _show_geomodel_options(self, idx, state):

@@ -14,6 +14,7 @@ from chimerax.atomic import AtomicShapeDrawing
 from chimerax.geometry import z_align
 from chimerax.bild.bild import _BildFile
 
+
 class Line(GeoModel):
     """Line between two points"""
 

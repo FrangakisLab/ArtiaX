@@ -11,6 +11,7 @@ from chimerax.atomic import AtomicShapeDrawing
 # ArtiaX imports
 from .GeoModel import GEOMODEL_CHANGED
 from .PopulatedModel import PopulatedModel
+from ..particle.SurfaceCollectionModel import MODELS_MOVED
 
 
 class CurvedLine(PopulatedModel):
@@ -19,7 +20,7 @@ class CurvedLine(PopulatedModel):
     Calculates the points and tangents if not provided.
     """
 
-    def __init__(self, name, session, particle_pos, degree, smooth, resolution, particles=None, points=None,
+    def __init__(self, name, session, particle_pos, degree, smooth, resolution, surface_collection_models=None, particles=None, points=None,
                  der_points=None):
         super().__init__(name, session)
 
@@ -63,8 +64,19 @@ class CurvedLine(PopulatedModel):
         self.start_rotation = 0
         """Rotation of first particle."""
 
+        self.update_on_move = False
+        self.surface_collection_models = None
+        if surface_collection_models is not None:
+            self.surface_collection_models = surface_collection_models
+            for scm in self.surface_collection_models:
+                scm.triggers.add_handler(MODELS_MOVED, self._particle_moved)
+
         self.update()
         session.logger.info("Created a Curved line through {} particles.".format(len(particle_pos)))
+
+    def _particle_moved(self, name, data):
+        if self.update_on_move: #TODO should also check if being shown or not
+            self.recalc_and_update()
 
     def update(self):
         """Redraws the line."""
