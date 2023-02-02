@@ -1,4 +1,6 @@
 # General imports
+import time
+
 import numpy as np
 import math
 from scipy import interpolate
@@ -74,8 +76,49 @@ class CurvedLine(PopulatedModel):
         self.update()
         session.logger.info("Created a Curved line through {} particles.".format(len(particle_pos)))
 
+    def move_camera_along_line(self, no_frames=None, backwards=False):
+        points = np.transpose(self.points)
+        ders = np.transpose(self.der_points)
+        if no_frames is not None:
+            points = points[::int(len(points)/(no_frames-1))]
+            ders = ders[::int(len(ders)/(no_frames-1))]
+        if backwards:
+            points = np.flip(points, 0)
+            ders = np.flip(ders, 0)
+
+        tangent = - ders[0] / np.linalg.norm(ders[0])
+        rotation_to_z = z_align(points[0], points[0] + tangent)
+        rotation_along_line = rotation_to_z.zero_translation().inverse()
+        rot = rotation_along_line
+        self.session.view.camera.position = translation(points[0]) * rot
+        self.session.view.draw()
+        if hasattr(self.session, 'movie'):
+            self.session.movie.capture_image()
+
+        n = rot.transform_vector((1, 0, 0))
+        n = n / np.linalg.norm(n)
+        normals = np.array([n])
+        for point, der in zip(points[1:], ders[1:]):
+            n = normals[-1] - (np.dot(normals[-1], tangent)) * tangent
+            n = n / np.linalg.norm(n)
+            normals = np.append(normals, [n], axis=0)
+            tangent = - der / np.linalg.norm(der)
+            rotation_along_line = z_align(point, point + tangent).zero_translation().inverse()
+            x_axes = rotation_along_line.transform_vector((1, 0, 0))
+            cross = np.cross(n, x_axes)
+            theta = math.acos(np.dot(n, x_axes)) * 180 / math.pi
+            if np.linalg.norm(cross + tangent) > 1:
+                theta = -theta
+            rotation_around_z = rotation(rotation_along_line.z_axis(), theta)
+
+            rot = rotation_around_z * rotation_along_line
+            self.session.view.camera.position = translation(point) * rot
+            self.session.update_loop.draw_new_frame()
+            #if hasattr(self.session, 'movie'):
+            #    self.session.movie.capture_image()
+
     def _particle_moved(self, name, data):
-        if self.update_on_move: #TODO should also check if being shown or not
+        if self.update_on_move and self.visible:
             self.recalc_and_update()
 
     def update(self):
