@@ -13,7 +13,7 @@ from chimerax.atomic import AtomicShapeDrawing
 # ArtiaX imports
 from .GeoModel import GEOMODEL_CHANGED
 from .PopulatedModel import PopulatedModel
-from ..particle.SurfaceCollectionModel import MODELS_MOVED
+from ..particle.SurfaceCollectionModel import SurfaceCollectionModel, MODELS_MOVED
 
 
 class CurvedLine(PopulatedModel):
@@ -67,59 +67,23 @@ class CurvedLine(PopulatedModel):
         """Rotation of first particle."""
 
         self.update_on_move = False
-        self.surface_collection_models = None
         if surface_collection_models is not None:
-            self.surface_collection_models = surface_collection_models
-            for scm in self.surface_collection_models:
+            for scm in surface_collection_models:
                 scm.triggers.add_handler(MODELS_MOVED, self._particle_moved)
+        self.move_along_line_collection_model = SurfaceCollectionModel('Camera', session)
+        self.add([self.move_along_line_collection_model])
+        self.move_along_line_collection_model.add_collection('camera_markers')
+        v, n, t, vc = self.get_camera_marker_surface()
+        self.move_along_line_collection_model.set_surface('camera_markers', v, n, t, vertex_colors=vc)
+        self.camera_marker_indices = []
 
         self.update()
         session.logger.info("Created a Curved line through {} particles.".format(len(particle_pos)))
 
-    def move_camera_along_line(self, no_frames=None, backwards=False):
-        points = np.transpose(self.points)
-        ders = np.transpose(self.der_points)
-        if no_frames is not None:
-            points = points[::int(len(points)/(no_frames-1))]
-            ders = ders[::int(len(ders)/(no_frames-1))]
-        if backwards:
-            points = np.flip(points, 0)
-            ders = np.flip(ders, 0)
-
-        tangent = - ders[0] / np.linalg.norm(ders[0])
-        rotation_to_z = z_align(points[0], points[0] + tangent)
-        rotation_along_line = rotation_to_z.zero_translation().inverse()
-        rot = rotation_along_line
-        self.session.view.camera.position = translation(points[0]) * rot
-        self.session.view.draw()
-        if hasattr(self.session, 'movie'):
-            self.session.movie.capture_image()
-
-        n = rot.transform_vector((1, 0, 0))
-        n = n / np.linalg.norm(n)
-        normals = np.array([n])
-        for point, der in zip(points[1:], ders[1:]):
-            n = normals[-1] - (np.dot(normals[-1], tangent)) * tangent
-            n = n / np.linalg.norm(n)
-            normals = np.append(normals, [n], axis=0)
-            tangent = - der / np.linalg.norm(der)
-            rotation_along_line = z_align(point, point + tangent).zero_translation().inverse()
-            x_axes = rotation_along_line.transform_vector((1, 0, 0))
-            cross = np.cross(n, x_axes)
-            theta = math.acos(np.dot(n, x_axes)) * 180 / math.pi
-            if np.linalg.norm(cross + tangent) > 1:
-                theta = -theta
-            rotation_around_z = rotation(rotation_along_line.z_axis(), theta)
-
-            rot = rotation_around_z * rotation_along_line
-            self.session.view.camera.position = translation(point) * rot
-            self.session.update_loop.draw_new_frame()
-            #if hasattr(self.session, 'movie'):
-            #    self.session.movie.capture_image()
-
     def _particle_moved(self, name, data):
         if self.update_on_move and self.visible:
             self.recalc_and_update()
+        # TODO: make the camera markers update when moving particle
 
     def update(self):
         """Redraws the line."""
@@ -256,6 +220,89 @@ class CurvedLine(PopulatedModel):
         else:
             self.smooth = s
             self.recalc_and_update()
+
+    def get_camera_marker_surface(self):
+        b = _BildFile(self.session, 'dummy')
+
+        b.color_command('.color 1 1 0'.split())
+        b.arrow_command(".arrow 0 0 0 0 {} 0 {} {}".format(self.axes_size, self.axes_size / 15,
+                                                           self.axes_size / 15 * 4).split())
+        b.color_command('.color 0 0 1'.split())
+        b.arrow_command(".arrow 0 0 0 0 0 {} {} {}".format(self.axes_size, self.axes_size / 15,
+                                                           self.axes_size / 15 * 4).split())
+
+        d = AtomicShapeDrawing('shapes')
+        d.add_shapes(b.shapes)
+
+        return d.vertices, d.normals, d.triangles, d.vertex_colors
+
+    def move_camera_along_line(self, draw=False, no_frames=None, backwards=False, distance_behind=10000, x_rotation=0, z_rotation=0):
+        points = np.transpose(self.points)
+        ders = np.transpose(self.der_points)
+        if no_frames is not None:
+            points = points[::int(len(points)/(no_frames-1))]
+            ders = ders[::int(len(ders)/(no_frames-1))]
+        if backwards:
+            points = np.flip(points, 0)
+            ders = np.flip(-ders, 0)
+
+        tangent = - ders[0] / np.linalg.norm(ders[0])
+        rotation_to_z = z_align(points[0], points[0] + tangent)
+
+        rotation_along_line = rotation_to_z.zero_translation().inverse()
+        rotation_around_z = rotation(rotation_along_line.z_axis(), x_rotation)
+        rot = rotation_around_z * rotation_along_line
+        rotation_around_y = rotation(rot.transform_vector((0, 1, 0)), z_rotation)
+        rot = rotation_around_y * rot
+
+        if draw:
+            if len(self.camera_marker_indices):
+                self.move_along_line_collection_model.delete_places(self.camera_marker_indices)
+            rotation_around_x = rotation(rot.transform_vector((0, 1, 0)), 180)
+            place = translation(points[0]) * rotation_around_x * rot
+            camera_markers_places = [place]
+        else:
+            point = points[0] + rot.z_axis() * distance_behind
+            place = translation(point) * rot
+            self.session.view.camera.position = place
+            self.session.update_loop.draw_new_frame()
+
+        n = rot.transform_vector((0, 1, 0))
+        n = n / np.linalg.norm(n)
+        normals = np.array([n])
+        for point, der in zip(points[1:], ders[1:]):
+            n = normals[-1] - (np.dot(normals[-1], tangent)) * tangent
+            n = n / np.linalg.norm(n)
+            normals = np.append(normals, [n], axis=0)
+            tangent = - der / np.linalg.norm(der)
+            rotation_along_line = z_align(point, point + tangent).zero_translation().inverse()
+            y_axes = rotation_along_line.transform_vector((0, 1, 0))
+            cross = np.cross(n, y_axes)
+            theta = math.acos(np.dot(n, y_axes)) * 180 / math.pi
+            if np.linalg.norm(cross + tangent) > 1:
+                theta = -theta
+            rotation_around_z = rotation(rotation_along_line.z_axis(), theta)
+            rot = rotation_around_z * rotation_along_line
+            rotation_around_y = rotation(rot.transform_vector((0, 1, 0)), z_rotation)
+            rot = rotation_around_y * rot
+            if draw:
+                rotation_around_x = rotation(rot.transform_vector((0, 1, 0)), 180)
+                place = translation(point) * rotation_around_x * rot
+                camera_markers_places.append(place)
+            else:
+                point = point + rot.z_axis() * distance_behind
+                place = translation(point) * rot
+                self.session.view.camera.position = place
+                self.session.update_loop.draw_new_frame()
+        if draw:
+            self.camera_marker_indices = [str(i) for i in range(0, len(camera_markers_places))]
+            self.move_along_line_collection_model.add_places(self.camera_marker_indices, camera_markers_places)
+            self.move_along_line_collection_model.color = self.color
+
+    def remove_camera_markers(self):
+        if len(self.camera_marker_indices):
+            self.move_along_line_collection_model.delete_places(self.camera_marker_indices)
+            self.camera_marker_indices = []
 
     def write_file(self, file_name):
         with open(file_name, 'wb') as file:
