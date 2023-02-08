@@ -67,6 +67,20 @@ class CurvedLine(PopulatedModel):
         """Rotation of first particle."""
 
         self.update_on_move = False
+        self.camera_options = False
+        self.backwards = False
+        self.no_frames_edit_range = (1, self.resolution)
+        self.no_frames = 60
+        self.distance_behind_camera_edit_range = (0, 1000)
+        self.distance_behind_camera = (self.distance_behind_camera_edit_range[1] + self.distance_behind_camera_edit_range[0]) / 2
+        self.top_rotation = 0
+        self.facing_rotation = 0
+        self.camera_axes_options = True
+        self.no_camera_axes_edit_range = (1, resolution)
+        self.no_camera_axes = 30
+        self.has_camera_markers = False
+        self.camera_axes_size = 15
+        self.camera_axes_size_edit_range = (10, 20)
         if surface_collection_models is not None:
             for scm in surface_collection_models:
                 scm.triggers.add_handler(MODELS_MOVED, self._particle_moved)
@@ -225,11 +239,11 @@ class CurvedLine(PopulatedModel):
         b = _BildFile(self.session, 'dummy')
 
         b.color_command('.color 1 1 0'.split())
-        b.arrow_command(".arrow 0 0 0 0 {} 0 {} {}".format(self.axes_size, self.axes_size / 15,
-                                                           self.axes_size / 15 * 4).split())
+        b.arrow_command(".arrow 0 0 0 0 {} 0 {} {}".format(self.camera_axes_size, self.camera_axes_size / 15,
+                                                           self.camera_axes_size / 15 * 4).split())
         b.color_command('.color 0 0 1'.split())
-        b.arrow_command(".arrow 0 0 0 0 0 {} {} {}".format(self.axes_size, self.axes_size / 15,
-                                                           self.axes_size / 15 * 4).split())
+        b.arrow_command(".arrow 0 0 0 0 0 {} {} {}".format(self.camera_axes_size, self.camera_axes_size / 15,
+                                                           self.camera_axes_size / 15 * 4).split())
 
         d = AtomicShapeDrawing('shapes')
         d.add_shapes(b.shapes)
@@ -295,14 +309,27 @@ class CurvedLine(PopulatedModel):
                 self.session.view.camera.position = place
                 self.session.update_loop.draw_new_frame()
         if draw:
+            self.has_camera_markers = True
             self.camera_marker_indices = [str(i) for i in range(0, len(camera_markers_places))]
             self.move_along_line_collection_model.add_places(self.camera_marker_indices, camera_markers_places)
             self.move_along_line_collection_model.color = self.color
 
+    def create_camera_markers(self):
+        self.move_camera_along_line(draw=True, no_frames=self.no_camera_axes, backwards=self.backwards,
+                                    distance_behind=self.distance_behind_camera, x_rotation=self.top_rotation,
+                                    z_rotation=self.facing_rotation)
+
     def remove_camera_markers(self):
+        self.has_camera_markers = False
         if len(self.camera_marker_indices):
             self.move_along_line_collection_model.delete_places(self.camera_marker_indices)
             self.camera_marker_indices = []
+
+    def change_camera_axes_size(self, s):
+        if self.camera_axes_size != s:
+            self.camera_axes_size = s
+            v, n, t, vc = self.get_camera_marker_surface()
+            self.move_along_line_collection_model.set_surface('camera_markers', v, n, t, vertex_colors=vc)
 
     def write_file(self, file_name):
         with open(file_name, 'wb') as file:
