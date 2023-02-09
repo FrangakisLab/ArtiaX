@@ -108,8 +108,9 @@ class CurvedLine(PopulatedModel):
     def recalc_and_update(self):
         """Recalculates the points and derivatives that define the line before redrawing the line."""
         if self.particles is not None:
-            for i, particle in enumerate(self.particles):
-                self.particle_pos[i] = [particle.coord[0], particle.coord[1], particle.coord[2]]
+            self.particle_pos = np.array([[particle.coord[0], particle.coord[1], particle.coord[2]] for particle in self.particles])
+        print(self.particles)
+        print(self.particle_pos)
         self.points, self.der_points = get_points(self.particle_pos, self.smooth, self.degree, self.resolution)
         self.update()
 
@@ -131,6 +132,22 @@ class CurvedLine(PopulatedModel):
         if self.radius != r:
             self.radius = r
             self.update()
+
+    def remove_deleted_particles(self):
+        partlists = self.session.ArtiaX.partlists
+        particle_exits = [False]*len(self.particles)
+        for pl in partlists.iter():
+            for i, p in enumerate(self.particles):
+                if not particle_exits[i] and p.id in pl.particle_ids:
+                    particle_exits[i] = True
+        particles_left = self.particles[particle_exits]
+        if len(particles_left) < 2:
+            return
+        elif len(particles_left) < 4:
+            self.degree = 1
+        elif self.degree == 5 and len(particles_left) < 6:
+            self.degree = 3
+        self.particles = particles_left
 
     def create_spheres(self):
         """Creates sphere markers with axes to show how particles would be created."""
@@ -359,6 +376,7 @@ def get_points(pos, smooth, degree, resolution):
 
     # s=0 means it will go through all points, s!=0 means smoother, good value between m+-sqrt(2m) (m=no. points)
     # degree can be 1,3, or 5
+    print([x, y, z])
     tck, u = interpolate.splprep([x, y, z], s=smooth, k=degree)
     un = np.arange(0, 1 + 1 / resolution, 1 / resolution)
     points = interpolate.splev(un, tck)

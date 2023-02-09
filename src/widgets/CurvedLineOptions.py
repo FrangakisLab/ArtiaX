@@ -64,6 +64,13 @@ class CurvedLineOptions(QWidget):
                                                 " Can be quite resource intensive.")
         layout.addWidget(self.update_on_move_checkbox)
 
+        self.remove_deleted_particles_button = QPushButton("Remove Deleted Particles")
+        self.remove_deleted_particles_button.setToolTip("Removes all deleted particles from defining the list. Useful"
+                                                        " when some particles have been deleted and the path of the"
+                                                        " line should be updated. Does nothing if less than two"
+                                                        " particles remain.")
+        layout.addWidget(self.remove_deleted_particles_button)
+
         # Fitting options
         self.fitting_checkbox = QGroupBox("Change line fitting:")
         self.fitting_checkbox.setCheckable(True)
@@ -295,6 +302,7 @@ class CurvedLineOptions(QWidget):
 
         self.update_button.clicked.connect(self._update_button_clicked)
         self.update_on_move_checkbox.stateChanged.connect(self._update_on_move_clicked)
+        self.remove_deleted_particles_button.clicked.connect(self._remove_deleted_particles)
 
         self.spacing_checkbox.clicked.connect(self._spacing_toggled)
         self.marker_axis_display_checkbox.clicked.connect(self._marker_axis_display_toggled)
@@ -324,6 +332,13 @@ class CurvedLineOptions(QWidget):
         self.camera_axes_checkbox.clicked.connect(self._camera_axes_toggled)
         self.no_camera_axes.valueChanged.connect(self._no_axes_changed)
         self.camera_axes_size_slider.valueChanged.connect(self._camera_axes_size_changed)
+
+    def _remove_deleted_particles(self):
+        if self.line is not None:
+            self.line.remove_deleted_particles()
+            self.degree_buttons.degree = self.line.degree
+            self.degree_buttons.max_degree = len(self.line.particles) - 1
+            self.line.recalc_and_update()
 
     def _camera_toggled(self):
         if self.line is not None:
