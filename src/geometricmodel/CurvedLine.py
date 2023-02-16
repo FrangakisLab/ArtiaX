@@ -69,14 +69,14 @@ class CurvedLine(PopulatedModel):
         self.update_on_move = False
         self.camera_options = False
         self.backwards = False
-        self.no_frames_edit_range = (1, self.resolution)
+        self.no_frames_edit_range = (2, resolution)
         self.no_frames = 60
         self.distance_behind_camera_edit_range = (0, 1000)
         self.distance_behind_camera = (self.distance_behind_camera_edit_range[1] + self.distance_behind_camera_edit_range[0]) / 2
         self.top_rotation = 0
         self.facing_rotation = 0
         self.camera_axes_options = True
-        self.no_camera_axes_edit_range = (1, resolution)
+        self.no_camera_axes_edit_range = (2, resolution)
         self.no_camera_axes = 30
         self.has_camera_markers = False
         self.camera_axes_size = 15
@@ -109,8 +109,6 @@ class CurvedLine(PopulatedModel):
         """Recalculates the points and derivatives that define the line before redrawing the line."""
         if self.particles is not None:
             self.particle_pos = np.array([[particle.coord[0], particle.coord[1], particle.coord[2]] for particle in self.particles])
-        print(self.particles)
-        print(self.particle_pos)
         self.points, self.der_points = get_points(self.particle_pos, self.smooth, self.degree, self.resolution)
         self.update()
 
@@ -309,7 +307,7 @@ class CurvedLine(PopulatedModel):
             rotation_along_line = z_align(point, point + tangent).zero_translation().inverse()
             y_axes = rotation_along_line.transform_vector((0, 1, 0))
             cross = np.cross(n, y_axes)
-            theta = math.acos(np.dot(n, y_axes)) * 180 / math.pi
+            theta = math.acos(0.99*np.dot(n, y_axes)) * 180 / math.pi
             if np.linalg.norm(cross + tangent) > 1:
                 theta = -theta
             rotation_around_z = rotation(rotation_along_line.z_axis(), theta)
@@ -376,7 +374,6 @@ def get_points(pos, smooth, degree, resolution):
 
     # s=0 means it will go through all points, s!=0 means smoother, good value between m+-sqrt(2m) (m=no. points)
     # degree can be 1,3, or 5
-    print([x, y, z])
     tck, u = interpolate.splprep([x, y, z], s=smooth, k=degree)
     un = np.arange(0, 1 + 1 / resolution, 1 / resolution)
     points = interpolate.splev(un, tck)

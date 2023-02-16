@@ -322,6 +322,18 @@ def artiax_geomodel_color(session, model, color):
 
     model.color = color.uint8x4()
 
+def artiax_move_camera_along_line(session, model, numFrames=None, backwards=False, distanceBehind=10000, topRotation=0, facingRotation=0):
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running.")
+        return
+    from ..geometricmodel.CurvedLine import CurvedLine
+    if not isinstance(model, CurvedLine):
+        errors.UserError("artiax moveCameraAlongLine: '{}' is not a valid argument. Input a 'line' geometric model.".format(model))
+    if numFrames is not None and numFrames >= len(model.points[0]):
+        numFrames = None
+
+    model.move_camera_along_line(False, numFrames, backwards, distanceBehind, topRotation, facingRotation)
+
 
 def artiax_lock(session, models=None, type=None):
     # No ArtiaX
@@ -904,6 +916,18 @@ def register_artiax(logger):
         )
         register('artiax geomodel color', desc, artiax_geomodel_color)
 
+    def register_artiax_move_camera_along_line():
+        desc = CmdDesc(
+            required=[("model", ModelArg)],
+            keyword=[("numFrames", IntArg),
+                     ("backwards", BoolArg),
+                     ("distanceBehind", FloatArg),
+                     ("topRotation", FloatArg),
+                     ("facingRotation", FloatArg)],
+            synopsis='Moves the camera along the specified line.'
+        )
+        register('artiax moveCameraAlongLine', desc, artiax_move_camera_along_line)
+
     def register_artiax_lock():
         desc = CmdDesc(
             optional=[("models", Or(ModelsArg, EmptyArg)),
@@ -1005,6 +1029,7 @@ def register_artiax(logger):
     register_artiax_triangles_from_links()
     register_artiax_flip()
     register_artiax_geomodel_color()
+    register_artiax_move_camera_along_line()
     register_artiax_tomo()
     register_artiax_colormap()
     register_artiax_label()

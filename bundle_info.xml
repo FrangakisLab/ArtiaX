@@ -405,6 +405,9 @@ will be displayed without the ChimeraX- prefix.
     <ChimeraXClassifier>ChimeraX :: Command :: artiax geomodel color :: General ::
      Set geomodel color.</ChimeraXClassifier>
 
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax moveCameraAlongLine :: General ::
+     Moves camera along the specified line.</ChimeraXClassifier>
+
     <ChimeraXClassifier>ChimeraX :: Command :: artiax info :: General ::
       Print information about tomograms or particle lists.</ChimeraXClassifier>
 
