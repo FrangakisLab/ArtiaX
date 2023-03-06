@@ -107,6 +107,15 @@ class Tomogram(VolumePlus):
     def integer_slab_position(self, value):
         self._set_integer_slice(slice=value)
 
+    def set_slab_running_average(self, num_slabs):
+        running_average_data = self.data.matrix().copy()
+        # Maybe just do the average here and then just see what it looks like.
+
+        # from chimerax.map.volume import VolumeImage
+        # self.over_slabs = [VolumeImage(self) for i in range(num_slabs)]
+        # self.under_slabs = [VolumeImage(self) for i in range(num_slabs)]
+
+
     def _set_levels(self, center=None, width=None):
 
         if center is None:

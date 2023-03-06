@@ -17,7 +17,9 @@ def remove_overlap(session, pl):
         verts = ps[i].full_transform().transform_points(scm.vertices)
         for j in range(i+1, num_parts):
             vol.position = ps[j].full_transform()
-            vtf = vol.position.inverse()
+            vtf = vol.position.inverse() * scm.scene_position
+            if not vtf.is_identity(tolerance=0):
+                varray = vtf.transform_points(varray)
             verts = vtf.transform_points(verts)
             surfaces = [(verts, tris)]
             #surfaces = surface_geometry(scm, vol.position.inverse())
