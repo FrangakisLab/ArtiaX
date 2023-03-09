@@ -108,12 +108,36 @@ class Tomogram(VolumePlus):
         self._set_integer_slice(slice=value)
 
     def set_slab_running_average(self, num_slabs):
-        running_average_data = self.data.matrix().copy()
-        # Maybe just do the average here and then just see what it looks like.
+        # Not used
+        original_data = self.data.matrix()
+        running_average_data = np.zeros(original_data.shape, dtype=np.float32)
 
-        # from chimerax.map.volume import VolumeImage
-        # self.over_slabs = [VolumeImage(self) for i in range(num_slabs)]
-        # self.under_slabs = [VolumeImage(self) for i in range(num_slabs)]
+        num_rows = len(original_data)
+        for i in range(num_rows):
+            surrounding_rows = original_data[max(i-num_slabs, 0):min(i+num_slabs+1, num_rows)]
+            running_average_data[i] = np.mean(surrounding_rows, axis=0, dtype=np.float32)
+
+        from chimerax.map_data import ArrayGridData
+        running_average_tomogram = Tomogram(self.session, ArrayGridData(running_average_data, name="Running average " + str(num_slabs) + " " + self.data.name))
+        self.session.ArtiaX.add_tomogram(running_average_tomogram)
+        self.show(show=False)
+
+        running_average_tomogram.set_parameters(cap_faces=False)
+        running_average_tomogram.normal = self.normal
+        running_average_tomogram.integer_slab_position = self.integer_slab_position
+
+    def create_processable_tomogram(self):
+        self.data.matrix()
+        from chimerax.map_data import ArrayGridData
+        agd = ArrayGridData(self.matrix().copy(), name='Processable ' + self.data.name)
+        from . import ProcessableTomogram
+        processable_tomogram = ProcessableTomogram(self.session, agd)
+        self.session.ArtiaX.add_tomogram(processable_tomogram)
+        self.show(show=False)
+
+        processable_tomogram.set_parameters(cap_faces=False)
+        processable_tomogram.normal = self.normal
+        processable_tomogram.integer_slab_position = self.integer_slab_position
 
 
     def _set_levels(self, center=None, width=None):
@@ -155,8 +179,6 @@ class Tomogram(VolumePlus):
         if offset is None:
             offset = self.slab_position
 
-        id = self.id_string
-
         self.set_parameters(tilted_slab_axis=tuple(self.normal),
                             tilted_slab_offset=offset,
                             tilted_slab_plane_count=1,
@@ -165,11 +187,6 @@ class Tomogram(VolumePlus):
                             color_mode='auto8')
 
         self.set_display_style('image')
-
-        # run(self.session,
-        #     'volume #{} region {},{},{},{},{},{} step 1 style image imageMode "tilted slab" tiltedSlabAxis {},{},{} tiltedSlabPlaneCount 1 tiltedSlabOffset {} colorMode l16'.format(
-        #         id, 0, 0, 0, self.size[0], self.size[1], self.size[2], self.normal[0],
-        #         self.normal[1], self.normal[2], offset), log=False)
 
     def _get_min_offset(self):
         corners = self.corners()
