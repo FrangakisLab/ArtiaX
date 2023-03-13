@@ -27,8 +27,14 @@ class ProcessableTomogram(Tomogram):
         #self.data.array[self.integer_slab_position-1:self.integer_slab_position+2] = [current_slice_average]*3
         self.data.array[self.integer_slab_position] = current_slice_average
 
+        # Update the graphics... would be cool to do without the stupid private function VERY SLOW
+        if self._image and not self._image.deleted:
+            self._image._remove_planes()
+
         offset = slice * self.pixelsize[0] + self.min_offset
         self.slab_position = offset
+
+
 
 
 

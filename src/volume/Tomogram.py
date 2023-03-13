@@ -139,6 +139,9 @@ class Tomogram(VolumePlus):
         processable_tomogram.normal = self.normal
         processable_tomogram.integer_slab_position = self.integer_slab_position
 
+    def print_locals(self):
+        print(locals())
+
 
     def _set_levels(self, center=None, width=None):
 
