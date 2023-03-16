@@ -107,15 +107,87 @@ class Tomogram(VolumePlus):
     def integer_slab_position(self, value):
         self._set_integer_slice(slice=value)
 
-    def set_slab_running_average(self, num_slabs):
-        # Not used
+
+
+    def calc_time_map(self, size, num_slabs=10, axis=(0, 0, 1)):
+        import time
+        from scipy.ndimage import map_coordinates
         original_data = self.data.matrix()
+        axis = np.array(axis)
+        points = np.zeros((size[0]*size[1]*size[2], 4))
+        max_size = np.array(original_data.shape) - [1, 1, 1]
+        t0 = time.time()
+
+        index = 0
+        for i in range(size[0]):
+            for j in range(size[1]):
+                for k in range(size[2]):
+                    points[index] = [i,j,k,original_data[i,j,k]]
+                    index += 1
+
+        running_average_data = np.zeros(original_data.shape, dtype=np.float32)
+        for i in range(size[0]):
+            for j in range(size[1]):
+                for k in range(size[2]):
+                    pts = [(i, j, k) + n * axis for n in range(-num_slabs, num_slabs + 1)]
+                    pts = [pt for pt in pts if (pt >= 0).all() and (pt <= (max_size)).all()]
+                    pts = np.array(pts)
+                    pts = [pts[:,0], pts[:,1], pts[:,2]]
+                    print(pts)
+                    running_average_data[i][j][k] = np.mean(map_coordinates(points, pts, order=1), axis=0, dtype=np.float32)
+
+        t1 = time.time()
+        return t1 - t0
+
+    def calc_time_rgi(self, first_range, second_range, third_range, num_slabs=10, axis=(0, 0, 1)):
+        import time
+        from scipy.interpolate import RegularGridInterpolator
+        original_data = self.data.matrix()
+        points = (np.arange(original_data.shape[0]), np.arange(original_data.shape[1]), np.arange(original_data.shape[2]))
+        rgi = RegularGridInterpolator(points, original_data, method="nearest")
+        running_average_data = np.zeros(original_data.shape, dtype=np.float32)
+        max_size = np.array(original_data.shape) - [1, 1, 1]
+        axis = np.array(axis)
+
+        t0 = time.time()
+        pts = np.zeros((num_slabs * 2 + 1, 3))
+        for i in first_range:
+            for j in second_range:
+                for k in third_range:
+                    # This following commented code is well written and easy to read and insanely slow
+                    # pts = [(i, j, k) + n * axis for n in range(-num_slabs, num_slabs + 1)]
+                    # pts = [pt for pt in pts if (pt >= 0).all() and (pt <= (shape - [1, 1, 1])).all()]
+                    #
+                    # This code does the same thing but EVEN SLOWER (just a little though)
+                    # for index, n in enumerate(range(-num_slabs, num_slabs + 1)):
+                    #     pts[index] = np.array([i, j, k]) + n * axis
+                    # pts = pts[np.where(np.all(pts >= 0, axis=1) & np.all(pts <= max_size, axis=1))]
+
+
+                    running_average_data[i][j][k] = np.mean(rgi(pts), axis=0, dtype=np.float32)
+        t1 = time.time()
+        return t1 - t0
+
+    def set_slab_running_average(self, num_slabs, axis=(0,0,1)):
+        axis = np.array(axis)
+        from scipy.interpolate import RegularGridInterpolator
+        original_data = self.data.matrix()
+        points = (np.arange(original_data.shape[0]), np.arange(original_data.shape[1]), np.arange(original_data.shape[2]))
+        rgi = RegularGridInterpolator(points, original_data, method="nearest")
         running_average_data = np.zeros(original_data.shape, dtype=np.float32)
 
-        num_rows = len(original_data)
-        for i in range(num_rows):
-            surrounding_rows = original_data[max(i-num_slabs, 0):min(i+num_slabs+1, num_rows)]
-            running_average_data[i] = np.mean(surrounding_rows, axis=0, dtype=np.float32)
+        shape = np.array(original_data.shape)
+        for i in range(shape[0]):
+            for j in range(shape[1]):
+                for k in range(shape[2]):
+                    pts = [(i,j,k)+n*axis for n in range(-num_slabs, num_slabs+1)]
+                    pts = [pt for pt in pts if (pt>=0).all() and (pt<=(shape-[1,1,1])).all()]
+                    running_average_data[i][j][k] = np.mean(rgi(pts), axis=0, dtype=np.float32)
+
+        # num_rows = len(original_data)
+        # for i in range(num_rows):
+        #     surrounding_rows = original_data[max(i-num_slabs, 0):min(i+num_slabs+1, num_rows)]
+        #     running_average_data[i] = np.mean(surrounding_rows, axis=0, dtype=np.float32)
 
         from chimerax.map_data import ArrayGridData
         running_average_tomogram = Tomogram(self.session, ArrayGridData(running_average_data, name="Running average " + str(num_slabs) + " " + self.data.name))
@@ -126,12 +198,9 @@ class Tomogram(VolumePlus):
         running_average_tomogram.normal = self.normal
         running_average_tomogram.integer_slab_position = self.integer_slab_position
 
-    def create_processable_tomogram(self):
-        self.data.matrix()
-        from chimerax.map_data import ArrayGridData
-        agd = ArrayGridData(self.matrix().copy(), name='Processable ' + self.data.name)
+    def create_processable_tomogram(self, num_averaging_slabs=0):
         from . import ProcessableTomogram
-        processable_tomogram = ProcessableTomogram(self.session, agd)
+        processable_tomogram = ProcessableTomogram(self.session, self, num_averaging_slabs=num_averaging_slabs)
         self.session.ArtiaX.add_tomogram(processable_tomogram)
         self.show(show=False)
 
