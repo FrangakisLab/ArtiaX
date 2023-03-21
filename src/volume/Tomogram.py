@@ -109,7 +109,7 @@ class Tomogram(VolumePlus):
 
 
 
-    def calc_time_map(self, size, num_slabs=10, axis=(0, 0, 1)):
+    def calc_time_map(self, slice, order=1, num_slabs=10, axis=(0, 0, 1)):
         # THE WINNER!
         import time
         from scipy.ndimage import map_coordinates
@@ -117,44 +117,39 @@ class Tomogram(VolumePlus):
         axis = np.array(axis)
         max_size = np.array(original_data.shape) - [1, 1, 1]
         t0 = time.time()
-
         running_average_data = np.zeros(original_data.shape, dtype=np.float32)
-        for i in range(size[0]):
-            for j in range(size[1]):
-                for k in range(size[2]):
-                    pts = [(i, j, k) + n * axis for n in range(-num_slabs, num_slabs + 1)]
-                    pts = [pt for pt in pts if (pt >= 0).all() and (pt <= (max_size)).all()]
-                    pts = np.array(pts)
-                    pts = [pts[:,0], pts[:,1], pts[:,2]]
-                    running_average_data[i][j][k] = np.mean(map_coordinates(original_data, pts, order=1), axis=0, dtype=np.float32)
+        for j in range(original_data.shape[1]):
+            for k in range(original_data.shape[2]):
+                pts = [(slice, j, k) + n * axis for n in range(-num_slabs, num_slabs + 1)]
+                pts = np.array(pts)
+                pts = [pts[:,0], pts[:,1], pts[:,2]]
+                running_average_data[slice][j][k] = np.mean(map_coordinates(original_data, pts, order=order), axis=0, dtype=np.float32)
         t1 = time.time()
         return t1 - t0
 
-    def calc_time_rgi(self, first_range, second_range, third_range, num_slabs=10, axis=(0, 0, 1)):
+    def calc_time_rgi(self, slice, method='nearest', num_slabs=10, axis=(0, 0, 1)):
         import time
         from scipy.interpolate import RegularGridInterpolator
         original_data = self.data.matrix()
         points = (np.arange(original_data.shape[0]), np.arange(original_data.shape[1]), np.arange(original_data.shape[2]))
-        rgi = RegularGridInterpolator(points, original_data, method="nearest")
+        rgi = RegularGridInterpolator(points, original_data, method=method)
         running_average_data = np.zeros(original_data.shape, dtype=np.float32)
         max_size = np.array(original_data.shape) - [1, 1, 1]
         axis = np.array(axis)
 
         t0 = time.time()
-        pts = np.zeros((num_slabs * 2 + 1, 3))
-        for i in first_range:
-            for j in second_range:
-                for k in third_range:
-                    # This following commented code is well written and easy to read and insanely slow
-                    pts = [(i, j, k) + n * axis for n in range(-num_slabs, num_slabs + 1)]
-                    pts = [pt for pt in pts if (pt >= 0).all() and (pt <= max_size).all()]
-                    #
-                    # This code does the same thing but EVEN SLOWER (just a little though)
-                    # for index, n in enumerate(range(-num_slabs, num_slabs + 1)):
-                    #     pts[index] = np.array([i, j, k]) + n * axis
-                    # pts = pts[np.where(np.all(pts >= 0, axis=1) & np.all(pts <= max_size, axis=1))]
+        for j in range(original_data.shape[1]):
+            for k in range(original_data.shape[2]):
+                # This following commented code is well written and easy to read and insanely slow
+                pts = [(slice, j, k) + n * axis for n in range(-num_slabs, num_slabs + 1)]
+                pts = [pt for pt in pts if (pt >= 0).all() and (pt <= max_size).all()]
+                #
+                # This code does the same thing but EVEN SLOWER (just a little though)
+                # for index, n in enumerate(range(-num_slabs, num_slabs + 1)):
+                #     pts[index] = np.array([i, j, k]) + n * axis
+                # pts = pts[np.where(np.all(pts >= 0, axis=1) & np.all(pts <= max_size, axis=1))]
 
-                    running_average_data[i][j][k] = np.mean(rgi(pts), axis=0, dtype=np.float32)
+                running_average_data[slice][j][k] = np.mean(rgi(pts), axis=0, dtype=np.float32)
         t1 = time.time()
         return t1 - t0
 
@@ -165,8 +160,6 @@ class Tomogram(VolumePlus):
         points = (np.arange(original_data.shape[0]), np.arange(original_data.shape[1]), np.arange(original_data.shape[2]))
         rgi = RegularGridInterpolator(points, original_data, method=method)
         running_average_data = np.zeros(original_data.shape, dtype=np.float32)
-        max_size = np.array(original_data.shape) - [1, 1, 1]
-        axis = np.array(axis)
 
         t0 = time.time()
         pts = np.mgrid[row-num_slabs:row+num_slabs+1, 0:original_data.shape[1], 0:original_data.shape[2]].reshape(3,-1).T
@@ -182,15 +175,30 @@ class Tomogram(VolumePlus):
         original_data = self.data.matrix()
         running_average_data = np.zeros(original_data.shape, dtype=np.float32)
 
-        t0 = time.time()
         zs, ys, xs = np.meshgrid(np.arange(row-num_slabs, row+num_slabs+1), np.arange(original_data.shape[1]), np.arange(original_data.shape[2]), indexing='ij')
         pts = (zs.ravel(), ys.ravel(), xs.ravel())
+        t0 = time.time()
         interpolated_surrounding_rows = map_coordinates(original_data, pts, order=order).reshape((num_slabs*2+1, original_data.shape[1], original_data.shape[2]))
         running_average_data[row] = np.mean(interpolated_surrounding_rows, axis=0, dtype=np.float32)
 
         t1 = time.time()
 
         return t1 - t0
+
+    def calc_time_convolution(self, row, num_slabs=10):
+        import time
+        from scipy.ndimage import convolve
+        original_data = self.data.matrix()
+
+        conv_size = num_slabs*2+1
+        conv_matrix = np.zeros((conv_size, conv_size, conv_size))
+        conv_matrix[:, num_slabs, num_slabs] = np.ones(conv_size)
+
+        t0 = time.time()
+        running_average_data = convolve(original_data, conv_matrix)
+        t1 = time.time()
+        return t1-t0
+
 
     def set_slab_running_average(self, num_slabs, axis=(0,0,1)):
         axis = np.array(axis)
