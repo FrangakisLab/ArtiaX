@@ -1,6 +1,8 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # General
+import time
+
 import numpy as np
 import math as ma
 
@@ -9,6 +11,7 @@ from chimerax.core.commands import run
 from chimerax.geometry import inner_product
 from chimerax.graphics import Drawing
 from chimerax.map_data.tom_em.em_grid import EMGrid
+from chimerax.core import errors
 
 # This package
 from .VolumePlus import VolumePlus
@@ -29,6 +32,10 @@ class Tomogram(VolumePlus):
         self.data.set_origin((0, 0, 0))
         if isinstance(self.data, EMGrid):
             self.pixelsize = 1
+
+        # For creating processed version
+        self.averaging_axis = (0,0,1)
+        self.num_averaging_slabs = 10
 
         # Update display
         self.update_drawings()
@@ -110,6 +117,7 @@ class Tomogram(VolumePlus):
 
 
     def calc_time_map(self, slice, order=1, num_slabs=10, axis=(0, 0, 1)):
+        # NOT USED
         # THE WINNER!
         import time
         from scipy.ndimage import map_coordinates
@@ -128,6 +136,7 @@ class Tomogram(VolumePlus):
         return t1 - t0
 
     def calc_time_rgi(self, slice, method='nearest', num_slabs=10, axis=(0, 0, 1)):
+        # NOT USED
         import time
         from scipy.interpolate import RegularGridInterpolator
         original_data = self.data.matrix()
@@ -154,6 +163,7 @@ class Tomogram(VolumePlus):
         return t1 - t0
 
     def calc_time_rgi_grid(self, row, method="nearest", num_slabs=10, axis=(0, 0, 1)):
+        # NOT USED
         import time
         from scipy.interpolate import RegularGridInterpolator
         original_data = self.data.matrix()
@@ -170,6 +180,7 @@ class Tomogram(VolumePlus):
         return t1 - t0
 
     def calc_time_map_grid(self, row, order=1, num_slabs=10, axis=(0, 0, 1)):
+        # NOT USED
         import time
         from scipy.ndimage import map_coordinates
         original_data = self.data.matrix()
@@ -185,7 +196,8 @@ class Tomogram(VolumePlus):
 
         return t1 - t0
 
-    def calc_time_convolution(self, row, num_slabs=10):
+    def calc_time_convolution(self, num_slabs=10):
+        # NOT USED
         import time
         from scipy.ndimage import convolve
         original_data = self.data.matrix()
@@ -201,6 +213,7 @@ class Tomogram(VolumePlus):
 
 
     def set_slab_running_average(self, num_slabs, axis=(0,0,1)):
+        # NOT USED
         axis = np.array(axis)
         from scipy.interpolate import RegularGridInterpolator
         original_data = self.data.matrix()
@@ -230,7 +243,45 @@ class Tomogram(VolumePlus):
         running_average_tomogram.normal = self.normal
         running_average_tomogram.integer_slab_position = self.integer_slab_position
 
+    def create_processed_tomogram(self, method='average', axis=(0, 0, 1), num_slabs=10):
+        import scipy.ndimage as ndimage
+
+        if method not in ['average', 'gaussian']:
+            return
+
+        conv_size = num_slabs * 2 + 1
+        conv_matrix = np.zeros((conv_size, conv_size, conv_size))
+
+        if method == 'average':
+            axis = np.array(axis)/max(axis)  # make sure the largest value is 1
+            resolution = conv_size*100
+            ts = np.linspace(-1, 1+0.999/num_slabs, resolution) #  the +0.999/num_slabs part is to make sure that the translated samples goes from 0 to a _little_ bit less than 2*num_slabs+1
+            samples = np.array([axis*t for t in ts])
+            samples = samples * num_slabs + num_slabs  # translate the points to matrix indices
+
+            # Go through samples and add 1 to the cell the sample is in
+            for point in samples:
+                conv_matrix[tuple(np.flip(np.floor(point).astype(int)))] += 1  #flip needed because coord (x,y,z) in conv_matrix is accessed as conv_matrix[z][y][x]
+            conv_matrix = conv_matrix/resolution
+
+        original_data = self.data.matrix()
+        import time
+        tic = time.time()
+        running_average_data = ndimage.convolve(original_data, conv_matrix)
+        print(time.time()-tic)
+
+        from chimerax.map_data import ArrayGridData
+        running_average_tomogram = Tomogram(self.session, ArrayGridData(running_average_data,
+                                                                        name="Processed " + self.data.name))
+        self.session.ArtiaX.add_tomogram(running_average_tomogram)
+        self.show(show=False)
+
+        running_average_tomogram.set_parameters(cap_faces=False)
+        running_average_tomogram.normal = self.normal
+        running_average_tomogram.integer_slab_position = self.integer_slab_position
+
     def create_processable_tomogram(self, num_averaging_slabs=0):
+        # NOT USED
         from . import ProcessableTomogram
         processable_tomogram = ProcessableTomogram(self.session, self, num_averaging_slabs=num_averaging_slabs)
         self.session.ArtiaX.add_tomogram(processable_tomogram)

@@ -366,6 +366,34 @@ class OptionsWindow(ToolInstance):
         # Add grid to group
         group_fourier_transform.setLayout(group_fourier_transform_layout)
 
+        #### Process Tomogram ####
+        group_process = QGroupBox("Processing")
+        group_process.setFont(self.font)
+        group_process.setCheckable(True)
+        group_process_layout = QVBoxLayout()
+
+        process_average_group = QGroupBox("Averaging")
+        process_average_group.setToolTip("Create a copy of the tomogram averaged in the set direction, using the number"
+                                         " of slab nearest slabs for the averaging")
+        process_average_layout = QVBoxLayout()
+        from .widgets import LabeledVectorEdit
+        self.process_average_axis_widget = LabeledVectorEdit(maintext='Averageing Direction:',
+                                                             label_1='X:',
+                                                             label_2='Y:',
+                                                             label_3='Z:',
+                                                             button='Set',
+                                                             value=(0, 0, 1))
+        self.process_average_num_slabs_widget = LabelEditSlider([1, 100], "Number of slabs to average:", step_size=1)
+        self.process_average_create_button = QPushButton("Create Averaged Tomogram")
+        process_average_layout.addWidget(self.process_average_axis_widget)
+        process_average_layout.addWidget(self.process_average_num_slabs_widget)
+        process_average_layout.addWidget(self.process_average_create_button)
+        process_average_group.setLayout(process_average_layout)
+
+        group_process_layout.addWidget(process_average_group)
+        group_process.setLayout(group_process_layout)
+
+
         #### Slice Box ####
         group_slices = QGroupBox("Navigation")
         group_slices.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
@@ -427,6 +455,7 @@ class OptionsWindow(ToolInstance):
         tomo_layout.addWidget(group_contrast)
         tomo_layout.addWidget(group_slices)
         tomo_layout.addWidget(group_orthoplanes)
+        tomo_layout.addWidget(group_process)
         #tomo_layout.addWidget(group_fourier_transform)
 
         # And finally set the layout of the widget
@@ -483,6 +512,11 @@ class OptionsWindow(ToolInstance):
         ow.group_slices_previous_1.clicked.connect(partial(ow._skip_planes, -1))
         ow.group_slices_next_1.clicked.connect(partial(ow._skip_planes, 1))
         ow.group_slices_next_10.clicked.connect(partial(ow._skip_planes, 10))
+
+        # Processing
+        ow.process_average_axis_widget.valueChanged.connect(ow._average_axis_changed)
+        ow.process_average_num_slabs_widget.valueChanged.connect(ow._average_num_slabs_changed)
+        ow.process_average_create_button.clicked.connect(ow._create_averaged_tomogram)
 
         # Orthoplanes
         ow.group_orthoplanes_buttonxy.clicked.connect(partial(ow._set_xy_orthoplanes))
@@ -578,6 +612,9 @@ class OptionsWindow(ToolInstance):
 
         self.normal_vector_widget.set_value(tomo.normal)
 
+        self.process_average_axis_widget.set_value(tomo.averaging_axis)
+        self.process_average_num_slabs_widget.set_range([1,tomo.slab_count], value=tomo.num_averaging_slabs)
+
     def _update_pixelsize_edit(self):
         artia = self.session.ArtiaX
         tomo = artia.tomograms.get(artia.options_tomogram)
@@ -651,6 +688,21 @@ class OptionsWindow(ToolInstance):
                                                                                               value[0],
                                                                                               value[1],
                                                                                               value[2]))
+
+    def _create_averaged_tomogram(self):
+        artia = self.session.ArtiaX
+        tomo = artia.tomograms.get(artia.options_tomogram)
+        tomo.create_processed_tomogram(method='average', num_slabs=tomo.num_averaging_slabs, axis=tomo.averaging_axis)
+
+    def _average_axis_changed(self, axis):
+        artia = self.session.ArtiaX
+        tomo = artia.tomograms.get(artia.options_tomogram)
+        tomo.averaging_axis = axis
+
+    def _average_num_slabs_changed(self, num_slabs):
+        artia = self.session.ArtiaX
+        tomo = artia.tomograms.get(artia.options_tomogram)
+        tomo.num_averaging_slabs = int(num_slabs)
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
