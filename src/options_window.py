@@ -376,12 +376,12 @@ class OptionsWindow(ToolInstance):
         process_average_group.setToolTip("Create a copy of the tomogram averaged in the set direction, using the number"
                                          " of slab nearest slabs for the averaging")
         process_average_layout = QVBoxLayout()
-        from .widgets import LabeledVectorEdit
-        self.process_average_axis_widget = LabeledVectorEdit(maintext='Averageing Direction:',
+        from .widgets import ThreeFieldsAndButton
+        self.process_average_axis_widget = ThreeFieldsAndButton(maintext='Averaging Direction:',
                                                              label_1='X:',
                                                              label_2='Y:',
                                                              label_3='Z:',
-                                                             button='Set',
+                                                             button='Copy Slice Direction',
                                                              value=(0, 0, 1))
         self.process_average_num_slabs_widget = LabelEditSlider([1, 100], "Number of slabs to average:", step_size=1)
         self.process_average_create_button = QPushButton("Create Averaged Tomogram")
@@ -515,6 +515,7 @@ class OptionsWindow(ToolInstance):
 
         # Processing
         ow.process_average_axis_widget.valueChanged.connect(ow._average_axis_changed)
+        ow.process_average_axis_widget.buttonPressed.connect(ow._average_axis_copy_slice_direction)
         ow.process_average_num_slabs_widget.valueChanged.connect(ow._average_num_slabs_changed)
         ow.process_average_create_button.clicked.connect(ow._create_averaged_tomogram)
 
@@ -690,14 +691,21 @@ class OptionsWindow(ToolInstance):
                                                                                               value[2]))
 
     def _create_averaged_tomogram(self):
+        # TODO: Add warning for big tomograms that it'll take time and a LOT of ram is needed
         artia = self.session.ArtiaX
         tomo = artia.tomograms.get(artia.options_tomogram)
-        tomo.create_processed_tomogram(method='average', num_slabs=tomo.num_averaging_slabs, axis=tomo.averaging_axis)
+        tomo.create_averaged_tomogram(num_slabs=tomo.num_averaging_slabs, axis=tomo.averaging_axis)
 
     def _average_axis_changed(self, axis):
         artia = self.session.ArtiaX
         tomo = artia.tomograms.get(artia.options_tomogram)
         tomo.averaging_axis = axis
+
+    def _average_axis_copy_slice_direction(self):
+        artia = self.session.ArtiaX
+        tomo = artia.tomograms.get(artia.options_tomogram)
+        tomo.averaging_axis = tomo.normal
+        self.process_average_axis_widget.set_value(tomo.averaging_axis)
 
     def _average_num_slabs_changed(self, num_slabs):
         artia = self.session.ArtiaX

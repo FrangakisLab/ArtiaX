@@ -1,6 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # General
+import math
 import time
 
 import numpy as np
@@ -34,7 +35,7 @@ class Tomogram(VolumePlus):
             self.pixelsize = 1
 
         # For creating processed version
-        self.averaging_axis = (0,0,1)
+        self.averaging_axis = self.normal
         self.num_averaging_slabs = 10
 
         # Update display
@@ -115,6 +116,93 @@ class Tomogram(VolumePlus):
         self._set_integer_slice(slice=value)
 
 
+    def calc_time_own_fourier(self, lp, hp, thresh=0.0000001):
+        import time
+        import numpy.fft as fft
+        original_data = self.data.matrix()
+        shape = original_data.shape
+        lpd = lp/4
+        hpd = hp/4
+
+        t0 = time.time()
+
+        zz, yy, xx = np.meshgrid(np.arange(shape[0]), np.arange(shape[1]), np.arange(shape[2]), indexing='ij')
+        xx, yy, zz = xx - math.floor(shape[2]/2), yy - math.floor(shape[1]/2), zz - math.floor(shape[0]/2)  # centering
+        r = np.sqrt(np.square(xx) + np.square(yy) + np.square(zz))
+        print("CENTER: ", r[math.floor(shape[0]/2), math.floor(shape[1]/2), math.floor(shape[2]/2)])
+
+        t1 = time.time()
+
+        lpv = np.array(r<lp, dtype=np.float32)
+        sel = (r > (lp - lpd*0.5))
+        lpv[sel] = np.exp(-np.divide(r[sel] - (lp - lpd*0.5), np.square(lpd*0.5)))
+        lpv[lpv<thresh] = 0
+
+        hpv = np.array(r<hp, dtype=np.float32)
+        sel = (r > (hp - hpd*0.5))
+        hpv[sel] = np.exp(-np.divide(r[sel] - (hp - hp*0.5), np.square(hp*0.5)))
+        hpv[hpv<thresh] = 0
+        hpv = 1 - hpv
+
+        filter = np.multiply(lpv, hpv)
+        print("FILTER SHAPE: ", filter.shape)
+
+        t2 = time.time()
+
+        fft_data = fft.fft2(original_data)  # Wierd to use fft2 and not fftn but seems to work and is much quicker
+        print("FFT DATA SHAPE: ", fft_data.shape)
+        filtered_data = np.array(fft.ifft2(np.multiply(fft_data, fft.fftshift(filter))), dtype=np.float32)
+        print("MAX FREQUIENCY: ", np.amax(r))
+        print("FILTERED DATA SHAPE: ", filtered_data.shape)
+        t3 = time.time()
+
+        self.create_tomo_from_array(filtered_data, "Filtered " + self.data.name)
+        t4 = time.time()
+        print(t1-t0, t2-t1, t3-t2, t4-t3, t4-t0)
+        return filter
+
+    def create_averaged_tomogram(self, axis=(0, 0, 1), num_slabs=10):
+        import scipy.ndimage as ndimage
+
+        conv_size = num_slabs * 2 + 1
+        conv_matrix = np.zeros((conv_size, conv_size, conv_size))
+
+        axis = np.array(axis)/max(axis)  # make sure the largest value is 1
+        resolution = conv_size*100
+        ts = np.linspace(-1, 1+0.999/num_slabs, resolution) #  the +0.999/num_slabs part is to make sure that the translated samples goes from 0 to a _little_ bit less than 2*num_slabs+1
+        samples = np.array([axis*t for t in ts])
+        samples = samples * num_slabs + num_slabs  # translate the points to matrix indices
+
+        # Go through samples and add 1 to the cell the sample is in
+        for point in samples:
+            conv_matrix[tuple(np.flip(np.floor(point).astype(int)))] += 1  #flip needed because coord (x,y,z) in conv_matrix is accessed as conv_matrix[z][y][x]
+        conv_matrix = conv_matrix/resolution
+
+        original_data = self.data.matrix()
+        running_average_data = ndimage.convolve(original_data, conv_matrix)
+
+        self.create_tomo_from_array(running_average_data, "Processed " + self.data.name)
+
+    def create_tomo_from_array(self, array, name):
+        from chimerax.map_data import ArrayGridData
+        new_tomogram = Tomogram(self.session, ArrayGridData(array, name=name))
+        self.session.ArtiaX.add_tomogram(new_tomogram)
+        self.show(show=False)
+
+        new_tomogram.set_parameters(cap_faces=False)
+        new_tomogram.normal = self.normal
+        new_tomogram.integer_slab_position = self.integer_slab_position
+
+    def create_processable_tomogram(self, num_averaging_slabs=0):
+        # NOT USED
+        from . import ProcessableTomogram
+        processable_tomogram = ProcessableTomogram(self.session, self, num_averaging_slabs=num_averaging_slabs)
+        self.session.ArtiaX.add_tomogram(processable_tomogram)
+        self.show(show=False)
+
+        processable_tomogram.set_parameters(cap_faces=False)
+        processable_tomogram.normal = self.normal
+        processable_tomogram.integer_slab_position = self.integer_slab_position
 
     def calc_time_map(self, slice, order=1, num_slabs=10, axis=(0, 0, 1)):
         # NOT USED
@@ -242,54 +330,6 @@ class Tomogram(VolumePlus):
         running_average_tomogram.set_parameters(cap_faces=False)
         running_average_tomogram.normal = self.normal
         running_average_tomogram.integer_slab_position = self.integer_slab_position
-
-    def create_processed_tomogram(self, method='average', axis=(0, 0, 1), num_slabs=10):
-        import scipy.ndimage as ndimage
-
-        if method not in ['average', 'gaussian']:
-            return
-
-        conv_size = num_slabs * 2 + 1
-        conv_matrix = np.zeros((conv_size, conv_size, conv_size))
-
-        if method == 'average':
-            axis = np.array(axis)/max(axis)  # make sure the largest value is 1
-            resolution = conv_size*100
-            ts = np.linspace(-1, 1+0.999/num_slabs, resolution) #  the +0.999/num_slabs part is to make sure that the translated samples goes from 0 to a _little_ bit less than 2*num_slabs+1
-            samples = np.array([axis*t for t in ts])
-            samples = samples * num_slabs + num_slabs  # translate the points to matrix indices
-
-            # Go through samples and add 1 to the cell the sample is in
-            for point in samples:
-                conv_matrix[tuple(np.flip(np.floor(point).astype(int)))] += 1  #flip needed because coord (x,y,z) in conv_matrix is accessed as conv_matrix[z][y][x]
-            conv_matrix = conv_matrix/resolution
-
-        original_data = self.data.matrix()
-        import time
-        tic = time.time()
-        running_average_data = ndimage.convolve(original_data, conv_matrix)
-        print(time.time()-tic)
-
-        from chimerax.map_data import ArrayGridData
-        running_average_tomogram = Tomogram(self.session, ArrayGridData(running_average_data,
-                                                                        name="Processed " + self.data.name))
-        self.session.ArtiaX.add_tomogram(running_average_tomogram)
-        self.show(show=False)
-
-        running_average_tomogram.set_parameters(cap_faces=False)
-        running_average_tomogram.normal = self.normal
-        running_average_tomogram.integer_slab_position = self.integer_slab_position
-
-    def create_processable_tomogram(self, num_averaging_slabs=0):
-        # NOT USED
-        from . import ProcessableTomogram
-        processable_tomogram = ProcessableTomogram(self.session, self, num_averaging_slabs=num_averaging_slabs)
-        self.session.ArtiaX.add_tomogram(processable_tomogram)
-        self.show(show=False)
-
-        processable_tomogram.set_parameters(cap_faces=False)
-        processable_tomogram.normal = self.normal
-        processable_tomogram.integer_slab_position = self.integer_slab_position
 
     def _set_levels(self, center=None, width=None):
 
