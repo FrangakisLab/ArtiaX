@@ -1,15 +1,41 @@
 from chimerax.surface._surface import enclosed_volume
 import numpy as np
+from chimerax.geometry._geometry import closest_triangle_intercept
+
+
+def calc_overlap(scm, p1, p2):
+    # Returns the enclosed volume
+
+    # Get all vertices that are in the other particle
+    p1_origin = p1.full_transform().origin()
+    p2_origin = p2.full_transform().origin()
+    vs1, ts = scm.vertices + p1_origin, scm.triangles
+    vs2 = scm.vertices + p2_origin
+
+    bounds = scm.bounds()
+    p2_bounds = bounds.xyz_min + p2_origin, bounds.xyz_max + p2_origin
+    p2_size = p2_bounds[1] - p2_bounds[0]
+    v1s_in_v2 = [False]*len(vs1)
+    for i, v in enumerate(vs1):
+        from_v_to_o = p1_origin - v  # normalize too
+        end = v + from_v_to_o*max(p2_size)
+        dist, tnum = closest_triangle_intercept(vs2, ts, v, end)
+        if dist is None:
+            v1s_in_v2[i] = True
+
+
+
+
+
+
 
 def remove_overlap(session, pl):
-    from chimerax.core.commands import run
     from chimerax.mask.depthmask import masked_volume
     ps = [pl.get_particle(cid) for cid in pl.particle_ids]
     overlap_volume = np.zeros((len(ps), len(ps)))
     if not pl.has_display_model:
         return
     vol = pl.display_model.child_models()[0]
-    #vol = run(session, 'volume mask #{}.{}.{} surface #{}.{}.{}'.format(*pl.id, *pl.id))[0]
     scm = pl.collection_model.collections['surfaces']
     num_parts = len(ps)
     tris = scm.triangles

@@ -116,44 +116,55 @@ class Tomogram(VolumePlus):
         self._set_integer_slice(slice=value)
 
 
-    def calc_time_own_fourier(self, lp, hp, thresh=0.0000001):
+    def calc_time_own_fourier(self, lp, hp, lpd=None, hpd=None, thresh=0.001):
         import time
         import numpy.fft as fft
         original_data = self.data.matrix()
         shape = original_data.shape
-        lpd = lp/4
-        hpd = hp/4
+        if lpd is None:
+            lpd = lp/4
+        if hpd is None:
+            hpd = hp/4
 
         t0 = time.time()
 
         zz, yy, xx = np.meshgrid(np.arange(shape[0]), np.arange(shape[1]), np.arange(shape[2]), indexing='ij')
         xx, yy, zz = xx - math.floor(shape[2]/2), yy - math.floor(shape[1]/2), zz - math.floor(shape[0]/2)  # centering
         r = np.sqrt(np.square(xx) + np.square(yy) + np.square(zz))
-        print("CENTER: ", r[math.floor(shape[0]/2), math.floor(shape[1]/2), math.floor(shape[2]/2)])
 
         t1 = time.time()
 
-        lpv = np.array(r<lp, dtype=np.float32)
-        sel = (r > (lp - lpd*0.5))
-        lpv[sel] = np.exp(-np.divide(r[sel] - (lp - lpd*0.5), np.square(lpd*0.5)))
-        lpv[lpv<thresh] = 0
+        if lp == 0 and lpd == 0:  # skip low pass
+            lpv = np.ones(shape)
+        elif lp > 0 and lpd == 0:  # box filter (not smart but who said you have to be smart)
+            lpv = np.array(r < lp, dtype=np.float32)
+        elif lp == 0 and lpd > 0:  # gaussian from the start
+            lpv = np.exp(-np.square(np.divide(r - (lp - lpd * 0.5), lpd * 0.5)))
+        else:  # normal box + gaussian decay
+            lpv = np.array(r < lp, dtype=np.float32)
+            sel = (r > (lp - lpd*0.5))
+            lpv[sel] = np.exp(-np.square(np.divide(r[sel] - (lp - lpd*0.5), lpd*0.5)))
+            lpv[lpv<thresh] = 0
 
-        hpv = np.array(r<hp, dtype=np.float32)
-        sel = (r > (hp - hpd*0.5))
-        hpv[sel] = np.exp(-np.divide(r[sel] - (hp - hp*0.5), np.square(hp*0.5)))
+        if hp == 0 and hpd == 0:  # skip high pass
+            hpv = np.zeros(shape)
+        elif hp > 0 and hpd == 0:  # box filter
+            hpv = np.array(r < hp, dtype=np.float32)
+        elif hp == 0 and hpd > 0:  # gaussian from the start
+            hpv = np.exp(-np.square(np.divide(r - (hp - hpd * 0.5), hpd * 0.5)))
+        else:  # box + gaussian decay
+            hpv = np.array(r < hp, dtype=np.float32)
+            sel = (r > (hp - hpd*0.5))
+            hpv[sel] = np.exp(-np.square(np.divide(r[sel] - (hp - hpd*0.5), hpd*0.5)))
         hpv[hpv<thresh] = 0
         hpv = 1 - hpv
 
         filter = np.multiply(lpv, hpv)
-        print("FILTER SHAPE: ", filter.shape)
 
         t2 = time.time()
 
         fft_data = fft.fft2(original_data)  # Wierd to use fft2 and not fftn but seems to work and is much quicker
-        print("FFT DATA SHAPE: ", fft_data.shape)
         filtered_data = np.array(fft.ifft2(np.multiply(fft_data, fft.fftshift(filter))), dtype=np.float32)
-        print("MAX FREQUIENCY: ", np.amax(r))
-        print("FILTERED DATA SHAPE: ", filtered_data.shape)
         t3 = time.time()
 
         self.create_tomo_from_array(filtered_data, "Filtered " + self.data.name)
@@ -181,7 +192,7 @@ class Tomogram(VolumePlus):
         original_data = self.data.matrix()
         running_average_data = ndimage.convolve(original_data, conv_matrix)
 
-        self.create_tomo_from_array(running_average_data, "Processed " + self.data.name)
+        self.create_tomo_from_array(running_average_data, "Averaged over " + str(num_slabs) + " slabs with axis " + str(axis) + " " + self.data.name)
 
     def create_tomo_from_array(self, array, name):
         from chimerax.map_data import ArrayGridData
