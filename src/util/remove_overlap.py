@@ -25,6 +25,35 @@ def calc_overlap(scm, p1, p2):
 
 
 
+def monte_carlo_approach(pl):
+    ps = [pl.get_particle(cid) for cid in pl.particle_ids]
+    rng = np.random.default_rng()
+    scm = pl.collection_model.collections['surfaces']
+
+    # Kind of unnecessary but maybe small speedup
+    surface_bounds = pl.display_model.get(0).surfaces[0].geometry_bounds()
+    bounds_size = surface_bounds.size()
+    bbox_vol = bounds_size[0]*bounds_size[1]*bounds_size[2]
+
+    num_total_pts = 1000
+    for i, p in enumerate(ps[:-1]):
+        # Generate points in the bounding box of p here
+        xyz_min, xyz_max = surface_bounds.xyz_min + p.coord, surface_bounds.xyz_max + p.coord
+        lens = xyz_max - xyz_min
+        random_pts = [[rng.random()*lens[0] + xyz_min[0], rng.random()*lens[1] + xyz_min[1], rng.random()*lens[2] + xyz_min[2]] for i in range(num_total_pts)]
+
+        # then figure out which points are inside p
+
+
+        for other_p in ps[i+1:]:
+            # Figure out which of those points are also in other_p
+
+
+            overlap_vol = bbox_vol * num_pts_inside_both/num_total_pts
+
+
+
+
 
 
 
