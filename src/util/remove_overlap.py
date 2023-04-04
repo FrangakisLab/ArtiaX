@@ -1,3 +1,5 @@
+import math
+
 from chimerax.surface._surface import enclosed_volume
 import numpy as np
 from chimerax.geometry._geometry import closest_triangle_intercept
@@ -24,36 +26,94 @@ def calc_overlap(scm, p1, p2):
             v1s_in_v2[i] = True
 
 
-
-def monte_carlo_approach(pl):
+def calculate_overlap(pl, num_total_pts, method='monte carlo'):
+    import time
     ps = [pl.get_particle(cid) for cid in pl.particle_ids]
-    rng = np.random.default_rng()
     scm = pl.collection_model.collections['surfaces']
+    vertices, triangles = scm.vertices, scm.triangles
 
     # Kind of unnecessary but maybe small speedup
     surface_bounds = pl.display_model.get(0).surfaces[0].geometry_bounds()
     bounds_size = surface_bounds.size()
-    bbox_vol = bounds_size[0]*bounds_size[1]*bounds_size[2]
+    bbox_vol = bounds_size[0] * bounds_size[1] * bounds_size[2]
+    if method == 'monte carlo':
+        generate_pts = generate_random_pts
+    elif method == 'poisson':
+        generate_pts = generate_poisson_disc_pts
+    elif method == 'regular grid':
+        generate_pts = generate_regular_grid_pts
+    else:
+        print("UNKNOWN METHOD")
+        return
 
-    num_total_pts = 1000
     for i, p in enumerate(ps[:-1]):
         # Generate points in the bounding box of p here
-        xyz_min, xyz_max = surface_bounds.xyz_min + p.coord, surface_bounds.xyz_max + p.coord
-        lens = xyz_max - xyz_min
-        random_pts = [[rng.random()*lens[0] + xyz_min[0], rng.random()*lens[1] + xyz_min[1], rng.random()*lens[2] + xyz_min[2]] for i in range(num_total_pts)]
-
-        # then figure out which points are inside p
-
-
-        for other_p in ps[i+1:]:
+        t0 = time.time()
+        xyz_min, xyz_max = np.array(surface_bounds.xyz_min + p.coord), np.array(surface_bounds.xyz_max + p.coord)
+        pts = generate_pts(num_total_pts, xyz_min, xyz_max)
+        print("NUM PTS: ", len(pts))
+        p_verts = vertices + p.coord
+        t1 = time.time()
+        pts_in_p1 = [pt for pt in pts if is_point_in_surface(pt, p_verts, triangles, xyz_min, xyz_max)]
+        print("ESTIMATED SIZE OF P: ", bbox_vol * len(pts_in_p1)/len(pts))
+        t2 = time.time()
+        print("NUM PTS IN P", len(pts_in_p1))
+        for other_p in ps[i + 1:]:
             # Figure out which of those points are also in other_p
+            p_verts = vertices + other_p.coord
+            pts_in_both = [pt for pt in pts_in_p1 if is_point_in_surface(pt, p_verts, triangles, xyz_min, xyz_max)]
+            print("NUM PTS IN BOTH", len(pts_in_both))
+
+            overlap_vol = bbox_vol * len(pts_in_both) / len(pts)
+            print("OVERLAP BETWEEN: ", p, other_p, overlap_vol)
+        t3 = time.time()
+        print("Time taken to generate points: ", t1 - t0)
+        print("Time taken to figure out the number of points in p1: ", t2 - t1)
+        print("Time taken to figure out the number of points in all other particles: ", t3 - t2)
+        print("Time taken in total: ", t3 - t0)
 
 
-            overlap_vol = bbox_vol * num_pts_inside_both/num_total_pts
+def generate_random_pts(num_total_pts, xyz_min, xyz_max):
+    rng = np.random.default_rng()
+    lens = xyz_max - xyz_min
+    return np.array([[rng.random() * lens[0] + xyz_min[0], rng.random() * lens[1] + xyz_min[1], rng.random() * lens[2] + xyz_min[2]]
+                    for i in range(num_total_pts)])
+
+def generate_poisson_disc_pts(num_total_pts, xyz_min, xyz_max):
+    from scipy.stats import qmc
+    radius = 1./int(round(num_total_pts ** (1./3)))
+    engine = qmc.PoissonDisk(d=3, radius=radius, ncandidates=10)  # 10 seems to be a good number... might have to look at that again
+    samples = engine.fill_space()
+    return samples * (xyz_max-xyz_min) + xyz_min
 
 
+def generate_regular_grid_pts(num_total_pts, xyz_min, xyz_max):
+    num_pts_per_axis = int(round(num_total_pts ** (1./3)))
+    zz, yy, xx = np.meshgrid(np.linspace(xyz_min[2], xyz_max[2], num_pts_per_axis),
+                             np.linspace(xyz_min[1], xyz_max[1], num_pts_per_axis),
+                             np.linspace(xyz_min[0], xyz_max[0], num_pts_per_axis), indexing='ij')
+    return np.stack((xx, yy, zz), axis=-1).reshape(num_pts_per_axis ** 3, 3)
 
 
+def is_point_in_surface(point, vertices, triangles, xyz_min, xyz_max):
+    closest_side = np.argmin(np.append(point-xyz_min, xyz_max-point))
+    end = point.copy()
+    end[closest_side % 3] = np.append(xyz_min, xyz_max)[closest_side]
+
+    dist_to_end = end - point
+    fraction_of_distance, tnum = closest_triangle_intercept(vertices, triangles, point, end)
+    start = point
+    intercepts = 0
+    margin = 1.001
+    while fraction_of_distance is not None:
+        intercepts += 1
+        if intercepts > 100:
+            print("TOO MANY INTERSEPTS")
+            return False
+        start = start + fraction_of_distance*dist_to_end*margin
+        dist_to_end = end - start
+        fraction_of_distance, tnum = closest_triangle_intercept(vertices, triangles, start, end)
+    return bool(intercepts % 2)
 
 
 
