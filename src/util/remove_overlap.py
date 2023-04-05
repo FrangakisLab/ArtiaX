@@ -1,32 +1,54 @@
 import math
-
+from chimerax.geometry._geometry import closest_triangle_intercept
+from itertools import repeat
 from chimerax.surface._surface import enclosed_volume
 import numpy as np
-from chimerax.geometry._geometry import closest_triangle_intercept
 
 
-def calc_overlap(scm, p1, p2):
-    # Returns the enclosed volume
+# def calc_overlap(scm, p1, p2):
+#     # Returns the enclosed volume
+#
+#     # Get all vertices that are in the other particle
+#     p1_origin = p1.full_transform().origin()
+#     p2_origin = p2.full_transform().origin()
+#     vs1, ts = scm.vertices + p1_origin, scm.triangles
+#     vs2 = scm.vertices + p2_origin
+#
+#     bounds = scm.bounds()
+#     p2_bounds = bounds.xyz_min + p2_origin, bounds.xyz_max + p2_origin
+#     p2_size = p2_bounds[1] - p2_bounds[0]
+#     v1s_in_v2 = [False]*len(vs1)
+#     for i, v in enumerate(vs1):
+#         from_v_to_o = p1_origin - v  # normalize too
+#         end = v + from_v_to_o*max(p2_size)
+#         dist, tnum = closest_triangle_intercept(vs2, ts, v, end)
+#         if dist is None:
+#             v1s_in_v2[i] = True
 
-    # Get all vertices that are in the other particle
-    p1_origin = p1.full_transform().origin()
-    p2_origin = p2.full_transform().origin()
-    vs1, ts = scm.vertices + p1_origin, scm.triangles
-    vs2 = scm.vertices + p2_origin
+def calculate_overlap_between_particles(particles):
+    # Some quick experimentation showed that these parameters seem to work very well. Decrease the 500 to increase speed but decrease accuracy
+    generate_pts = generate_poisson_disc_pts
+    def num_pts(bbox_vol):
+        return bbox_vol*500.0/5288804
 
-    bounds = scm.bounds()
-    p2_bounds = bounds.xyz_min + p2_origin, bounds.xyz_max + p2_origin
-    p2_size = p2_bounds[1] - p2_bounds[0]
-    v1s_in_v2 = [False]*len(vs1)
-    for i, v in enumerate(vs1):
-        from_v_to_o = p1_origin - v  # normalize too
-        end = v + from_v_to_o*max(p2_size)
-        dist, tnum = closest_triangle_intercept(vs2, ts, v, end)
-        if dist is None:
-            v1s_in_v2[i] = True
+    # maybe particles can be (p, pl)? or particles[pl] = [p0,p1,p2,...]
+    for pl in particles.keys():
+        #get all the scm stuff here, maybe create another dict with scms[pl] = (bbox_volume, xyz_min, ...)
+        pass
+
+    for pl, ps in particles.values:
+        # And here do all the actual overlap stuff
+        # I guess store and return all overlap in a huge upper triangular matrix with size nxn where n=num_ps?
+        # Or maybe just return a dict with overlap[p] = total_overlap? wait that doesnt make sense. do above thing!
+        pass
+
+    for p in particles:
+        pass
+        #scm = ?
+        #pts = generate_pts(num_pts(bbox_vol), xyz_min, xyz_max)
 
 
-def calculate_overlap(pl, num_total_pts, method='monte carlo'):
+def calculate_overlap_in_particle_list(pl, num_total_pts, method='monte carlo'):
     import time
     ps = [pl.get_particle(cid) for cid in pl.particle_ids]
     scm = pl.collection_model.collections['surfaces']
@@ -54,14 +76,16 @@ def calculate_overlap(pl, num_total_pts, method='monte carlo'):
         print("NUM PTS: ", len(pts))
         p_verts = vertices + p.coord
         t1 = time.time()
-        pts_in_p1 = [pt for pt in pts if is_point_in_surface(pt, p_verts, triangles, xyz_min, xyz_max)]
+        #pts_in_p1 = [pt for pt in pts if is_point_in_surface(pt, p_verts, triangles, xyz_min, xyz_max)]
+        pts_in_p1 = filter_points_inside(pts, p_verts, triangles, xyz_min, xyz_max)  # a little bit faster
         print("ESTIMATED SIZE OF P: ", bbox_vol * len(pts_in_p1)/len(pts))
         t2 = time.time()
         print("NUM PTS IN P", len(pts_in_p1))
         for other_p in ps[i + 1:]:
             # Figure out which of those points are also in other_p
             p_verts = vertices + other_p.coord
-            pts_in_both = [pt for pt in pts_in_p1 if is_point_in_surface(pt, p_verts, triangles, xyz_min, xyz_max)]
+            #pts_in_both = [pt for pt in pts_in_p1 if is_point_in_surface(pt, p_verts, triangles, xyz_min, xyz_max)]
+            pts_in_both = filter_points_inside(pts_in_p1, p_verts, triangles, xyz_min, xyz_max)
             print("NUM PTS IN BOTH", len(pts_in_both))
 
             overlap_vol = bbox_vol * len(pts_in_both) / len(pts)
@@ -82,6 +106,7 @@ def generate_random_pts(num_total_pts, xyz_min, xyz_max):
 def generate_poisson_disc_pts(num_total_pts, xyz_min, xyz_max):
     from scipy.stats import qmc
     radius = 1./int(round(num_total_pts ** (1./3)))
+    #radius = 0.5/int(round(num_total_pts ** (1./3)))
     engine = qmc.PoissonDisk(d=3, radius=radius, ncandidates=10)  # 10 seems to be a good number... might have to look at that again
     samples = engine.fill_space()
     return samples * (xyz_max-xyz_min) + xyz_min
@@ -96,25 +121,75 @@ def generate_regular_grid_pts(num_total_pts, xyz_min, xyz_max):
 
 
 def is_point_in_surface(point, vertices, triangles, xyz_min, xyz_max):
+    # NOT USED, but a nice example of how to find out if only one point is inside a surface
     closest_side = np.argmin(np.append(point-xyz_min, xyz_max-point))
     end = point.copy()
     end[closest_side % 3] = np.append(xyz_min, xyz_max)[closest_side]
 
+    cti = closest_triangle_intercept
+    fraction_of_distance, tnum = cti(vertices, triangles, point, end)
+
     dist_to_end = end - point
-    fraction_of_distance, tnum = closest_triangle_intercept(vertices, triangles, point, end)
     start = point
     intercepts = 0
     margin = 1.001
     while fraction_of_distance is not None:
         intercepts += 1
-        if intercepts > 100:
+        if intercepts > 1000:
             print("TOO MANY INTERSEPTS")
             return False
-        start = start + fraction_of_distance*dist_to_end*margin
+        start = start + fraction_of_distance*margin*dist_to_end
         dist_to_end = end - start
-        fraction_of_distance, tnum = closest_triangle_intercept(vertices, triangles, start, end)
+        fraction_of_distance, tnum = cti(vertices, triangles, start, end)
     return bool(intercepts % 2)
 
+
+def filter_points_inside(points, vertices, triangles, xyz_min, xyz_max):
+    cti = closest_triangle_intercept
+    #rpt = repeat
+
+    closest_sides = np.argmin(np.append(points - xyz_min, xyz_max - points, axis=1), axis=1)  # and allies and allies
+    ends = points.copy()
+    ends[range(ends.shape[0]), closest_sides % 3] = np.append(xyz_min, xyz_max)[closest_sides]
+
+    intercepts = np.zeros(len(points), dtype=bool)
+    margin = 1.001
+    dists_to_end = ends - points
+    for point, end, dist_to_end, i in zip(points, ends, dists_to_end, range(len(intercepts))):
+        fraction_of_distance, tnum = cti(vertices, triangles, point, end)
+        start = point
+        intercept = 0
+        while fraction_of_distance is not None:
+            intercept += 1
+            if intercept > 1000:
+                print("TOO MANY INTERSEPTS")
+                return False
+            start = start + fraction_of_distance * margin * dist_to_end
+            dist_to_end = end - start
+            fraction_of_distance, tnum = cti(vertices, triangles, start, end)
+        intercepts[i] = bool(intercept % 2)
+
+    # margin = 1.001
+    # for i, outputs in enumerate(map(cti, rpt(vertices), rpt(triangles), points, ends)):
+    #     fraction_of_distance = outputs[0]
+    #     if fraction_of_distance is None:
+    #         intercepts[i] = False
+    #     else:
+    #         intercept = 0
+    #         start = points[i]
+    #         end = ends[i]
+    #         dist_to_end = end - start
+    #         while fraction_of_distance is not None:
+    #             intercept += 1
+    #             if intercept > 1000:
+    #                 print("TOO MANY INTERSEPTS")
+    #                 return False
+    #             start = start + fraction_of_distance * margin * dist_to_end
+    #             dist_to_end = end - start
+    #             fraction_of_distance, tnum = cti(vertices, triangles, start, end)
+    #         intercepts[i] = bool(intercept % 2)
+
+    return points[intercepts]
 
 
 
