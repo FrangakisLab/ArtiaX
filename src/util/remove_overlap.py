@@ -25,11 +25,70 @@ import numpy as np
 #         if dist is None:
 #             v1s_in_v2[i] = True
 
-def calculate_overlap_between_particles(particles):
+def remove_overlap(particles): #particles might be selected ones or a selected pl
+    calculate_overlap = calculate_overlap_point_volume
+
+    particle_overlaps = calculate_overlap(particles)  # Can use different functions here and see which is the best
+    while particle_overlaps.any():
+        # move all the particles away from each other
+        particle_overlaps = calculate_overlap(particles)
+
+
+
+
+
+def calculate_overlap_point_volume(particles, scms, bounds):
+    # return a matrix with the overlap between all particle pairs. particles is a list of all particles to calculate overlap for, scms is a dict with the particles as keys and scms as values
+
     # Some quick experimentation showed that these parameters seem to work very well. Decrease the 500 to increase speed but decrease accuracy
     generate_pts = generate_poisson_disc_pts
     def num_pts(bbox_vol):
         return bbox_vol*500.0/5288804
+
+    # Figure out which particles overlap each other and create an ordered list with the particles to generate points for
+    overlaps = {p: [] for p in particles}
+    overlaps_list = [[] for i in range(len(particles))]
+    for i, p in enumerate(particles[:-1]):
+        bounds_p = bounds[p]
+        xyz_min_p, xyz_max_p = np.array(bounds_p.xyz_min + p.coord), np.array(bounds_p.xyz_max + p.coord)
+
+        for other_p in particles[i+1:]:
+            bounds_other_p = bounds[other_p]
+            xyz_min_other_p, xyz_max_other_p = np.array(bounds_other_p.xyz_min + other_p.coord), np.array(bounds_other_p.xyz_max + other_p.coord)
+            if (xyz_min_p <= xyz_max_other_p).all() and (xyz_max_p >= xyz_min_other_p).all():
+                overlaps[p].append(other_p)
+                overlaps[other_p].append(p)
+
+    ordered_particles = []
+    while len(max(overlaps_list, key=len)):
+        particle_most_overlaps_index = np.argmin(list(map(len, overlaps_list)))
+        particle_most_overlaps = particles[particle_most_overlaps_index]
+        ordered_particles.append(particle_most_overlaps)
+        overlaps_list[particle_most_overlaps_index] = []
+        overlaps_list = [[p for p in particle_list if p != particle_most_overlaps] for particle_list in overlaps_list]
+
+    overlap_matrix = np.zeros((len(particles), len(particles)))
+    for i, p in enumerate(ordered_particles):
+        p_index = particles.index(p)
+        bounds_p = bounds[p]
+        bounds_size = bounds_p.size()
+        bbox_vol = bounds_size[0] * bounds_size[1] * bounds_size[2]
+        xyz_min, xyz_max = np.array(bounds_p.xyz_min + p.coord), np.array(bounds_p.xyz_max + p.coord)
+        pts = generate_pts(num_pts(bbox_vol), xyz_min, xyz_max)
+        scm = scms[p]
+        p_verts = scm.vertices + p.coord
+        pts_in_p1 = filter_points_inside(pts, p_verts, scm.triangles, xyz_min, xyz_max)
+
+        overlapping_particles = [other_p for other_p in overlaps[p] if other_p not in ordered_particles[:i]]
+        for other_p in overlapping_particles:
+            other_p_index = particles.index(other_p)
+            scm = scms[other_p]
+            p_verts = scm.vertices + other_p.coord
+            pts_in_both = filter_points_inside(pts_in_p1, p_verts, scm.triangles, xyz_min, xyz_max)
+            overlap_vol = bbox_vol * len(pts_in_both) / len(pts)
+            overlap_matrix[p_index][other_p_index] = overlap_vol
+
+
 
     # maybe particles can be (p, pl)? or particles[pl] = [p0,p1,p2,...]
     for pl in particles.keys():
