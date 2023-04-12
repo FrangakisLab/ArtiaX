@@ -3,6 +3,7 @@ from chimerax.geometry._geometry import closest_triangle_intercept
 from itertools import repeat
 from chimerax.surface._surface import enclosed_volume
 import numpy as np
+import time
 
 
 # def calc_overlap(scm, p1, p2):
@@ -25,49 +26,70 @@ import numpy as np
 #         if dist is None:
 #             v1s_in_v2[i] = True
 
-def remove_overlap(particles): #particles might be selected ones or a selected pl
+def remove_overlap(session, particles, pls, scms, bounds):  # particles might be selected ones or a selected pl
     calculate_overlap = calculate_overlap_point_volume
 
-    particle_overlaps = calculate_overlap(particles)  # Can use different functions here and see which is the best
-    while particle_overlaps.any():
+
+    movements = calculate_overlap(particles, scms, bounds)  # Can use different functions here and see which is the best
+    while movements.any():
         # move all the particles away from each other
-        particle_overlaps = calculate_overlap(particles)
-
-
+        t0 = time.time()
+        for move, p in zip(movements, particles):
+            p.origin_coord = np.asarray(p.origin_coord) + move
+        for pl in pls:
+            pl.update_places()
+        session.update_loop.draw_new_frame()
+        t1 = time.time()
+        movements = calculate_overlap(particles, scms, bounds)
+        t2 = time.time()
+        print("Time to move particles: ", t1-t0)
+        print("Time to calculate movements: ", t2-t1)
+        print("Time for a full cycle: ", t2-t0)
+        print()
+    # for move, p in zip(movements, particles):
+    #     p.origin_coord = np.asarray(p.origin_coord) + move
+    # for pl in pls:
+    #     pl.update_places()
 
 
 
 def calculate_overlap_point_volume(particles, scms, bounds):
-    # return a matrix with the overlap between all particle pairs. particles is a list of all particles to calculate overlap for, scms is a dict with the particles as keys and scms as values
+    # return a dictionary with . particles is a list of all particles to calculate overlap for, scms and bounds are dicts with the particles as keys and scms/bounds as values.
 
     # Some quick experimentation showed that these parameters seem to work very well. Decrease the 500 to increase speed but decrease accuracy
     generate_pts = generate_poisson_disc_pts
+
     def num_pts(bbox_vol):
-        return bbox_vol*500.0/5288804
+        return bbox_vol*100.0/5288804
 
     # Figure out which particles overlap each other and create an ordered list with the particles to generate points for
+    t0 = time.time()
     overlaps = {p: [] for p in particles}
     overlaps_list = [[] for i in range(len(particles))]
     for i, p in enumerate(particles[:-1]):
         bounds_p = bounds[p]
         xyz_min_p, xyz_max_p = np.array(bounds_p.xyz_min + p.coord), np.array(bounds_p.xyz_max + p.coord)
-
-        for other_p in particles[i+1:]:
+        for j, other_p in enumerate(particles[i+1:]):
             bounds_other_p = bounds[other_p]
             xyz_min_other_p, xyz_max_other_p = np.array(bounds_other_p.xyz_min + other_p.coord), np.array(bounds_other_p.xyz_max + other_p.coord)
             if (xyz_min_p <= xyz_max_other_p).all() and (xyz_max_p >= xyz_min_other_p).all():
                 overlaps[p].append(other_p)
                 overlaps[other_p].append(p)
+                overlaps_list[i].append(other_p)
+                overlaps_list[j].append(p)
+    t1 = time.time()
 
     ordered_particles = []
     while len(max(overlaps_list, key=len)):
-        particle_most_overlaps_index = np.argmin(list(map(len, overlaps_list)))
+        particle_most_overlaps_index = np.argmax(list(map(len, overlaps_list)))
         particle_most_overlaps = particles[particle_most_overlaps_index]
         ordered_particles.append(particle_most_overlaps)
         overlaps_list[particle_most_overlaps_index] = []
         overlaps_list = [[p for p in particle_list if p != particle_most_overlaps] for particle_list in overlaps_list]
+    t2 = time.time()
 
-    overlap_matrix = np.zeros((len(particles), len(particles)))
+    # Go through all particles that overlap and calculate the amount they overlap.
+    movements = np.zeros((len(particles), 3))
     for i, p in enumerate(ordered_particles):
         p_index = particles.index(p)
         bounds_p = bounds[p]
@@ -86,25 +108,18 @@ def calculate_overlap_point_volume(particles, scms, bounds):
             p_verts = scm.vertices + other_p.coord
             pts_in_both = filter_points_inside(pts_in_p1, p_verts, scm.triangles, xyz_min, xyz_max)
             overlap_vol = bbox_vol * len(pts_in_both) / len(pts)
-            overlap_matrix[p_index][other_p_index] = overlap_vol
 
+            movement_direction = np.asarray(p.coord) - other_p.coord
+            movement_direction = movement_direction/np.linalg.norm(movement_direction)
+            move_dist = (overlap_vol ** (1/3))/3
+            movements[p_index] += movement_direction * move_dist
+            movements[other_p_index] -= movement_direction * move_dist
+    t3 = time.time()
 
-
-    # maybe particles can be (p, pl)? or particles[pl] = [p0,p1,p2,...]
-    for pl in particles.keys():
-        #get all the scm stuff here, maybe create another dict with scms[pl] = (bbox_volume, xyz_min, ...)
-        pass
-
-    for pl, ps in particles.values:
-        # And here do all the actual overlap stuff
-        # I guess store and return all overlap in a huge upper triangular matrix with size nxn where n=num_ps?
-        # Or maybe just return a dict with overlap[p] = total_overlap? wait that doesnt make sense. do above thing!
-        pass
-
-    for p in particles:
-        pass
-        #scm = ?
-        #pts = generate_pts(num_pts(bbox_vol), xyz_min, xyz_max)
+    print("Time to get all the overlaps: ", t1-t0)
+    print("Time to create the ordered pareticles list: ", t2-t1)
+    print("Time to calculate all of the overlaps: ", t3-t2)
+    return movements
 
 
 def calculate_overlap_in_particle_list(pl, num_total_pts, method='monte carlo'):
@@ -252,7 +267,7 @@ def filter_points_inside(points, vertices, triangles, xyz_min, xyz_max):
 
 
 
-def remove_overlap(session, pl):
+def remove_overlap_OLD(session, pl):
     from chimerax.mask.depthmask import masked_volume
     ps = [pl.get_particle(cid) for cid in pl.particle_ids]
     overlap_volume = np.zeros((len(ps), len(ps)))

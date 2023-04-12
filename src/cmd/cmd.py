@@ -335,6 +335,34 @@ def artiax_move_camera_along_line(session, model, numFrames=None, backwards=Fals
     model.move_camera_along_line(False, numFrames, backwards, distanceBehind, topRotation, facingRotation)
 
 
+def artiax_remove_overlap(session):
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running.")
+        return
+
+    particles = []
+    pls = []
+    scms = dict()
+    bounds = dict()
+    for pl in session.ArtiaX.partlists.child_models():
+        if not pl.has_display_model():
+            continue
+        scm = pl.collection_model.collections['surfaces']
+        bound = pl.display_model.get(0).surfaces[0].geometry_bounds()
+        particle_list_used = False
+        for curr_id in pl.particle_ids[pl.selected_particles]:
+            if curr_id:
+                particle_list_used = True
+                p = pl.get_particle(curr_id)
+                particles.append(p)
+                scms[p] = scm
+                bounds[p] = bound
+        if particle_list_used:
+            pls.append(pl)
+
+    from ..util.remove_overlap import remove_overlap
+    remove_overlap(session, particles, pls, scms, bounds)
+
 def artiax_lock(session, models=None, type=None):
     # No ArtiaX
     if not hasattr(session, 'ArtiaX'):
@@ -928,6 +956,12 @@ def register_artiax(logger):
         )
         register('artiax moveCameraAlongLine', desc, artiax_move_camera_along_line)
 
+    def register_artiax_remove_overlap():
+        desc = CmdDesc(
+            synopsis='Moves the camera along the specified line.'
+        )
+        register('artiax remove overlap', desc, artiax_remove_overlap)
+
     def register_artiax_lock():
         desc = CmdDesc(
             optional=[("models", Or(ModelsArg, EmptyArg)),
@@ -1030,6 +1064,7 @@ def register_artiax(logger):
     register_artiax_flip()
     register_artiax_geomodel_color()
     register_artiax_move_camera_along_line()
+    register_artiax_remove_overlap()
     register_artiax_tomo()
     register_artiax_colormap()
     register_artiax_label()
