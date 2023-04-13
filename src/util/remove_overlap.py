@@ -26,11 +26,35 @@ import time
 #         if dist is None:
 #             v1s_in_v2[i] = True
 
-def remove_overlap(session, particles, pls, scms, bounds):  # particles might be selected ones or a selected pl
+
+def calculate_distance_inside(pl):
+    from chimerax.geometry._geometry import find_close_points, find_closest_points
+
+    ps = [pl.get_particle(cid) for cid in pl.particle_ids]
+    scm = pl.collection_model.collections['surfaces']
+    vertices, triangles = scm.vertices, scm.triangles
+    v0 = vertices + ps[0].coord
+    v1 = vertices + ps[1].coord
+
+    close_points_indicies = find_close_points(v0, v1, 1)
+    v0_close, v1_close = v0[close_points_indicies[0]], v1[close_points_indicies[1]]
+    all_close = np.vstack((v0_close, v1_close))
+
+    middle = all_close.mean(0)
+    svd = np.linalg.svd(all_close - middle)
+    normal = svd[2][2, :]
+
+    p0_to_middle = middle - np.array(ps[0].coord)
+    # now find all v0_close on the right side of the plane defined by normal and middle and do the same for v1_close
+
+
+
+
+def remove_overlap(session, particles, pls, scms, bounds, num_points=100, move_factor=0.33):  # particles might be selected ones or a selected pl
     calculate_overlap = calculate_overlap_point_volume
 
 
-    movements = calculate_overlap(particles, scms, bounds)  # Can use different functions here and see which is the best
+    movements = calculate_overlap(particles, scms, bounds, num_points, move_factor)  # Can use different functions here and see which is the best
     while movements.any():
         # move all the particles away from each other
         t0 = time.time()
@@ -40,7 +64,7 @@ def remove_overlap(session, particles, pls, scms, bounds):  # particles might be
             pl.update_places()
         session.update_loop.draw_new_frame()
         t1 = time.time()
-        movements = calculate_overlap(particles, scms, bounds)
+        movements = calculate_overlap(particles, scms, bounds, num_points, move_factor)
         t2 = time.time()
         print("Time to move particles: ", t1-t0)
         print("Time to calculate movements: ", t2-t1)
@@ -53,14 +77,14 @@ def remove_overlap(session, particles, pls, scms, bounds):  # particles might be
 
 
 
-def calculate_overlap_point_volume(particles, scms, bounds):
+def calculate_overlap_point_volume(particles, scms, bounds, num_points=100, move_factor=0.33):
     # return a dictionary with . particles is a list of all particles to calculate overlap for, scms and bounds are dicts with the particles as keys and scms/bounds as values.
 
     # Some quick experimentation showed that these parameters seem to work very well. Decrease the 500 to increase speed but decrease accuracy
     generate_pts = generate_poisson_disc_pts
 
-    def num_pts(bbox_vol):
-        return bbox_vol*100.0/5288804
+    # def num_pts(bbox_vol):
+        # return bbox_vol*100.0/5288804
 
     # Figure out which particles overlap each other and create an ordered list with the particles to generate points for
     t0 = time.time()
@@ -96,7 +120,7 @@ def calculate_overlap_point_volume(particles, scms, bounds):
         bounds_size = bounds_p.size()
         bbox_vol = bounds_size[0] * bounds_size[1] * bounds_size[2]
         xyz_min, xyz_max = np.array(bounds_p.xyz_min + p.coord), np.array(bounds_p.xyz_max + p.coord)
-        pts = generate_pts(num_pts(bbox_vol), xyz_min, xyz_max)
+        pts = generate_pts(num_points, xyz_min, xyz_max)
         scm = scms[p]
         p_verts = scm.vertices + p.coord
         pts_in_p1 = filter_points_inside(pts, p_verts, scm.triangles, xyz_min, xyz_max)
@@ -111,7 +135,7 @@ def calculate_overlap_point_volume(particles, scms, bounds):
 
             movement_direction = np.asarray(p.coord) - other_p.coord
             movement_direction = movement_direction/np.linalg.norm(movement_direction)
-            move_dist = (overlap_vol ** (1/3))/3
+            move_dist = (overlap_vol ** (1/3))*move_factor
             movements[p_index] += movement_direction * move_dist
             movements[other_p_index] -= movement_direction * move_dist
     t3 = time.time()
@@ -147,7 +171,6 @@ def calculate_overlap_in_particle_list(pl, num_total_pts, method='monte carlo'):
         t0 = time.time()
         xyz_min, xyz_max = np.array(surface_bounds.xyz_min + p.coord), np.array(surface_bounds.xyz_max + p.coord)
         pts = generate_pts(num_total_pts, xyz_min, xyz_max)
-        print("NUM PTS: ", len(pts))
         p_verts = vertices + p.coord
         t1 = time.time()
         #pts_in_p1 = [pt for pt in pts if is_point_in_surface(pt, p_verts, triangles, xyz_min, xyz_max)]
