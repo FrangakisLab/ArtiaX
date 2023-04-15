@@ -45,9 +45,21 @@ def calculate_distance_inside(pl):
     normal = svd[2][2, :]
 
     p0_to_middle = middle - np.array(ps[0].coord)
-    # now find all v0_close on the right side of the plane defined by normal and middle and do the same for v1_close
+    if normal.dot(p0_to_middle) < 0:
+        normal = -normal
+    v0_in_v1_depth = find_depth_of_pts_from_plane(v0, middle, normal)
+    v1_in_v0_depth = find_depth_of_pts_from_plane(v1, middle, -normal)
+    move_dist = v0_in_v1_depth + v1_in_v0_depth
 
-
+def find_depth_of_pts_from_plane(pts, middle, normal):
+    # Returns distance from the plane to the point furthest away from the plane on the side the normal points to.
+    normal = np.asarray(normal)
+    pts = np.asarray(pts)
+    offset = np.dot(normal, middle)
+    pts_on_right_side = pts[np.dot(pts, normal) > offset]
+    projected_to_normal = [normal * np.dot(normal, pt) for pt in pts_on_right_side]
+    lengths = [np.linalg.norm(pt) for pt in projected_to_normal]
+    return max(lengths) / np.dot(normal, normal)
 
 
 def remove_overlap(session, particles, pls, scms, bounds, num_points=100, move_factor=0.33):  # particles might be selected ones or a selected pl
