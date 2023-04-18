@@ -27,46 +27,12 @@ import time
 #             v1s_in_v2[i] = True
 
 
-def calculate_distance_inside(pl):
-    from chimerax.geometry._geometry import find_close_points, find_closest_points
 
-    ps = [pl.get_particle(cid) for cid in pl.particle_ids]
-    scm = pl.collection_model.collections['surfaces']
-    vertices, triangles = scm.vertices, scm.triangles
-    v0 = vertices + ps[0].coord
-    v1 = vertices + ps[1].coord
-
-    close_points_indicies = find_close_points(v0, v1, 1)
-    v0_close, v1_close = v0[close_points_indicies[0]], v1[close_points_indicies[1]]
-    all_close = np.vstack((v0_close, v1_close))
-
-    middle = all_close.mean(0)
-    svd = np.linalg.svd(all_close - middle)
-    normal = svd[2][2, :]
-
-    p0_to_middle = middle - np.array(ps[0].coord)
-    if normal.dot(p0_to_middle) < 0:
-        normal = -normal
-    v0_in_v1_depth = find_depth_of_pts_from_plane(v0, middle, normal)
-    v1_in_v0_depth = find_depth_of_pts_from_plane(v1, middle, -normal)
-    move_dist = v0_in_v1_depth + v1_in_v0_depth
-
-def find_depth_of_pts_from_plane(pts, middle, normal):
-    # Returns distance from the plane to the point furthest away from the plane on the side the normal points to.
-    normal = np.asarray(normal)
-    pts = np.asarray(pts)
-    offset = np.dot(normal, middle)
-    pts_on_right_side = pts[np.dot(pts, normal) > offset]
-    projected_to_normal = [normal * np.dot(normal, pt) for pt in pts_on_right_side]
-    lengths = [np.linalg.norm(pt) for pt in projected_to_normal]
-    return max(lengths) / np.dot(normal, normal)
-
-
-def remove_overlap(session, particles, pls, scms, bounds, num_points=100, move_factor=0.33):  # particles might be selected ones or a selected pl
-    calculate_overlap = calculate_overlap_point_volume
-
-
-    movements = calculate_overlap(particles, scms, bounds, num_points, move_factor)  # Can use different functions here and see which is the best
+def remove_overlap(session, particles, pls, scms, bounds, num_points=100, move_factor=1):  # particles might be selected ones or a selected pl
+    # TODO: Create two different commands, one with the volume and one with the distance
+    #movements = calculate_overlap_point_volume(particles, scms, bounds, num_points, move_factor)  # Can use different functions here and see which is the best
+    tic = time.time()
+    movements = calculate_overlap_distance(particles, scms, bounds, move_factor)
     while movements.any():
         # move all the particles away from each other
         t0 = time.time()
@@ -76,17 +42,86 @@ def remove_overlap(session, particles, pls, scms, bounds, num_points=100, move_f
             pl.update_places()
         session.update_loop.draw_new_frame()
         t1 = time.time()
-        movements = calculate_overlap(particles, scms, bounds, num_points, move_factor)
+        #movements = calculate_overlap_point_volume(particles, scms, bounds, num_points, move_factor)
+        movements = calculate_overlap_distance(particles, scms, bounds, move_factor)
         t2 = time.time()
         print("Time to move particles: ", t1-t0)
         print("Time to calculate movements: ", t2-t1)
         print("Time for a full cycle: ", t2-t0)
         print()
-    # for move, p in zip(movements, particles):
-    #     p.origin_coord = np.asarray(p.origin_coord) + move
-    # for pl in pls:
-    #     pl.update_places()
+    print("Total time taken: ", time.time() - tic)
 
+
+def calculate_overlap_distance(particles, scms, bounds, move_factor=1):
+    from chimerax.geometry._geometry import find_close_points
+
+    overlaps = {p: [] for p in particles}
+    for i, p in enumerate(particles[:-1]):
+        bounds_p = bounds[p]
+        xyz_min_p, xyz_max_p = np.array(bounds_p.xyz_min + p.coord), np.array(bounds_p.xyz_max + p.coord)
+        for j, other_p in enumerate(particles[i + 1:]):
+            bounds_other_p = bounds[other_p]
+            xyz_min_other_p, xyz_max_other_p = np.array(bounds_other_p.xyz_min + other_p.coord), np.array(
+                bounds_other_p.xyz_max + other_p.coord)
+            if (xyz_min_p <= xyz_max_other_p).all() and (xyz_max_p >= xyz_min_other_p).all():
+                overlaps[p].append(other_p)
+                overlaps[other_p].append(p)
+
+    movements = np.zeros((len(particles), 3))
+    number_of_overlaps = np.zeros(len(particles))
+    for i, p in enumerate(particles[:-1]):
+        scm = scms[p]
+        p_verts = p.full_transform().transform_points(scm.vertices)
+        overlapping_particles = [other_p for other_p in overlaps[p] if other_p not in particles[:i]]
+        for other_p in overlapping_particles:
+            scm = scms[other_p]
+            other_p_verts = other_p.full_transform().transform_points(scm.vertices)
+            close_points_indicies = find_close_points(p_verts, other_p_verts, 1)
+            if not len(close_points_indicies[0]):
+                continue
+            all_close_points = np.vstack((p_verts[close_points_indicies[0]], other_p_verts[close_points_indicies[1]]))
+
+            middle = all_close_points.mean(0)
+            svd = np.linalg.svd(all_close_points - middle)
+            normal = svd[2][2, :]
+            normal = normal/np.linalg.norm(normal)
+
+            p_to_middle = middle - np.array(p.coord)
+            if normal.dot(p_to_middle) < 0:
+                normal = -normal
+
+            # IF you need to speed something up, its this next function that is the bottleneck
+            p_in_other_p_depth = find_depth_of_pts_from_plane(p_verts, middle, normal)
+            other_p_in_p_depth = find_depth_of_pts_from_plane(other_p_verts, middle, -normal)
+
+            movement_direction = -normal
+            move_dist = (p_in_other_p_depth + other_p_in_p_depth)/2 * move_factor
+            other_p_index = particles.index(other_p)
+            number_of_overlaps[i] += 1
+            number_of_overlaps[other_p_index] += 1
+            movements[i] += movement_direction * move_dist
+            movements[other_p_index] -= movement_direction * move_dist
+
+    for i in range(len(particles)):  # looks a little ugly but want to avoid division by 0
+        if number_of_overlaps[i]:
+            movements[i] = movements[i]/number_of_overlaps[i]
+    return movements
+
+
+def find_depth_of_pts_from_plane(pts, middle, normal):
+    # Returns distance from the plane to the point furthest away from the plane on the side the normal points to.
+    # Could maybe be faster?
+    normal = np.asarray(normal)/np.linalg.norm(normal)
+    pts = np.asarray(pts)
+    offset = np.dot(normal, middle)
+    pts_on_right_side = pts[np.dot(pts, normal) > offset]
+    if len(pts_on_right_side):
+        projected_to_normal = [normal * np.dot(normal, pt) for pt in pts_on_right_side]
+        middle_projected_onto_normal = normal * np.dot(normal, middle)
+        lengths = [np.linalg.norm(pt-middle_projected_onto_normal) for pt in projected_to_normal]
+        return max(lengths)
+    else:
+        return 0
 
 
 def calculate_overlap_point_volume(particles, scms, bounds, num_points=100, move_factor=0.33):
@@ -134,14 +169,16 @@ def calculate_overlap_point_volume(particles, scms, bounds, num_points=100, move
         xyz_min, xyz_max = np.array(bounds_p.xyz_min + p.coord), np.array(bounds_p.xyz_max + p.coord)
         pts = generate_pts(num_points, xyz_min, xyz_max)
         scm = scms[p]
-        p_verts = scm.vertices + p.coord
+        p_verts = p.full_transform().transform_points(scm.vertices)
+
         pts_in_p1 = filter_points_inside(pts, p_verts, scm.triangles, xyz_min, xyz_max)
 
         overlapping_particles = [other_p for other_p in overlaps[p] if other_p not in ordered_particles[:i]]
         for other_p in overlapping_particles:
             other_p_index = particles.index(other_p)
             scm = scms[other_p]
-            p_verts = scm.vertices + other_p.coord
+            p_verts = other_p.full_transform().transform_points(scm.vertices)
+
             pts_in_both = filter_points_inside(pts_in_p1, p_verts, scm.triangles, xyz_min, xyz_max)
             overlap_vol = bbox_vol * len(pts_in_both) / len(pts)
 
@@ -183,7 +220,8 @@ def calculate_overlap_in_particle_list(pl, num_total_pts, method='monte carlo'):
         t0 = time.time()
         xyz_min, xyz_max = np.array(surface_bounds.xyz_min + p.coord), np.array(surface_bounds.xyz_max + p.coord)
         pts = generate_pts(num_total_pts, xyz_min, xyz_max)
-        p_verts = vertices + p.coord
+        p_verts = p.full_transform().transform_points(vertices)
+
         t1 = time.time()
         #pts_in_p1 = [pt for pt in pts if is_point_in_surface(pt, p_verts, triangles, xyz_min, xyz_max)]
         pts_in_p1 = filter_points_inside(pts, p_verts, triangles, xyz_min, xyz_max)  # a little bit faster
@@ -192,7 +230,7 @@ def calculate_overlap_in_particle_list(pl, num_total_pts, method='monte carlo'):
         print("NUM PTS IN P", len(pts_in_p1))
         for other_p in ps[i + 1:]:
             # Figure out which of those points are also in other_p
-            p_verts = vertices + other_p.coord
+            p_verts = other_p.full_transform().transform_points(vertices)
             #pts_in_both = [pt for pt in pts_in_p1 if is_point_in_surface(pt, p_verts, triangles, xyz_min, xyz_max)]
             pts_in_both = filter_points_inside(pts_in_p1, p_verts, triangles, xyz_min, xyz_max)
             print("NUM PTS IN BOTH", len(pts_in_both))

@@ -365,15 +365,13 @@ def artiax_remove_overlap(session, model=None, thoroughness=100, precision=0.33)
     elif isinstance(model, ParticleList):
         pl = model
         if pl.has_display_model():
-            pls = [model]
+            pls = [pl]
             scm = pl.collection_model.collections['surfaces']
             bound = pl.display_model.get(0).surfaces[0].geometry_bounds()
             particles = [pl.get_particle(cid) for cid in pl.particle_ids]
             scms = {p: scm for p in particles}
             bounds = {p: bound for p in particles}
-
-
-    elif not isinstance(model, ParticleList):
+    else:
         raise errors.UserError(
             'artiax remove particles: Model #{} - "{}" is not a particle list.'.format(model.id_string,
                                                                                        model.name))
@@ -980,7 +978,7 @@ def register_artiax(logger):
 
     def register_artiax_remove_overlap():
         desc = CmdDesc(
-            optional=[("model", Or(ModelsArg, EmptyArg))],
+            optional=[("model", Or(ModelArg, EmptyArg))],
             keyword=[("thoroughness", IntArg),
                      ("precision", FloatArg)],
             synopsis='Moves the camera along the specified line.'
