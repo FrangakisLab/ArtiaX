@@ -85,10 +85,10 @@ class Boundary(GeoModel):
     def reorient_particles_to_surface(self, particles, max_dist=None):
         """Reorients particles so that they point away from the surface. The particles that are in vertices
         get pointed towards the vertex average normal, and particles not in vertices point along the normal
-        of the closest triangle. Ill be honest, this function is shit... its very hard to follow. Had to kinda throw it
+        of the closest triangle. Ill be honest, this function is shit... it's very hard to follow. Had to kinda throw it
         together in the end... Anyways it works by using the verts list, which is a list of all vertices, and
         vertex normals is a list with all normals for all the verts, with the index matching the verts.
-        Tge vertex_normal_indices[i] contains how many normals are associated with vert[i]. """
+        The vertex_normal_indices[i] contains how many normals are associated with vert[i]. """
         self.tri, verts, vertex_normals, vertex_normal_indices = get_triangles(self.particle_pos, self.alpha,
                                                                             calc_normals=True,
                                                                             delete_tri_list=self.delete_tri_list)

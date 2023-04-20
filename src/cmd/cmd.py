@@ -335,18 +335,18 @@ def artiax_move_camera_along_line(session, model, numFrames=None, backwards=Fals
     model.move_camera_along_line(False, numFrames, backwards, distanceBehind, topRotation, facingRotation)
 
 
-def artiax_remove_overlap(session, model=None, thoroughness=100, precision=0.33):
+def artiax_remove_overlap(session, models=None, manifold=None, boundary=None, method='distance', thoroughness=None, precision=None):
+    # TODO: Think about what happens when a particle is selected twice. Also log everything that happens
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running.")
         return
-    from ..particle import ParticleList
 
-    # No particle list given, use selected particles instead
+    from ..particle import ParticleList
     particles = []
-    if model is None:
-        pls = []
-        scms = dict()
-        bounds = dict()
+    pls = []
+    scms = dict()
+    bounds = dict()
+    if models is None:  # No particle list given, use selected particles instead
         for pl in session.ArtiaX.partlists.child_models():
             if not pl.has_display_model():
                 continue
@@ -362,26 +362,47 @@ def artiax_remove_overlap(session, model=None, thoroughness=100, precision=0.33)
                     bounds[p] = bound
             if particle_list_used:
                 pls.append(pl)
-    elif isinstance(model, ParticleList):
-        pl = model
-        if pl.has_display_model():
-            pls = [pl]
-            scm = pl.collection_model.collections['surfaces']
-            bound = pl.display_model.get(0).surfaces[0].geometry_bounds()
-            particles = [pl.get_particle(cid) for cid in pl.particle_ids]
-            scms = {p: scm for p in particles}
-            bounds = {p: bound for p in particles}
     else:
-        raise errors.UserError(
-            'artiax remove particles: Model #{} - "{}" is not a particle list.'.format(model.id_string,
+        print("MODELS: ", models)
+        for model in models:
+            if isinstance(model, ParticleList):
+                pl = model
+                if pl.has_display_model():
+                    pls.append(pl)
+                    scm = pl.collection_model.collections['surfaces']
+                    bound = pl.display_model.get(0).surfaces[0].geometry_bounds()
+                    particles = [pl.get_particle(cid) for cid in pl.particle_ids]
+                    for p in particles:
+                        scms[p] = scm
+                        bounds[p] = bound
+            else:
+                raise errors.UserError(
+                    'artiax remove particles: Model #{} - "{}" is not a particle list.'.format(model.id_string,
                                                                                        model.name))
 
+    print("PARTICLES: ", particles)
+
+    print("MANIFORLDS: ", manifold)
+    print("BOUNDARIES: ", boundary)
+
     if not particles:
-        session.logger.warning("No particles with an attached surface selected")
-        return
+        raise errors.UserError(
+            'artiax remove particles: No particles with an attached surface selected')
+
+    if method == 'distance':
+        if thoroughness is not None or precision is not None:
+            raise errors.UserError(
+                'artiax remove particles: Method "distance" does not accept keywords "thoroughness" or "precision". To use '
+                'these settings, use method = volume.')
+    else:
+        if thoroughness is None:
+            thoroughness = 100
+        if precision is None:
+            precision = 0.33
+
 
     from ..util.remove_overlap import remove_overlap
-    remove_overlap(session, particles, pls, scms, bounds, thoroughness, precision)
+    remove_overlap(session, particles, pls, scms, bounds, manifold, boundary, thoroughness, precision)
 
 def artiax_lock(session, models=None, type=None):
     # No ArtiaX
@@ -795,7 +816,10 @@ def register_artiax(logger):
         ColorArg,
         Float3Arg,
         BoolArg,
-        AxisArg
+        AxisArg,
+        RepeatOf,
+        EnumOf,
+        ListOf
     )
 
     def register_artiax_start():
@@ -978,10 +1002,14 @@ def register_artiax(logger):
 
     def register_artiax_remove_overlap():
         desc = CmdDesc(
-            optional=[("model", Or(ModelArg, EmptyArg))],
-            keyword=[("thoroughness", IntArg),
+            optional=[("models", ListOf(ModelArg))],
+            keyword=[("manifold", RepeatOf(ListOf(ModelArg, 2, 2))),
+                     ("boundary", RepeatOf(ListOf(ModelArg, 2, 2))),
+                     ("method", EnumOf(("volume", "distance"))),
+                     ("thoroughness", IntArg),
                      ("precision", FloatArg)],
-            synopsis='Moves the camera along the specified line.'
+            synopsis='Moves selected particles to remove overlap. Can be made to move particles along surface or inside'
+                     ' surface.'
         )
         register('artiax remove overlap', desc, artiax_remove_overlap)
 
@@ -1092,6 +1120,7 @@ def register_artiax(logger):
     register_artiax_colormap()
     register_artiax_label()
     register_artiax_info()
+
 
 # Possible styles
 # for pl in models:

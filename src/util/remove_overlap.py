@@ -28,31 +28,72 @@ import time
 
 
 
-def remove_overlap(session, particles, pls, scms, bounds, num_points=100, move_factor=1):  # particles might be selected ones or a selected pl
-    # TODO: Create two different commands, one with the volume and one with the distance
-    #movements = calculate_overlap_point_volume(particles, scms, bounds, num_points, move_factor)  # Can use different functions here and see which is the best
-    tic = time.time()
-    movements = calculate_overlap_distance(particles, scms, bounds, move_factor)
+def remove_overlap(session, particles, pls, scms, bounds, method='distance', on_surface_particles=None, in_surface_particles=None, num_points=100, move_factor=1):
+    if method == 'distance':
+        calculate_overlap = calculate_overlap_distance
+    else:
+        calculate_overlap = calculate_overlap_point_volume
+
+    movements = get_movements(calculate_overlap, particles, scms, bounds, on_surface_particles, in_surface_particles, num_points, move_factor)
+    iteration = 0
     while movements.any():
         # move all the particles away from each other
-        t0 = time.time()
         for move, p in zip(movements, particles):
             p.origin_coord = np.asarray(p.origin_coord) + move
         for pl in pls:
             pl.update_places()
         session.update_loop.draw_new_frame()
-        t1 = time.time()
-        #movements = calculate_overlap_point_volume(particles, scms, bounds, num_points, move_factor)
-        movements = calculate_overlap_distance(particles, scms, bounds, move_factor)
-        t2 = time.time()
-        print("Time to move particles: ", t1-t0)
-        print("Time to calculate movements: ", t2-t1)
-        print("Time for a full cycle: ", t2-t0)
-        print()
-    print("Total time taken: ", time.time() - tic)
+        movements = get_movements(calculate_overlap, particles, scms, bounds, on_surface_particles, in_surface_particles, num_points, move_factor)
+        # TODO: Make this iteration thing an option
+        iteration += 1
+        if iteration > 100:
+            print("Over 100 iterations...")
+            return
 
 
-def calculate_overlap_distance(particles, scms, bounds, move_factor=1):
+def get_movements(calculate_overlap, particles, scms, bounds, on_surface_particles, in_surface_particles, num_points, move_factor):
+    movements = calculate_overlap(particles, scms, bounds, num_points, move_factor)
+    if on_surface_particles is not None:
+        for ps, surface in on_surface_particles:
+            movements = project_movements_to_surface(movements, ps, surface)
+    if in_surface_particles is not None:
+        for ps, surface in in_surface_particles:
+            movements = bound_movements_inside_surface(movements, ps, surface)
+    return movements
+
+
+def project_movements_to_surface(movements, particles, surface):
+    pass
+
+
+def bound_movements_inside_surface(movements, particles, surface):
+    from chimerax.geometry._geometry import closest_triangle_intercept
+
+    for p in particles:
+        f_up, tnum_up = closest_triangle_intercept(surface.vertices, surface.triangles, p.coord,
+                                                   np.asarray([0, 0, 1]) + p.coord)
+        f_down, tnum_down = closest_triangle_intercept(surface.vertices, surface.triangles, p.coord,
+                                                       np.asarray([0, 0, -1]) + p.coord)
+        ts = [tnum for tnum in [tnum_up, tnum_down] if tnum is not None]
+        if len(ts) == 0:
+            # TODO: remove this comment
+            print("No close triangle found for particle ", p)
+            continue
+        else:
+            t = ts[0]  # Realized it probably doesnt matter which one to use if theyre both really close
+
+        verts_on_plane = surface.vertices[surface.triangles[t]]
+        normal = np.cross(verts_on_plane[1] - verts_on_plane[0], verts_on_plane[2] - verts_on_plane[0])
+        normal = normal / np.linalg.norm(normal)
+
+        new_pos = np.asarray(p.origin_coord) + movements[p]
+        new_pos_plane_proj = new_pos - (np.dot(new_pos, normal) * normal)
+        new_pos_on_plane = new_pos_plane_proj + (np.dot(verts_on_plane[0], normal) * normal)
+        movements[p] = new_pos_on_plane
+    pass
+
+
+def calculate_overlap_distance(particles, scms, bounds, not_used=None, also_not_used=None):
     from chimerax.geometry._geometry import find_close_points
 
     overlaps = {p: [] for p in particles}
@@ -67,9 +108,9 @@ def calculate_overlap_distance(particles, scms, bounds, move_factor=1):
                 overlaps[p].append(other_p)
                 overlaps[other_p].append(p)
 
-    movements = np.zeros((len(particles), 3))
-    number_of_overlaps = np.zeros(len(particles))
-    for i, p in enumerate(particles[:-1]):
+    movements = dict()
+    number_of_overlaps = dict()
+    for p in particles[:-1]:
         scm = scms[p]
         p_verts = p.full_transform().transform_points(scm.vertices)
         overlapping_particles = [other_p for other_p in overlaps[p] if other_p not in particles[:i]]
@@ -95,16 +136,15 @@ def calculate_overlap_distance(particles, scms, bounds, move_factor=1):
             other_p_in_p_depth = find_depth_of_pts_from_plane(other_p_verts, middle, -normal)
 
             movement_direction = -normal
-            move_dist = (p_in_other_p_depth + other_p_in_p_depth)/2 * move_factor
-            other_p_index = particles.index(other_p)
-            number_of_overlaps[i] += 1
-            number_of_overlaps[other_p_index] += 1
-            movements[i] += movement_direction * move_dist
-            movements[other_p_index] -= movement_direction * move_dist
+            move_dist = (p_in_other_p_depth + other_p_in_p_depth)/2
+            number_of_overlaps[p] += 1
+            number_of_overlaps[other_p] += 1
+            movements[p] += movement_direction * move_dist
+            movements[other_p] -= movement_direction * move_dist
 
-    for i in range(len(particles)):  # looks a little ugly but want to avoid division by 0
-        if number_of_overlaps[i]:
-            movements[i] = movements[i]/number_of_overlaps[i]
+    for p in particles:
+        if number_of_overlaps[p]:
+            movements[p] = movements[p] / number_of_overlaps[p]
     return movements
 
 
@@ -125,16 +165,10 @@ def find_depth_of_pts_from_plane(pts, middle, normal):
 
 
 def calculate_overlap_point_volume(particles, scms, bounds, num_points=100, move_factor=0.33):
-    # return a dictionary with . particles is a list of all particles to calculate overlap for, scms and bounds are dicts with the particles as keys and scms/bounds as values.
-
-    # Some quick experimentation showed that these parameters seem to work very well. Decrease the 500 to increase speed but decrease accuracy
+    # return a dictionary with the movement vector to add to all particles. particles is a list of all particles to calculate overlap for, scms and bounds are dicts with the particles as keys and scms/bounds as values.
     generate_pts = generate_poisson_disc_pts
 
-    # def num_pts(bbox_vol):
-        # return bbox_vol*100.0/5288804
-
     # Figure out which particles overlap each other and create an ordered list with the particles to generate points for
-    t0 = time.time()
     overlaps = {p: [] for p in particles}
     overlaps_list = [[] for i in range(len(particles))]
     for i, p in enumerate(particles[:-1]):
@@ -148,7 +182,6 @@ def calculate_overlap_point_volume(particles, scms, bounds, num_points=100, move
                 overlaps[other_p].append(p)
                 overlaps_list[i].append(other_p)
                 overlaps_list[j].append(p)
-    t1 = time.time()
 
     ordered_particles = []
     while len(max(overlaps_list, key=len)):
@@ -157,12 +190,10 @@ def calculate_overlap_point_volume(particles, scms, bounds, num_points=100, move
         ordered_particles.append(particle_most_overlaps)
         overlaps_list[particle_most_overlaps_index] = []
         overlaps_list = [[p for p in particle_list if p != particle_most_overlaps] for particle_list in overlaps_list]
-    t2 = time.time()
 
     # Go through all particles that overlap and calculate the amount they overlap.
-    movements = np.zeros((len(particles), 3))
+    movements = dict()
     for i, p in enumerate(ordered_particles):
-        p_index = particles.index(p)
         bounds_p = bounds[p]
         bounds_size = bounds_p.size()
         bbox_vol = bounds_size[0] * bounds_size[1] * bounds_size[2]
@@ -175,7 +206,6 @@ def calculate_overlap_point_volume(particles, scms, bounds, num_points=100, move
 
         overlapping_particles = [other_p for other_p in overlaps[p] if other_p not in ordered_particles[:i]]
         for other_p in overlapping_particles:
-            other_p_index = particles.index(other_p)
             scm = scms[other_p]
             p_verts = other_p.full_transform().transform_points(scm.vertices)
 
@@ -185,13 +215,8 @@ def calculate_overlap_point_volume(particles, scms, bounds, num_points=100, move
             movement_direction = np.asarray(p.coord) - other_p.coord
             movement_direction = movement_direction/np.linalg.norm(movement_direction)
             move_dist = (overlap_vol ** (1/3))*move_factor
-            movements[p_index] += movement_direction * move_dist
-            movements[other_p_index] -= movement_direction * move_dist
-    t3 = time.time()
-
-    print("Time to get all the overlaps: ", t1-t0)
-    print("Time to create the ordered pareticles list: ", t2-t1)
-    print("Time to calculate all of the overlaps: ", t3-t2)
+            movements[p] += movement_direction * move_dist
+            movements[other_p] -= movement_direction * move_dist
     return movements
 
 
@@ -316,215 +341,4 @@ def filter_points_inside(points, vertices, triangles, xyz_min, xyz_max):
             fraction_of_distance, tnum = cti(vertices, triangles, start, end)
         intercepts[i] = bool(intercept % 2)
 
-    # margin = 1.001
-    # for i, outputs in enumerate(map(cti, rpt(vertices), rpt(triangles), points, ends)):
-    #     fraction_of_distance = outputs[0]
-    #     if fraction_of_distance is None:
-    #         intercepts[i] = False
-    #     else:
-    #         intercept = 0
-    #         start = points[i]
-    #         end = ends[i]
-    #         dist_to_end = end - start
-    #         while fraction_of_distance is not None:
-    #             intercept += 1
-    #             if intercept > 1000:
-    #                 print("TOO MANY INTERSEPTS")
-    #                 return False
-    #             start = start + fraction_of_distance * margin * dist_to_end
-    #             dist_to_end = end - start
-    #             fraction_of_distance, tnum = cti(vertices, triangles, start, end)
-    #         intercepts[i] = bool(intercept % 2)
-
     return points[intercepts]
-
-
-
-def remove_overlap_OLD(session, pl):
-    from chimerax.mask.depthmask import masked_volume
-    ps = [pl.get_particle(cid) for cid in pl.particle_ids]
-    overlap_volume = np.zeros((len(ps), len(ps)))
-    if not pl.has_display_model:
-        return
-    vol = pl.display_model.child_models()[0]
-    scm = pl.collection_model.collections['surfaces']
-    num_parts = len(ps)
-    tris = scm.triangles
-    for i in range(num_parts):
-        verts = ps[i].full_transform().transform_points(scm.vertices)
-        for j in range(i+1, num_parts):
-            vol.position = ps[j].full_transform()
-            vtf = vol.position.inverse() * scm.scene_position
-            if not vtf.is_identity(tolerance=0):
-                varray = vtf.transform_points(varray)
-            verts = vtf.transform_points(verts)
-            surfaces = [(verts, tris)]
-            #surfaces = surface_geometry(scm, vol.position.inverse())
-            #surfaces[0][0] = ps[i].full_transform().transform_points(surfaces[0][0])
-            overlap = masked_volume(vol, surfaces, (0, 1, 0), sandwich=True)
-            # verts, tris = overlap.surfaces[0].vertices, overlap.surfaces[0].triangles
-            # print(verts)
-            # print(tris)
-            # overlap_volume[i][j] = measure_volume(overlap.surfaces[0].vertices, overlap.surfaces[0].triangles)
-    print(overlap_volume)
-
-    #create vol somehow
-        # would be great if i could skip this step and only use the surface values
-    #move volume to particle 1
-    #get surface verts and tris
-    #move them to particle2
-    #do the surface geometry stuff
-    #run masked_volume()
-        # would be great if i could make this in a faster smarter way, because i really only need the verts and tris
-    #measure size of new volume
-
-def surface_geometry(surface, tf):
-    surfaces = []
-    varray, tarray = surface.vertices, surface.masked_triangles
-
-    vtf = tf * surface.scene_position
-    if not vtf.is_identity(tolerance = 0):
-        varray = vtf.transform_points(varray)
-    surfaces.append([varray, tarray])
-
-    return surfaces
-
-def measure_volume(verts, tris):
-    vol, holes = enclosed_volume(verts, tris)
-    return vol
-
-
-# def mask(volumes, surfaces):
-#     '''Create a new volume where values outside specified surfaces are set to zero.'''
-#     surfG = (scm.vertices, scm.masked_triangles)
-#     v =
-#     mv = masked_volume(v, surf)
-#
-#     return mv
-
-
-
-# def masked_volume(volume, surfaces, projection_axis=(0, 1, 0)):
-#     # Calculate position of 2-d depth array and transform surfaces so projection
-#     # is along z axis.
-#     zsurf, size, tf = surface_projection_coordinates(surfaces, projection_axis,
-#                                                      volume)
-#     #zsurf is just surf for me i think
-#     #size is just bbox size
-#     #tf is -bboxmin?
-#
-#     # Create minimal size volume mask array and calculate transformation from
-#     # mask indices to depth array indices.
-#
-#     #I guess vol is what i need here.
-#     vol, mvol, ijk_origin, mijk_to_dijk = volume_mask(volume, surfaces, False, tf)
-#
-#     # Copy volume to masked volume at depth intervals inside surface.
-#     project_and_mask(zsurf, size, mvol, mijk_to_dijk, False, False)
-#
-#     # Multiply ones mask times volume.
-#     mvol *= vol
-#
-#     # Create masked volume model.
-#     v = array_to_model(mvol, volume, ijk_origin, None)
-#
-#     # Undisplay original map.
-#     volume.show(show=False)
-#
-#     return v
-
-
-# def surface_projection_coordinates(surfaces, projection_axis, volume):
-#
-#   g = volume.data
-#
-#   grid_spacing = g.step #dont think this is actually important for me
-#
-#   # Determine transform from vertex coordinates to depth array indices
-#   # Rotate projection axis to z.
-#   from chimerax.geometry import orthonormal_frame, scale, translation
-#   tfrs = orthonormal_frame(projection_axis).inverse() * scale([1/s for s in grid_spacing])
-#
-#   # Transform vertices to depth array coordinates.
-#   zsurf = []
-#   tcount = 0
-#   for vertices, triangles in surfaces:
-#     varray = tfrs.transform_points(vertices) #this rotates the coordinates? not sure why. Try skipping
-#     zsurf.append((varray, triangles))
-#     tcount += len(triangles)
-#   if tcount == 0:
-#     return None
-#
-#   # Compute origin for depth grid
-#   vmin, vmax = bounding_box(zsurf) #just normal bounding box... vmin =[smallest x, smallest y, smallest z]
-#   if axis_aligned: #it is, but not sure i need to do this
-#     o = tfrs * g.origin
-#     offset = [(vmin[a] - o[a]) for a in (0,1,2)]
-#     from math import floor
-#     align_frac = [offset[a] - floor(offset[a]) for a in (0,1,2)]
-#     vmin -= align_frac
-#   else:
-#     vmin -= 0.5
-#
-#   tf = translation(-vmin) * tfrs #dont think this does a lot
-#
-#   # Shift surface vertices by depth grid origin
-#   for varray, triangles in zsurf:
-#     varray -= vmin
-#
-#   # Compute size of depth grid
-#   from math import ceil
-#   size = tuple(int(ceil(vmax[a] - vmin[a] + 1)) for a in (0,1))
-#
-#   return zsurf, size, tf
-#
-# def volume_mask(volume, surfaces, full, tf):
-#
-#   g = volume.data
-#   if full: # its not
-#     from chimerax.map.volume import full_region
-#     ijk_min, ijk_max = full_region(g.size)[:2]
-#   else:
-#     ijk_min, ijk_max = bounding_box(surfaces, g.xyz_to_ijk_transform)
-#     from math import ceil, floor
-#     ijk_min = [int(floor(i)) for i in ijk_min]
-#     ijk_max = [int(ceil(i)) for i in ijk_max]
-#     from chimerax.map.volume import clamp_region
-#     ijk_min, ijk_max = clamp_region((ijk_min, ijk_max, (1,1,1)), g.size)[:2]
-#   ijk_size = [a-b+1 for a,b in zip(ijk_max, ijk_min)]
-#   vol = g.matrix(ijk_min, ijk_size)
-#   from numpy import zeros
-#   mvol = zeros(vol.shape, vol.dtype)
-#   from chimerax.geometry import translation
-#   mijk_to_dijk = tf * g.ijk_to_xyz_transform * translation(ijk_min)
-#   return vol, mvol, ijk_min, mijk_to_dijk
-#
-# def project_and_mask(zsurf, size, mvol, mijk_to_dijk):
-#
-#   # Create projection depth arrays.
-#   from numpy import zeros, intc, float32
-#   shape = (size[1], size[0])
-#   depth = zeros(shape, float32)
-#   tnum = zeros(shape, intc)
-#   depth2 = zeros(shape, float32)
-#   tnum2 = zeros(shape, intc)
-#
-#   # Copy volume to masked volume at masked depth intervals.
-#   max_depth = 1e37
-#   zsurfs = [zsurf]
-#   from .mask_cpp import fill_slab
-#   for zs in zsurfs:
-#     beyond = beyond_tnum = None
-#     max_layers = 200
-#     for iter in range(max_layers):
-#       depth.fill(max_depth)
-#       tnum.fill(-1)
-#       any = surfaces_z_depth(zs, depth, tnum, beyond, beyond_tnum)
-#       if not any:
-#         break
-#       depth2.fill(max_depth)
-#       tnum2.fill(-1)
-#       surfaces_z_depth(zs, depth2, tnum2, depth, tnum)
-#       fill_slab(depth, depth2, mijk_to_dijk.matrix, mvol, dlimit)
-#       beyond = depth2
-#       beyond_tnum = tnum2
