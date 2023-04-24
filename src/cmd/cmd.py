@@ -336,7 +336,7 @@ def artiax_move_camera_along_line(session, model, numFrames=None, backwards=Fals
 
 
 def artiax_remove_overlap(session, models=None, manifold=None, boundary=None, method='distance', thoroughness=None, precision=None):
-    # TODO: Think about what happens when a particle is selected twice. Also log everything that happens
+    # TODO: Also log everything that happens. Also add warning if it'll take long
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running.")
         return
@@ -346,7 +346,28 @@ def artiax_remove_overlap(session, models=None, manifold=None, boundary=None, me
     pls = []
     scms = dict()
     bounds = dict()
-    if models is None:  # No particle list given, use selected particles instead
+    if models is not None:
+        for model in models:
+            if isinstance(model, ParticleList):
+                pl = model
+                if pl.has_display_model():
+                    pls.append(pl)
+                    scm = pl.collection_model.collections['surfaces']
+                    bound = pl.display_model.get(0).surfaces[0].geometry_bounds()
+                    ps = [pl.get_particle(cid) for cid in pl.particle_ids]
+                    particles.extend(ps)
+                    for p in particles:
+                        scms[p] = scm
+                        bounds[p] = bound
+                else:
+                    raise errors.UserError(
+                        'artiax remove particles: Model #{} - "{}" does not have an attached surface.'.format(model.id_string,
+                                                                                                       model.name))
+            else:
+                raise errors.UserError(
+                    'artiax remove particles: Model #{} - "{}" is not a particle list.'.format(model.id_string,
+                                                                                       model.name))
+    elif boundary is None and manifold is None:  # No particle list given, use selected particles instead
         for pl in session.ArtiaX.partlists.child_models():
             if not pl.has_display_model():
                 continue
@@ -362,28 +383,75 @@ def artiax_remove_overlap(session, models=None, manifold=None, boundary=None, me
                     bounds[p] = bound
             if particle_list_used:
                 pls.append(pl)
-    else:
-        print("MODELS: ", models)
-        for model in models:
-            if isinstance(model, ParticleList):
-                pl = model
-                if pl.has_display_model():
-                    pls.append(pl)
-                    scm = pl.collection_model.collections['surfaces']
-                    bound = pl.display_model.get(0).surfaces[0].geometry_bounds()
-                    particles = [pl.get_particle(cid) for cid in pl.particle_ids]
-                    for p in particles:
-                        scms[p] = scm
-                        bounds[p] = bound
-            else:
+
+    from chimerax.core.models import Drawing
+    on_surface_particles = None
+    if manifold is not None:
+        on_surface_particles = []
+        for pair in manifold:
+            if len(pair) != 2:
                 raise errors.UserError(
-                    'artiax remove particles: Model #{} - "{}" is not a particle list.'.format(model.id_string,
-                                                                                       model.name))
+                    'artiax remove particles manifold: Please select exactly one particle list and one drawing per'
+                    ' manifold.')
+            elif not isinstance(pair[0], ParticleList):
+                raise errors.UserError(
+                    'artiax remove particles manifold: Model #{} - "{}" is not a particle list.'.format(
+                        pair[0].id_string, pair[0].name))
+            elif not isinstance(pair[1], Drawing) or isinstance(pair[1], ParticleList):
+                raise errors.UserError(
+                    'artiax remove particles manifold: Model #{} - "{}" is not a drawing.'.format(
+                        pair[1].id_string, pair[1].name))
 
-    print("PARTICLES: ", particles)
+            pl = pair[0]
+            if not pl.has_display_model():
+                raise errors.UserError(
+                    'artiax remove particles: Model #{} - "{}" does not have an attached surface.'.format(
+                        pl.id_string, pl.name))
+            pls.append(pl)
+            scm = pl.collection_model.collections['surfaces']
+            bound = pl.display_model.get(0).surfaces[0].geometry_bounds()
+            ps = [pl.get_particle(cid) for cid in pl.particle_ids]
+            for p in ps:
+                scms[p] = scm
+                bounds[p] = bound
+            particles.extend(ps)
+            on_surface_particles.append([ps, pair[1]])
 
-    print("MANIFORLDS: ", manifold)
-    print("BOUNDARIES: ", boundary)
+    in_surface_particles = None
+    if boundary is not None:
+        in_surface_particles = []
+        for pair in boundary:
+            if len(pair) != 2:
+                raise errors.UserError(
+                    'artiax remove particles boundary: Please select exactly one particle list and one drawing per'
+                    ' boundary.')
+            elif not isinstance(pair[0], ParticleList):
+                raise errors.UserError(
+                    'artiax remove particles boundary: Model #{} - "{}" is not a particle list.'.format(
+                        pair[0].id_string, pair[0].name))
+            elif not isinstance(pair[1], Drawing) or isinstance(pair[1], ParticleList):
+                raise errors.UserError(
+                    'artiax remove particles boundary: Model #{} - "{}" is not a drawing.'.format(
+                        pair[1].id_string, pair[1].name))
+
+            pl = pair[0]
+            if not pl.has_display_model():
+                raise errors.UserError(
+                    'artiax remove particles: Model #{} - "{}" does not have an attached surface.'.format(
+                        pl.id_string, pl.name))
+            pls.append(pl)
+            scm = pl.collection_model.collections['surfaces']
+            bound = pl.display_model.get(0).surfaces[0].geometry_bounds()
+            ps = [pl.get_particle(cid) for cid in pl.particle_ids]
+            for p in ps:
+                scms[p] = scm
+                bounds[p] = bound
+            particles.extend(ps)
+            in_surface_particles.append([ps, pair[1]])
+
+    if len(pls) != len(set(pls)):
+        raise errors.UserError(
+            "artiax remove particles: Please don't select a particle list more than once.")
 
     if not particles:
         raise errors.UserError(
@@ -392,8 +460,8 @@ def artiax_remove_overlap(session, models=None, manifold=None, boundary=None, me
     if method == 'distance':
         if thoroughness is not None or precision is not None:
             raise errors.UserError(
-                'artiax remove particles: Method "distance" does not accept keywords "thoroughness" or "precision". To use '
-                'these settings, use method = volume.')
+                'artiax remove particles: Method "distance" does not accept keywords "thoroughness" or "precision".'
+                ' To use these settings, use "method volume".')
     else:
         if thoroughness is None:
             thoroughness = 100
@@ -402,7 +470,7 @@ def artiax_remove_overlap(session, models=None, manifold=None, boundary=None, me
 
 
     from ..util.remove_overlap import remove_overlap
-    remove_overlap(session, particles, pls, scms, bounds, manifold, boundary, thoroughness, precision)
+    remove_overlap(session, particles, pls, scms, bounds, method, on_surface_particles, in_surface_particles, thoroughness, precision)
 
 def artiax_lock(session, models=None, type=None):
     # No ArtiaX
