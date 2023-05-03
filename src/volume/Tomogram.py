@@ -128,6 +128,12 @@ class Tomogram(VolumePlus):
 
         t0 = time.time()
 
+        # fft_data = fft.rfftn(original_data)
+
+        # Tz, Ty, Tx = np.asarray(self.size) * self.pixelsize  # ??? is this in Ångström?
+        Nz, Ny, Nx = shape[0], shape[1], shape[2]
+        #fz, fy, fx = fft.fftfreq(Nz), fft.fftfreq(Ny), fft.rfftfreq(Nx)  # rfftn only does rfft on last axis, for the others it does normal fft
+        # zz, yy, xx = np.meshgrid(fft.fftfreq(Nz), fft.fftfreq(Ny), fft.rfftfreq(Nx), indexing='ij')
         zz, yy, xx = np.meshgrid(np.arange(shape[0]), np.arange(shape[1]), np.arange(shape[2]), indexing='ij')
         xx, yy, zz = xx - math.floor(shape[2]/2), yy - math.floor(shape[1]/2), zz - math.floor(shape[0]/2)  # centering
         r = np.sqrt(np.square(xx) + np.square(yy) + np.square(zz))
@@ -164,7 +170,9 @@ class Tomogram(VolumePlus):
         t2 = time.time()
 
         fft_data = fft.fft2(original_data)  # Wierd to use fft2 and not fftn but seems to work and is much quicker
+        # fft_data = fft.rfftn(original_data)
         filtered_data = np.array(fft.ifft2(np.multiply(fft_data, fft.fftshift(filter))), dtype=np.float32)
+        # filtered_data = np.array(fft.irfftn(np.multiply(fft_data, fft.fftshift(filter))), dtype=np.float32)
         t3 = time.time()
 
         self.create_tomo_from_array(filtered_data, "Filtered " + self.data.name)
