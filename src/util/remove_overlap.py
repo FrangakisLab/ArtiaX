@@ -1,14 +1,15 @@
 from chimerax.geometry._geometry import closest_triangle_intercept
+from chimerax.geometry import z_align
 import numpy as np
 import time
 
-def remove_overlap(session, particles, pls, scms, bounds, method='distance', on_surface_particles=None, in_surface_particles=None, num_points=100, move_factor=1):
+def remove_overlap(session, particles, pls, scms, bounds, method='distance', on_surface_particles=None, in_surface_particles=None, num_points=100, move_factor=1, rotate_to_normal=True):
     if method == 'distance':
         calculate_overlap = calculate_overlap_distance
     else:
         calculate_overlap = calculate_overlap_point_volume
 
-    movements = get_movements(calculate_overlap, particles, scms, bounds, on_surface_particles, in_surface_particles, num_points, move_factor)
+    movements = get_movements(calculate_overlap, particles, scms, bounds, on_surface_particles, in_surface_particles, num_points, move_factor, rotate_to_normal)
     iteration = 0
     while not all(not movement.any() for movement in movements.values()):
         # move all the particles away from each other
@@ -17,7 +18,7 @@ def remove_overlap(session, particles, pls, scms, bounds, method='distance', on_
         for pl in pls:
             pl.update_places()
         session.update_loop.draw_new_frame()
-        movements = get_movements(calculate_overlap, particles, scms, bounds, on_surface_particles, in_surface_particles, num_points, move_factor)
+        movements = get_movements(calculate_overlap, particles, scms, bounds, on_surface_particles, in_surface_particles, num_points, move_factor, rotate_to_normal)
         # TODO: Make this iteration thing an option
         iteration += 1
         if iteration > 100:
@@ -25,84 +26,61 @@ def remove_overlap(session, particles, pls, scms, bounds, method='distance', on_
             return
 
 
-def get_movements(calculate_overlap, particles, scms, bounds, on_surface_particles, in_surface_particles, num_points, move_factor):
+def get_movements(calculate_overlap, particles, scms, bounds, on_surface_particles, in_surface_particles, num_points, move_factor, rotate_to_normal):
     movements = calculate_overlap(particles, scms, bounds, num_points, move_factor)
     if on_surface_particles is not None:
         for ps, surface in on_surface_particles:
-            movements = project_movements_to_surface(movements, ps, surface, bounds)
+            movements = project_movements_to_surface(movements, ps, surface, bounds, rotate_to_normal)
     if in_surface_particles is not None:
         for ps, surface in in_surface_particles:
             movements = bound_movements_inside_surface(movements, ps, surface)
     return movements
 
 
-def project_movements_to_surface(movements, particles, surface, bounds):
+def project_movements_to_surface(movements, particles, surface, bounds, rotate_to_normal=True):
     from chimerax.geometry._geometry import closest_triangle_intercept
 
     for p in particles:
         if not movements[p].any():
             continue
-        f_up, tnum_up = closest_triangle_intercept(surface.vertices, surface.triangles, p.coord,
-                                                   np.asarray([0, 0, 1]) + p.coord)
-        f_down, tnum_down = closest_triangle_intercept(surface.vertices, surface.triangles, p.coord,
-                                                       np.asarray([0, 0, -1]) + p.coord)
-        ts = [tnum for tnum in [tnum_up, tnum_down] if tnum is not None]
-        if len(ts) == 0:
-            # TODO: remove this comment
-            print("No close triangle found for particle ", p)
+        search = np.asarray([0, 0, 1])
+        f_up, t = closest_triangle_intercept(surface.vertices, surface.triangles, search + p.coord,
+                                             - search + p.coord)
+        if t is None:
             continue
-        else:
-            t = ts[0]  # Realized it probably doesnt matter which one to use if theyre both really close
 
         verts_on_plane = surface.vertices[surface.triangles[t]]
         normal = np.cross(verts_on_plane[1] - verts_on_plane[0], verts_on_plane[2] - verts_on_plane[0])
         normal = normal / np.linalg.norm(normal)
 
         new_pos = np.asarray(p.origin_coord) + movements[p]
-        if normal.dot(movements[p]) < 0:
-            normal = -normal
         max_move = max(bounds[p].xyz_max - bounds[p].xyz_min)/2
-        frac, closest_t_num = closest_triangle_intercept(surface.vertices, surface.triangles, new_pos,
-                                                         new_pos - normal*max_move)
-        if frac is None:  # Put particle on plane
+        search = normal*max_move
+        frac, closest_t_num = closest_triangle_intercept(surface.vertices, surface.triangles, new_pos + search,
+                                                         new_pos - search)
+        if frac is None:  # Put particle on same plane as defined by normal
             new_pos_plane_proj = new_pos - (np.dot(new_pos, normal) * normal)
             new_pos_on_plane = new_pos_plane_proj + (np.dot(verts_on_plane[0], normal) * normal)
             movements[p] = new_pos_on_plane - np.asarray(p.origin_coord)
-            print("couldnt find surface after move so putting particle on plane")
         else:
-            new_pos_on_surface = (new_pos - normal*max_move*frac)
+            # Put particle on surface
+            new_pos_on_surface = (new_pos + search - 2*search*frac)
             movements[p] = new_pos_on_surface - np.asarray(p.origin_coord)
-            print("DID find surface after move")
+
+            # Rotate particle along normal of current triangle
+            if rotate_to_normal:
+                verts_on_plane = surface.vertices[surface.triangles[t]]
+                normal = np.cross(verts_on_plane[1] - verts_on_plane[0], verts_on_plane[2] - verts_on_plane[0])
+                if normal.dot(surface.normals[surface.triangles[t]].mean(0)) < 0:  # Using vertex normals to find "out" direction
+                    normal = -normal
+                rotation_to_z = z_align(p.coord, p.coord + normal)
+                rotation = rotation_to_z.zero_translation().inverse()
+                p.rotation = rotation
+
+
 
     return movements
 
-
-def project_movements_to_surface_plane(movements, particles, surface):
-    from chimerax.geometry._geometry import closest_triangle_intercept
-
-    for p in particles:
-        f_up, tnum_up = closest_triangle_intercept(surface.vertices, surface.triangles, p.coord,
-                                                   np.asarray([0, 0, 1]) + p.coord)
-        f_down, tnum_down = closest_triangle_intercept(surface.vertices, surface.triangles, p.coord,
-                                                       np.asarray([0, 0, -1]) + p.coord)
-        ts = [tnum for tnum in [tnum_up, tnum_down] if tnum is not None]
-        if len(ts) == 0:
-            # TODO: remove this comment
-            print("No close triangle found for particle ", p)
-            continue
-        else:
-            t = ts[0]  # Realized it probably doesnt matter which one to use if theyre both really close
-
-        verts_on_plane = surface.vertices[surface.triangles[t]]
-        normal = np.cross(verts_on_plane[1] - verts_on_plane[0], verts_on_plane[2] - verts_on_plane[0])
-        normal = normal / np.linalg.norm(normal)
-
-        new_pos = np.asarray(p.origin_coord) + movements[p]
-        new_pos_plane_proj = new_pos - (np.dot(new_pos, normal) * normal)
-        new_pos_on_plane = new_pos_plane_proj + (np.dot(verts_on_plane[0], normal) * normal)
-        movements[p] = new_pos_on_plane - np.asarray(p.origin_coord)
-
-    return movements
 
 def bound_movements_inside_surface(movements, particles, surface):
     pass
@@ -297,6 +275,32 @@ def filter_points_inside(points, vertices, triangles, xyz_min, xyz_max):
 
 
 ##### TESTS/NOT USED #####
+def project_movements_to_surface_plane(movements, particles, surface):
+    from chimerax.geometry._geometry import closest_triangle_intercept
+
+    for p in particles:
+        f_up, tnum_up = closest_triangle_intercept(surface.vertices, surface.triangles, p.coord,
+                                                   np.asarray([0, 0, 1]) + p.coord)
+        f_down, tnum_down = closest_triangle_intercept(surface.vertices, surface.triangles, p.coord,
+                                                       np.asarray([0, 0, -1]) + p.coord)
+        ts = [tnum for tnum in [tnum_up, tnum_down] if tnum is not None]
+        if len(ts) == 0:
+            continue
+        else:
+            t = ts[0]  # Realized it probably doesnt matter which one to use if theyre both really close
+
+        verts_on_plane = surface.vertices[surface.triangles[t]]
+        normal = np.cross(verts_on_plane[1] - verts_on_plane[0], verts_on_plane[2] - verts_on_plane[0])
+        normal = normal / np.linalg.norm(normal)
+
+        new_pos = np.asarray(p.origin_coord) + movements[p]
+        new_pos_plane_proj = new_pos - (np.dot(new_pos, normal) * normal)
+        new_pos_on_plane = new_pos_plane_proj + (np.dot(verts_on_plane[0], normal) * normal)
+        movements[p] = new_pos_on_plane - np.asarray(p.origin_coord)
+
+    return movements
+
+
 def calculate_overlap_in_particle_list(pl, num_total_pts, method='monte carlo'):
     import time
     ps = [pl.get_particle(cid) for cid in pl.particle_ids]
