@@ -106,19 +106,22 @@ class ProcessableTomogram(Tomogram):
             hpd = self.hpd
 
         if self.unit == 'pixels':
-            yy, xx = np.meshgrid(np.arange(shape[1]), np.arange(shape[0]//2 + 1), indexing='ij')
+            Ny, Nx = shape[1], shape[0] // 2 + 1
+            yy, xx = np.meshgrid(np.arange(Ny), np.arange(Nx), indexing='ij')
+            xx, yy = xx - math.floor(Nx / 2), yy - math.floor(Ny / 2)  # centering
         elif self.unit == 'hz':
             Tz, Ty, Tx = np.asarray(self.size) * self.pixelsize
             Ny, Nx = shape[1], shape[0]
-            # fy, fx = fft.fftfreq(Ny), fft.rfftfreq(Nx)  # rfftn only does rfft on last axis, for the others it does normal fft
-            yy, xx = np.meshgrid(fft.fftfreq(Ny), fft.rfftfreq(Nx), indexing='ij')
+            fy, fx = fft.fftfreq(Ny), fft.rfftfreq(Nx)  # rfftn only does rfft on last axis, for the others it does normal fft
+            yy, xx = np.meshgrid(fy, fx, indexing='ij')
+            xx, yy = xx - xx[0].mean(), fft.fftshift(yy)  # centering
         else:
-            raise NotImplementedError('Only "pixels" and "hx" implemented.')
+            raise NotImplementedError('Only "pixels" and "hx" implemented as units.')
 
         r = np.sqrt(np.square(xx) + np.square(yy))
 
-        lpv = create_lp_filter(r, self.lp, lpd, self.method, self.thresh)
-        hpv = 1 - create_lp_filter(r, self.hp, hpd, self.method, self.thresh)
+        lpv = create_filter(True, r, self.lp, lpd, self.method, self.thresh)
+        hpv = create_filter(False, r, self.hp, hpd, self.method, self.thresh)
 
         filter = np.multiply(lpv, hpv)
 
@@ -133,20 +136,25 @@ class ProcessableTomogram(Tomogram):
             self._image._remove_planes()
 
 
-def create_lp_filter(r, lp, lpd, method='gaussian', thresh=0.001):
+def create_filter(is_lp, r, pass_freq, decay, method='gaussian', thresh=0.001):
     # TODO: add support for cosine
-    if lp == 0 and lpd == 0:  # skip low pass
-        lpv = np.ones(r.shape)
-    elif lp > 0 and lpd == 0:  # box filter (not smart but who said you have to be smart)
-        lpv = np.array(r < lp, dtype=np.float32)
-    elif lp == 0 and lpd > 0:  # gaussian from the start
-        lpv = np.exp(-np.square(np.divide(r - (lp - lpd * 0.5), lpd * 0.5)))
+    if pass_freq == 0 and decay == 0:  # skip low pass
+        if is_lp:
+            filt = np.ones(r.shape)
+        else:
+            filt = np.zeros(r.shape)
+    elif pass_freq > 0 and decay == 0:  # box filter (not smart but who said you have to be smart)
+        filt = np.array(r < pass_freq, dtype=np.float32)
+    elif pass_freq == 0 and decay > 0:  # gaussian from the start
+        filt = np.exp(-np.square(np.divide(r - (pass_freq - decay * 0.5), decay * 0.5)))
     else:  # normal box + gaussian decay
-        lpv = np.array(r < lp, dtype=np.float32)
-        sel = (r > (lp - lpd * 0.5))
-        lpv[sel] = np.exp(-np.square(np.divide(r[sel] - (lp - lpd * 0.5), lpd * 0.5)))
-    lpv[lpv < thresh] = 0
-    return lpv
+        filt = np.array(r < pass_freq, dtype=np.float32)
+        sel = (r > (pass_freq - decay * 0.5))
+        filt[sel] = np.exp(-np.square(np.divide(r[sel] - (pass_freq - decay * 0.5), decay * 0.5)))
+    filt[filt < thresh] = 0
+    if not is_lp:
+        filt = 1 - filt
+    return filt
 
 
 

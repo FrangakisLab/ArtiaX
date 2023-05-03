@@ -34,9 +34,19 @@ class Tomogram(VolumePlus):
         if isinstance(self.data, EMGrid):
             self.pixelsize = 1
 
-        # For creating processed version
+        # For creating averaged version
         self.averaging_axis = self.normal
         self.num_averaging_slabs = 10
+
+        # For creating filtered version
+        self.lp = 0
+        self.hp = 0
+        self.lpd = None
+        self.hpd = None
+        self.lp_method = 'box'
+        self.hp_method = 'box'
+        self.thresh = 0.001
+        self.unit = 'pixels'
 
         # Update display
         self.update_drawings()
@@ -115,70 +125,31 @@ class Tomogram(VolumePlus):
     def integer_slab_position(self, value):
         self._set_integer_slice(slice=value)
 
-
-    def calc_time_own_fourier(self, lp, hp, lpd=None, hpd=None, thresh=0.001):
-        import time
+    def create_filtered_tomogram(self, lp, hp, lpd=None, hpd=None, thresh=0.001, unit='pixels'):
         import numpy.fft as fft
-        original_data = self.data.matrix()
-        shape = original_data.shape
+        shape = self.size
         if lpd is None:
             lpd = lp/4
         if hpd is None:
             hpd = hp/4
 
-        t0 = time.time()
-
-        # fft_data = fft.rfftn(original_data)
-
-        # Tz, Ty, Tx = np.asarray(self.size) * self.pixelsize  # ??? is this in Ångström?
-        Nz, Ny, Nx = shape[0], shape[1], shape[2]
-        #fz, fy, fx = fft.fftfreq(Nz), fft.fftfreq(Ny), fft.rfftfreq(Nx)  # rfftn only does rfft on last axis, for the others it does normal fft
-        # zz, yy, xx = np.meshgrid(fft.fftfreq(Nz), fft.fftfreq(Ny), fft.rfftfreq(Nx), indexing='ij')
-        zz, yy, xx = np.meshgrid(np.arange(shape[0]), np.arange(shape[1]), np.arange(shape[2]), indexing='ij')
-        xx, yy, zz = xx - math.floor(shape[2]/2), yy - math.floor(shape[1]/2), zz - math.floor(shape[0]/2)  # centering
+        if unit == 'pixels':
+            Nz, Ny, Nx = shape[2], shape[1], shape[0] // 2 + 1
+            zz, yy, xx = np.meshgrid(np.arange(Nz), np.arange(Ny), np.arange(Nx), indexing='ij')
+            xx, yy, zz = xx - math.floor(Nx / 2), yy - math.floor(Ny / 2), zz - math.floor(Nz / 2)  # centering
+        elif unit == 'hz':
+            Nz, Ny, Nx = shape[2], shape[1], shape[0]
+            zz, yy, xx = np.meshgrid(fft.fftfreq(Nz), fft.fftfreq(Ny), fft.rfftfreq(Nx), indexing='ij')
+            xx, yy, zz = xx - xx[0][0].mean(), fft.fftshift(yy), fft.fftshift(zz)  # centering
+        else:
+            raise NotImplementedError('Only "pixels" and "hx" implemented as units.')
         r = np.sqrt(np.square(xx) + np.square(yy) + np.square(zz))
 
-        t1 = time.time()
+        from .ProcessableTomogram import create_filter
+        filter = np.multiply(create_filter(True, r, lp, lpd, thresh=thresh), create_filter(False, r, hp, hpd, thresh=thresh))
+        filtered_data = np.array(fft.irfftn(np.multiply(fft.rfftn(self.data.matrix()), fft.fftshift(filter))), dtype=np.float32)
 
-        if lp == 0 and lpd == 0:  # skip low pass
-            lpv = np.ones(shape)
-        elif lp > 0 and lpd == 0:  # box filter (not smart but who said you have to be smart)
-            lpv = np.array(r < lp, dtype=np.float32)
-        elif lp == 0 and lpd > 0:  # gaussian from the start
-            lpv = np.exp(-np.square(np.divide(r - (lp - lpd * 0.5), lpd * 0.5)))
-        else:  # normal box + gaussian decay
-            lpv = np.array(r < lp, dtype=np.float32)
-            sel = (r > (lp - lpd*0.5))
-            lpv[sel] = np.exp(-np.square(np.divide(r[sel] - (lp - lpd*0.5), lpd*0.5)))
-            lpv[lpv<thresh] = 0
-
-        if hp == 0 and hpd == 0:  # skip high pass
-            hpv = np.zeros(shape)
-        elif hp > 0 and hpd == 0:  # box filter
-            hpv = np.array(r < hp, dtype=np.float32)
-        elif hp == 0 and hpd > 0:  # gaussian from the start
-            hpv = np.exp(-np.square(np.divide(r - (hp - hpd * 0.5), hpd * 0.5)))
-        else:  # box + gaussian decay
-            hpv = np.array(r < hp, dtype=np.float32)
-            sel = (r > (hp - hpd*0.5))
-            hpv[sel] = np.exp(-np.square(np.divide(r[sel] - (hp - hpd*0.5), hpd*0.5)))
-        hpv[hpv<thresh] = 0
-        hpv = 1 - hpv
-
-        filter = np.multiply(lpv, hpv)
-
-        t2 = time.time()
-
-        fft_data = fft.fft2(original_data)  # Wierd to use fft2 and not fftn but seems to work and is much quicker
-        # fft_data = fft.rfftn(original_data)
-        filtered_data = np.array(fft.ifft2(np.multiply(fft_data, fft.fftshift(filter))), dtype=np.float32)
-        # filtered_data = np.array(fft.irfftn(np.multiply(fft_data, fft.fftshift(filter))), dtype=np.float32)
-        t3 = time.time()
-
-        self.create_tomo_from_array(filtered_data, "Filtered " + self.data.name)
-        t4 = time.time()
-        print(t1-t0, t2-t1, t3-t2, t4-t3, t4-t0)
-        return filter
+        self.create_tomo_from_array(filtered_data, "Filtered " + self.data.name + " lp={}, hp={}".format(lp, hp))
 
     def create_averaged_tomogram(self, axis=(0, 0, 1), num_slabs=10):
         import scipy.ndimage as ndimage

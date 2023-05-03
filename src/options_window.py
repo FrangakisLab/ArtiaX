@@ -391,6 +391,32 @@ class OptionsWindow(ToolInstance):
         process_average_group.setLayout(process_average_layout)
 
         group_process_layout.addWidget(process_average_group)
+
+        process_filter_group = QGroupBox("Filtering")
+        process_filter_group.setToolTip("Create a copy of the tomogram that is filter using a LP, BP, or HP filter.")
+        process_filter_layout = QVBoxLayout()
+
+        from .widgets import RadioButtonsStringOptions
+        self.filtering_unit_buttons = RadioButtonsStringOptions('Unit', ['Hz', 'pixels'])
+
+        lp_box = QGroupBox('Low pass')
+        lp_box.setCheckable(True)
+        lp_box.setToolTip('Low pass filter the current tomogram. Use Gaussian or Cosine decay, or Box for no decay. If '
+                          'pass frequency is set to zero the center of decay will be at zero. If decay size is set to '
+                          'zero a box filter is used.')
+        lp_box_layout = QVBoxLayout()
+        self.lp_decay_method_buttons = RadioButtonsStringOptions('Decay', ["Gaussian", 'Cosine', 'Box'])
+        from .widgets import NLabelValue
+        self.lp_pf_and_decay_edits = NLabelValue(['Pass Frequency', 'Decay Size'], only_pos_values=True)
+        lp_box_layout.addWidget(self.lp_decay_method_buttons)
+        lp_box_layout.addWidget(self.lp_pf_and_decay_edits)
+        lp_box.setLayout(lp_box_layout)
+
+        process_filter_layout.addWidget(self.filtering_unit_buttons)
+        process_filter_layout.addWidget(lp_box)
+        process_filter_group.setLayout(process_filter_layout)
+
+        group_process_layout.addWidget(process_filter_group)
         group_process.setLayout(group_process_layout)
 
 
@@ -518,6 +544,10 @@ class OptionsWindow(ToolInstance):
         ow.process_average_axis_widget.buttonPressed.connect(ow._average_axis_copy_slice_direction)
         ow.process_average_num_slabs_widget.valueChanged.connect(ow._average_num_slabs_changed)
         ow.process_average_create_button.clicked.connect(ow._create_averaged_tomogram)
+
+        ow.filtering_unit_buttons.valueChanged.connect(ow._filtering_unit_changed)
+        ow.lp_decay_method_buttons.valueChanged.connect(ow._filtering_lp_method_changed)
+        ow.lp_pf_and_decay_edits.valueChanged.connect(ow._filtering_lp_frequencies_changed)
 
         # Orthoplanes
         ow.group_orthoplanes_buttonxy.clicked.connect(partial(ow._set_xy_orthoplanes))
@@ -695,6 +725,28 @@ class OptionsWindow(ToolInstance):
         artia = self.session.ArtiaX
         tomo = artia.tomograms.get(artia.options_tomogram)
         tomo.create_averaged_tomogram(num_slabs=tomo.num_averaging_slabs, axis=tomo.averaging_axis)
+
+    def _filtering_unit_changed(self, value):
+        artia = self.session.ArtiaX
+        tomo = artia.tomograms.get(artia.options_tomogram)
+        tomo.unit = value.lower()
+
+    def _filtering_lp_method_changed(self, value):
+        artia = self.session.ArtiaX
+        tomo = artia.tomograms.get(artia.options_tomogram)
+        tomo.lp_method = value.lower()
+
+    def _filtering_lp_frequencies_changed(self, values):
+        artia = self.session.ArtiaX
+        tomo = artia.tomograms.get(artia.options_tomogram)
+        tomo.lp = values[0]
+        tomo.lpd = values[1]
+
+    def _create_filtered_tomogram(self):
+        # TODO: Add warning for big tomograms that it'll take time and a LOT of ram is needed
+        artia = self.session.ArtiaX
+        tomo = artia.tomograms.get(artia.options_tomogram)
+        tomo.create_filtered_tomogram(tomo.lp, tomo.hp, tomo.lpd, tomo.hpd, tomo.thresh, tomo.unit)
 
     def _average_axis_changed(self, axis):
         artia = self.session.ArtiaX
