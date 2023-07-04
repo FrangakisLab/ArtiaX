@@ -43,10 +43,13 @@ class Tomogram(VolumePlus):
         self.hp = 0
         self.lpd = None
         self.hpd = None
-        self.lp_method = 'box'
-        self.hp_method = 'box'
+        self.lp_method = 'gaussian'
+        self.hp_method = 'gaussian'
         self.thresh = 0.001
         self.unit = 'pixels'
+
+        self.use_low_pass = True
+        self.use_high_pass = True
 
         # Update display
         self.update_drawings()
@@ -146,10 +149,18 @@ class Tomogram(VolumePlus):
         r = np.sqrt(np.square(xx) + np.square(yy) + np.square(zz))
 
         from .ProcessableTomogram import create_filter
-        filter = np.multiply(create_filter(True, r, lp, lpd, thresh=thresh), create_filter(False, r, hp, hpd, thresh=thresh))
+        lp_filt = create_filter(True, r, lp, lpd, thresh=thresh) if self.use_low_pass else np.ones(r.shape)
+        hp_filt = create_filter(False, r, hp, hpd, thresh=thresh) if self.use_high_pass else np.zeros(r.shape)
+        filter = np.multiply(lp_filt, hp_filt)
         filtered_data = np.array(fft.irfftn(np.multiply(fft.rfftn(self.data.matrix()), fft.fftshift(filter))), dtype=np.float32)
 
-        self.create_tomo_from_array(filtered_data, "Filtered " + self.data.name + " lp={}, hp={}".format(lp, hp))
+        name = "Filtered " + self.data.name
+        if self.use_low_pass:
+            name += ", lp={}".format(lp)
+        if self.use_high_pass:
+            name += ", hp={}".format(hp)
+
+        self.create_tomo_from_array(filtered_data, name)
 
     def create_averaged_tomogram(self, axis=(0, 0, 1), num_slabs=10):
         import scipy.ndimage as ndimage

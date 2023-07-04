@@ -54,6 +54,13 @@ class NLabelValue(QWidget):
     def labels(self):
         return [label.text() for label in self._labels]
 
+    def set_value(self, index, value):
+        self._values[index] = value
+        f = self._fields[index]
+        f.blockSignals(True)
+        f.setText(str(value))
+        f.blockSignals(False)
+
     def _connect(self):
         """Connect child signals."""
         for field in self._fields:

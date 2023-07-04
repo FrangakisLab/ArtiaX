@@ -50,6 +50,15 @@ class RadioButtonsStringOptions(QWidget):
     def value(self):
         return self._value
 
+    def set_value_checked(self, value):
+        self.uncheck()
+        for button in self._buttons:
+            if value.lower() == button.text().lower():
+                button.blockSignals(True)
+                button.setChecked(True)
+                button.blockSignals(False)
+            continue
+
     def _connect(self):
         """Connect child signals."""
         for button in self._buttons:
