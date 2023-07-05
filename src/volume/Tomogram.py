@@ -168,7 +168,7 @@ class Tomogram(VolumePlus):
             conv_matrix[tuple(np.flip(np.floor(point).astype(int)))] += 1  #flip needed because coord (x,y,z) in conv_matrix is accessed as conv_matrix[z][y][x]
         conv_matrix = conv_matrix/resolution
 
-        original_data = self.data.matrix()
+        original_data = self.data.matrix().copy()
         running_average_data = ndimage.convolve(original_data, conv_matrix)
 
         self.create_tomo_from_array(running_average_data, "Averaged over " + str(num_slabs) + " slabs with axis " + str(axis) + " " + self.data.name)
