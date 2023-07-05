@@ -668,9 +668,12 @@ class OptionsWindow(ToolInstance):
         self.lp_filter_options.cutoff = tomo.lp_method
         self.lp_filter_options.pass_freq = tomo.lp
         self.lp_filter_options.decay_freq = tomo.lpd
+        self.lp_filter_options.auto_decay = tomo.auto_lpd
         self.hp_filter_options.cutoff = tomo.hp_method
         self.hp_filter_options.pass_freq = tomo.hp
         self.hp_filter_options.decay_freq = tomo.hpd
+        self.hp_filter_options.auto_decay = tomo.auto_hpd
+
 
     def _update_pixelsize_edit(self):
         artia = self.session.ArtiaX
@@ -777,6 +780,7 @@ class OptionsWindow(ToolInstance):
         tomo.lp_method = self.lp_filter_options.cutoff
         tomo.lp = self.lp_filter_options.pass_freq
         tomo.lpd = self.lp_filter_options.decay_freq
+        tomo.auto_lpd = self.lp_filter_options.auto_decay
 
     def _hp_filter_changed(self):
         artia = self.session.ArtiaX
@@ -784,6 +788,7 @@ class OptionsWindow(ToolInstance):
         tomo.hp_method = self.hp_filter_options.cutoff
         tomo.hp = self.hp_filter_options.pass_freq
         tomo.hpd = self.hp_filter_options.decay_freq
+        tomo.auto_hpd = self.hp_filter_options.auto_decay
 
     def _create_filtered_tomogram(self):
         artia = self.session.ArtiaX

@@ -29,6 +29,7 @@ from .ThreeFieldsAndButton import ThreeFieldsAndButton
 from .RadioButtonsStringOptions import RadioButtonsStringOptions
 from .NLabelValue import NLabelValue
 from .FilterOptionsWidget import FilterOptionsWidget
+from .AutoManualWidget import AutoManualWidget
 
 def qt_enum_equal(enum_value, comp_value):
     """Compare with Qt enums safely with Qt5 and Qt6."""

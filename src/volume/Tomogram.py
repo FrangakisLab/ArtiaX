@@ -41,8 +41,8 @@ class Tomogram(VolumePlus):
         # For creating filtered version
         self.lp = 0
         self.hp = 0
-        self.lpd = None
-        self.hpd = None
+        self.lpd = 0
+        self.hpd = 0
         self.lp_method = 'gaussian'
         self.hp_method = 'gaussian'
         self.thresh = 0.001
@@ -50,6 +50,8 @@ class Tomogram(VolumePlus):
 
         self.use_low_pass = True
         self.use_high_pass = True
+        self.auto_lpd = True
+        self.auto_hpd = True
 
         # Update display
         self.update_drawings()
@@ -131,9 +133,9 @@ class Tomogram(VolumePlus):
     def create_filtered_tomogram(self, lp, hp, lpd=None, hpd=None, thresh=0.001, unit='pixels'):
         import numpy.fft as fft
         shape = self.size
-        if lpd is None:
+        if self.auto_lpd:
             lpd = lp/4
-        if hpd is None:
+        if self.auto_hpd:
             hpd = hp/4
 
         if unit == 'pixels':

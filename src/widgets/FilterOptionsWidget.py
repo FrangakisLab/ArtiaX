@@ -27,14 +27,18 @@ class FilterOptionsWidget(QWidget):
         self._cutoff = 'gaussian'
         self._pass_freq = 0
         self._decay_freq = 0
+        self._auto_decay = True
 
         layout = QVBoxLayout()
         from .NLabelValue import NLabelValue
         from .RadioButtonsStringOptions import RadioButtonsStringOptions
+        from .AutoManualWidget import AutoManualWidget
         self.decay_method_buttons = RadioButtonsStringOptions('Decay', ["Gaussian", 'Raised Cosine', 'Box'])
-        self.pf_and_decay_edits = NLabelValue(['Pass Frequency', 'Decay Size'], only_pos_values=True)
+        self.pf_edit = NLabelValue(['Pass Frequency'], only_pos_values=True)
+        self.decay_edit = AutoManualWidget("Decay size")
         layout.addWidget(self.decay_method_buttons)
-        layout.addWidget(self.pf_and_decay_edits)
+        layout.addWidget(self.pf_edit)
+        layout.addWidget(self.decay_edit)
 
         self.setLayout(layout)
         self._connect()
@@ -45,7 +49,9 @@ class FilterOptionsWidget(QWidget):
 
     @cutoff.setter
     def cutoff(self, method):
+        self.decay_method_buttons.blockSignals(True)
         self.decay_method_buttons.set_value_checked(method)
+        self.decay_method_buttons.blockSignals(False)
         self._cutoff = method
 
     @property
@@ -54,7 +60,10 @@ class FilterOptionsWidget(QWidget):
 
     @pass_freq.setter
     def pass_freq(self, value):
-        self.pf_and_decay_edits.set_value(0, value)
+        self._pass_freq = value
+        self.pf_edit.blockSignals(True)
+        self.pf_edit.set_value(0, value)
+        self.pf_edit.blockSignals(False)
 
     @property
     def decay_freq(self):
@@ -62,20 +71,39 @@ class FilterOptionsWidget(QWidget):
 
     @decay_freq.setter
     def decay_freq(self, value):
-        self.pf_and_decay_edits.set_value(1, value)
+        self._decay_freq = value
+        self.decay_edit.blockSignals(True)
+        self.decay_edit.value = value
+        self.decay_edit.blockSignals(False)
+
+    @property
+    def auto_decay(self):
+        return self._auto_decay
+
+    @auto_decay.setter
+    def auto_decay(self, auto):
+        self._auto_decay = auto
+        self.decay_edit.blockSignals(True)
+        self.decay_edit.auto = auto
+        self.decay_edit.blockSignals(False)
 
     def _connect(self):
         """Connect child signals."""
         self.decay_method_buttons.valueChanged.connect(self._method_changed)
-        self.pf_and_decay_edits.valueChanged.connect(self._pf_and_decay_changed)
+        self.pf_edit.valueChanged.connect(self._pf_changed)
+        self.decay_edit.valueChanged.connect(self._decay_changed)
 
     def _method_changed(self, value):
         self._cutoff = value
         self._emit_value_changed()
 
-    def _pf_and_decay_changed(self, values):
-        self._pass_freq = values[0].lower()
-        self._decay_freq = values[1].lower()
+    def _pf_changed(self, value):
+        self._pass_freq = value[0].lower()
+        self._emit_value_changed()
+
+    def _decay_changed(self):
+        self._auto_decay = self.decay_edit.auto
+        self._decay_freq = self.decay_edit.value
         self._emit_value_changed()
 
     def _emit_value_changed(self):
