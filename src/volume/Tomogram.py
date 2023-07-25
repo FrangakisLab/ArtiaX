@@ -147,7 +147,7 @@ class Tomogram(VolumePlus):
             zz, yy, xx = np.meshgrid(fft.fftfreq(Nz), fft.fftfreq(Ny), fft.rfftfreq(Nx), indexing='ij')
             xx, yy, zz = xx - xx[0][0].mean(), fft.fftshift(yy), fft.fftshift(zz)  # centering
         else:
-            raise NotImplementedError('Only "pixels" and "hx" implemented as units.')
+            raise NotImplementedError('Only "pixels" and "hz" implemented as units.')
         r = np.sqrt(np.square(xx) + np.square(yy) + np.square(zz))
 
         from .ProcessableTomogram import create_filter

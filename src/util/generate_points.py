@@ -23,8 +23,6 @@ def generate_points_in_bbox(session, surface, radius=1, num_pts=100, method='poi
         place = translation(coord)
         partlist.new_particle(place, [0, 0, 0], place)
 
-    return partlist
-
 
 def generate_points_in_surface(session, surface, radius=1, num_pts=100, method='poisson', n_candidates=30):
     if method not in ['poisson', 'uniform', 'regular grid']:
@@ -52,9 +50,14 @@ def generate_points_in_surface(session, surface, radius=1, num_pts=100, method='
         partlist.new_particle(place, [0, 0, 0], place)
 
 
-def generate_poisson_disc_pts(r, xyz_min, xyz_max, n_candidates):
+def generate_poisson_disc_pts(radius, xyz_min, xyz_max, n_candidates):
     from scipy.stats import qmc
-    engine = qmc.PoissonDisk(d=3, radius=r, ncandidates=n_candidates)  # 10 seems to be a good number... might have to look at that again
+    # The PoissonDisk generates points in a cube that then get scaled up to a rectangular prism. The radius refers to
+    # a sphere in the cube, meaning that it will be scaled up to an ellipsoid. The user only enters a radius, so it
+    # must be chosen which of the ellipsoids radii will be represented by the one the user has entered. Using the
+    # following formula, the smallest ellipsoid radius is the one the user has entered.
+    r = radius/min(xyz_max-xyz_min)
+    engine = qmc.PoissonDisk(d=3, radius=r, ncandidates=n_candidates)
     samples = engine.fill_space()
     return samples * (xyz_max-xyz_min) + xyz_min
 
@@ -96,3 +99,51 @@ def is_point_in_surface(point, vertices, triangles, xyz_min, xyz_max):
         fraction_of_distance, tnum = cti(vertices, triangles, start, end)
     return bool(intercepts % 2)
 
+
+def generate_points_on_surface(session, surface, num_pts=100, radius=1, method='poisson'):
+    if method not in ['poisson', 'uniform']:
+        return
+
+    if method == 'uniform':
+        coords = uniform_on_surface(surface, num_pts)
+    else:
+        coords = poisson_on_surface(surface, radius)
+
+    artia = session.ArtiaX
+    artia.create_partlist(name="Particles on " + surface.name + " " + method)
+    partlist = artia.partlists.child_models()[-1]
+    from chimerax.geometry import translation
+    for coord in coords:
+        place = translation(coord)
+        partlist.new_particle(place, [0, 0, 0], place)
+
+    return partlist
+
+
+def uniform_on_surface(surface, num_pts):
+    verts, tris = surface.vertices, surface.triangles
+    from chimerax.surface import surface_area
+    tri_areas = [surface_area(verts, [tri]) for tri in tris]
+    max_area = max(tri_areas)
+    coords = np.zeros((num_pts, 3))
+    for j in range(num_pts):
+        while True:
+            i = np.random.randint(0, len(tris))
+            val = np.random.random()
+            if val < tri_areas[i]/max_area:
+                coords[j] = generate_point_on_tri(verts[tris[i]])
+                break
+    return coords
+
+
+def generate_point_on_tri(verts):
+    a, b = verts[1]-verts[0], verts[2]-verts[0]
+    u1, u2 = np.random.random(), np.random.random()
+    if u1 + u2 > 1:
+        u1, u2 = 1 - u1, 1-u2
+    return verts[0] + u1*a + u2*b
+
+
+def poisson_on_surface(surface, radius):
+    # Ugh hard... maybe https://sci-hub.ru/10.1109/TVCG.2012.34 or https://dl.acm.org/doi/pdf/10.1145/3233310 (try the latter one first)
+    pass
