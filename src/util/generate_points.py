@@ -100,14 +100,14 @@ def is_point_in_surface(point, vertices, triangles, xyz_min, xyz_max):
     return bool(intercepts % 2)
 
 
-def generate_points_on_surface(session, surface, num_pts=100, radius=1, method='poisson'):
+def generate_points_on_surface(session, surface, num_pts=100, radius=10, method='poisson', oV=10):
     if method not in ['poisson', 'uniform']:
         return
 
     if method == 'uniform':
         coords = uniform_on_surface(surface, num_pts)
     else:
-        coords = poisson_on_surface(surface, radius)
+        coords = poisson_on_surface(surface, radius, num_pts, oV)
 
     artia = session.ArtiaX
     artia.create_partlist(name="Particles on " + surface.name + " " + method)
@@ -144,6 +144,43 @@ def generate_point_on_tri(verts):
     return verts[0] + u1*a + u2*b
 
 
-def poisson_on_surface(surface, radius):
-    # Ugh hard... maybe https://sci-hub.ru/10.1109/TVCG.2012.34 or https://dl.acm.org/doi/pdf/10.1145/3233310 (try the latter one first)
-    pass
+def poisson_on_surface(surface, radius, num_pts, oV=10):
+    # Using the Constrained Sample-Based Poisson-Disk Sampling from https://vcg.isti.cnr.it/Publications/2012/CCS12/TVCG-2011-07-0217.pdf
+
+    # Generate a pool of points using uniform sampling
+    sample_pool = uniform_on_surface(surface, num_pts*oV)
+    bounds = surface.bounds()
+    xyz_min = bounds.xyz_min
+    # Sort all the points into cells with side length r
+    cells = fill_spacial_hash_table(xyz_min, radius, sample_pool)
+
+    coords = []
+    while list(cells.values()):
+        # Extracting a sample from the dict of potential points
+        sample = list(cells.values())[0][0]
+        index = np.array(list(cells.keys())[0])
+        coords.append(sample)
+        # Remove all samples within r distance from the chosen sample
+        remove_samples(sample, index, radius, cells)
+    return coords
+
+
+def fill_spacial_hash_table(xyz_min, side_length, sample_pool):
+    from collections import defaultdict
+    cells = defaultdict(list)
+    for sample in sample_pool:
+        index = np.floor((sample - xyz_min)/side_length).astype(int)
+        cells[tuple(index)].append(sample)
+
+    return cells
+
+
+def remove_samples(sample, index, radius, cells):
+    from itertools import product
+    indices_to_check = [tuple(index + around) for around in product([-1, 0, 1], repeat=3)]
+    indices_to_check = [index for index in indices_to_check if (np.asarray(index)>=[0,0,0]).all()]
+    for index in indices_to_check:
+        cells[index] = [point for point in cells[index] if np.linalg.norm(sample - point) > radius]
+        if not cells[index]:
+            del cells[index]
+

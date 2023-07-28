@@ -1580,6 +1580,20 @@ class OptionsWindow(ToolInstance):
 
         color_select.setLayout(group_color_layout)
 
+        # Generating points options
+        from .widgets import GenerateInSurfaceOptions
+        generate_points = QGroupBox("Generate Points:")
+        generate_points.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+                                               QSizePolicy.Maximum))
+        generate_points.setFont(self.font)
+        generate_points.setCheckable(True)
+        generate_points_layout = QVBoxLayout()
+        self.generate_in_surface_widget = GenerateInSurfaceOptions()
+
+        generate_points_layout.addWidget(self.generate_in_surface_widget)
+        generate_points.setLayout(generate_points_layout)
+
+
         # Define the model specific options
         self.models = {"Sphere": 0, "CurvedLine": 1, "Surface": 2, "TriangulationSurface": 3, "Boundary": 4}
         self.model_options = QStackedWidget()
@@ -1598,6 +1612,7 @@ class OptionsWindow(ToolInstance):
 
         geomodel_layout.addWidget(group_current_geomodel)
         geomodel_layout.addWidget(color_select)
+        geomodel_layout.addWidget(generate_points)
         geomodel_layout.addWidget(self.model_options)
 
         # And finally set the layout of the widget
