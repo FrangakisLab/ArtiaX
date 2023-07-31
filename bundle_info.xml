@@ -303,11 +303,9 @@ will be displayed without the ChimeraX- prefix.
 
     <!-- ArtiaX Model tab, Delete Surface-->
 
-    <!--
     <Provider tab="ArtiaX Models" section="Delete Surface" mouse_mode="delete picked triangle"
       name="Delete Picked Triangle" display_name="Delete Triangle" icon="delete.png"
       description="Delete picked triangle from a boundary or surface model."/>
-    -->
 
     <Provider tab="ArtiaX Models" section="Delete Surface" mouse_mode="delete tetra from boundary"
       name="Delete Tetra From Boundary" display_name="Delete Tetra" icon="delete_tetra.png"

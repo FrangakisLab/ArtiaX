@@ -5,6 +5,7 @@ from chimerax.mouse_modes.mousemodes import MouseMode
 from chimerax.mouse_modes.std_modes import MoveMouseMode
 from chimerax.atomic.structure import PickedAtom
 from chimerax.graphics.drawing import PickedTriangle
+from chimerax.core.models import PickedModel
 
 # This package
 from .particle import PickedInstanceTriangle
@@ -168,7 +169,8 @@ class MovePickedParticleMode(MoveParticlesMode):
             else:
                 self._collections = []
                 self._masks = []
-        elif isinstance(pick, PickedInstanceTriangle):
+        elif isinstance(pick, PickedModel) and isinstance(pick.picked_triangle, PickedInstanceTriangle):
+            pick = pick.picked_triangle
             self._collections = [pick.drawing().parent]
             self._masks = [pick.position_mask()]
         else:
@@ -219,7 +221,8 @@ class DeletePickedParticleMode(MouseMode):
                 return pick.atom.particle_id, par.parent
             else:
                 return None, None
-        elif isinstance(pick, PickedInstanceTriangle):
+        elif isinstance(pick, PickedModel) and isinstance(pick.picked_triangle, PickedInstanceTriangle):
+            pick = pick.picked_triangle
             return pick.particle_id(), pick.drawing().parent.parent
         else:
             return None, None
@@ -266,7 +269,8 @@ class DeletePickedTriangleMode(MouseMode):
     def remove_from_pick(self, pick):
         from .geometricmodel.Boundary import Boundary
         from .geometricmodel.Surface import Surface
-        if isinstance(pick, PickedTriangle) and isinstance(pick.drawing(), (Boundary, Surface)):
+        if isinstance(pick, PickedModel) and isinstance(pick.drawing(), (Surface, Boundary)):
+            pick = pick.picked_triangle
             geomodel = pick.drawing()
             from .geometricmodel.GeoModel import remove_triangle
             remove_triangle(geomodel, pick.triangle_number)
@@ -289,7 +293,8 @@ class DeletePickedTetraMode(MouseMode):
 
     def remove_from_pick(self, pick):
         from .geometricmodel.Boundary import Boundary
-        if isinstance(pick, PickedTriangle) and isinstance(pick.drawing(), Boundary):
+        if isinstance(pick, PickedModel) and isinstance(pick.drawing(), Boundary):
+            pick = pick.picked_triangle
             boundary = pick.drawing()
             boundary.remove_tetra(pick.triangle_number)
 

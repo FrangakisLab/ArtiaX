@@ -13,9 +13,9 @@ from Qt.QtWidgets import QGridLayout, QLabel, QLineEdit, QSizePolicy, QWidget, Q
     QGroupBox, QRadioButton, QPushButton
 
 
-class GenerateInSurfaceOptions(QWidget):
+class GenerateOnSurfaceOptions(QWidget):
     """
-    Widget for generating points in surface.
+    Widget for generating points on surface.
 
     """
 
@@ -32,9 +32,9 @@ class GenerateInSurfaceOptions(QWidget):
         layout = QVBoxLayout()
         from .NLabelValue import NLabelValue
         from .RadioButtonsStringOptions import RadioButtonsStringOptions
-        self.method_buttons = RadioButtonsStringOptions('Method', ["Uniform", 'Poisson Disk', 'Regular Grid'])
+        self.method_buttons = RadioButtonsStringOptions('Method', ["Uniform", 'Poisson Disk'])
         self.options_edits = NLabelValue(['Number of Points', 'Radius'], only_pos_values=True)
-        self.generate_button = QPushButton("Generate Points in Surface")
+        self.generate_button = QPushButton("Generate Points on Surface")
         layout.addWidget(self.method_buttons)
         layout.addWidget(self.options_edits)
         layout.addWidget(self.generate_button)
@@ -57,13 +57,8 @@ class GenerateInSurfaceOptions(QWidget):
             self.options_edits.disable_fields([1], True)
             self.method_buttons.set_value_checked('Uniform')
         elif v.lower() == 'poisson':
-            self.options_edits.disable_fields([0], True)
-            self.options_edits.disable_fields([1], False)
+            self.options_edits.disable_fields([0, 1], False)
             self.method_buttons.set_value_checked('Poisson Disk')
-        else:
-            self.options_edits.disable_fields([0], False)
-            self.options_edits.disable_fields([1], True)
-            self.method_buttons.set_value_checked('Regular Grid')
         self.options_edits.blockSignals(False)
         self.method_buttons.blockSignals(False)
         self._method = v.lower()

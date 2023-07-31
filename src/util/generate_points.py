@@ -3,6 +3,7 @@ from chimerax.geometry import z_align
 import numpy as np
 import time
 
+
 def generate_points_in_bbox(session, surface, radius=1, num_pts=100, method='poisson', n_candidates=30):
     if method not in ['poisson', 'uniform', 'regular grid']:
         return
@@ -15,16 +16,10 @@ def generate_points_in_bbox(session, surface, radius=1, num_pts=100, method='poi
     else:
         coords = generate_regular_grid_pts(num_pts, xyz_min, xyz_max)
 
-    artia = session.ArtiaX
-    artia.create_partlist(name=surface.name + " " + method + " particles")
-    partlist = artia.partlists.child_models()[-1]
-    from chimerax.geometry import translation
-    for coord in coords:
-        place = translation(coord)
-        partlist.new_particle(place, [0, 0, 0], place)
+    create_partlist_from_coords(session, surface.name + " " + method + " particles", coords)
 
 
-def generate_points_in_surface(session, surface, radius=1, num_pts=100, method='poisson', n_candidates=30):
+def generate_points_in_surface(session, surface, radius=100, num_pts=100, method='poisson', n_candidates=30):
     if method not in ['poisson', 'uniform', 'regular grid']:
         return
     bbox = surface.bounds()
@@ -41,13 +36,7 @@ def generate_points_in_surface(session, surface, radius=1, num_pts=100, method='
         if is_point_in_surface(coord, surface.vertices, surface.triangles, xyz_min, xyz_max):
             coords_in_surface.append(coord)
 
-    artia = session.ArtiaX
-    artia.create_partlist(name=surface.name + " " + method + " particles inside")
-    partlist = artia.partlists.child_models()[-1]
-    from chimerax.geometry import translation
-    for coord in coords_in_surface:
-        place = translation(coord)
-        partlist.new_particle(place, [0, 0, 0], place)
+    create_partlist_from_coords(session, surface.name + " " + method + " particles inside", coords_in_surface)
 
 
 def generate_poisson_disc_pts(radius, xyz_min, xyz_max, n_candidates):
@@ -56,7 +45,8 @@ def generate_poisson_disc_pts(radius, xyz_min, xyz_max, n_candidates):
     # a sphere in the cube, meaning that it will be scaled up to an ellipsoid. The user only enters a radius, so it
     # must be chosen which of the ellipsoids radii will be represented by the one the user has entered. Using the
     # following formula, the smallest ellipsoid radius is the one the user has entered.
-    r = radius/min(xyz_max-xyz_min)
+
+    r = float(radius)/min(xyz_max-xyz_min)
     engine = qmc.PoissonDisk(d=3, radius=r, ncandidates=n_candidates)
     samples = engine.fill_space()
     return samples * (xyz_max-xyz_min) + xyz_min
@@ -100,40 +90,61 @@ def is_point_in_surface(point, vertices, triangles, xyz_min, xyz_max):
     return bool(intercepts % 2)
 
 
+def create_partlist_from_coords(session, name, points, using_points=False):
+    artia = session.ArtiaX
+    artia.create_partlist(name=name)
+    partlist = artia.partlists.child_models()[-1]
+    from chimerax.geometry import translation
+    if using_points:
+        for point in points:
+            place = translation(point.coord)
+            partlist.new_particle(place, [0, 0, 0], point.rotation)
+    else:
+        coords = points
+        for coord in coords:
+            place = translation(coord)
+            partlist.new_particle(place, [0, 0, 0], place)
+
+    return partlist
+
+
+class Point:
+    def __init__(self, coord, rotation):
+        self.coord = coord
+        self.rotation = rotation
+
+
 def generate_points_on_surface(session, surface, num_pts=100, radius=10, method='poisson', oV=10):
     if method not in ['poisson', 'uniform']:
         return
 
     if method == 'uniform':
-        coords = uniform_on_surface(surface, num_pts)
+        points = uniform_on_surface(surface, num_pts)
     else:
-        coords = poisson_on_surface(surface, radius, num_pts, oV)
+        points = poisson_on_surface(surface, radius, num_pts, oV)
 
-    artia = session.ArtiaX
-    artia.create_partlist(name="Particles on " + surface.name + " " + method)
-    partlist = artia.partlists.child_models()[-1]
-    from chimerax.geometry import translation
-    for coord in coords:
-        place = translation(coord)
-        partlist.new_particle(place, [0, 0, 0], place)
-
-    return partlist
+    create_partlist_from_coords(session, "Particles on " + surface.name + " " + method, points, using_points=True)
 
 
 def uniform_on_surface(surface, num_pts):
-    verts, tris = surface.vertices, surface.triangles
+    # Using the unbiased sampling (version 2) from https://vcg.isti.cnr.it/Publications/2012/CCS12/TVCG-2011-07-0217.pdf
+    verts, tris, norms = surface.vertices, surface.triangles, surface.normals
     from chimerax.surface import surface_area
+    from chimerax.geometry import z_align
     tri_areas = [surface_area(verts, [tri]) for tri in tris]
     max_area = max(tri_areas)
-    coords = np.zeros((num_pts, 3))
+    points = []
     for j in range(num_pts):
         while True:
             i = np.random.randint(0, len(tris))
             val = np.random.random()
             if val < tri_areas[i]/max_area:
-                coords[j] = generate_point_on_tri(verts[tris[i]])
+                coord = generate_point_on_tri(verts[tris[i]])
+                normal = norms[tris[i]].mean(0)
+                rotation = z_align(coord, coord + normal).zero_translation().inverse()
+                points.append(Point(coord, rotation))
                 break
-    return coords
+    return points
 
 
 def generate_point_on_tri(verts):
@@ -154,22 +165,22 @@ def poisson_on_surface(surface, radius, num_pts, oV=10):
     # Sort all the points into cells with side length r
     cells = fill_spacial_hash_table(xyz_min, radius, sample_pool)
 
-    coords = []
+    points = []
     while list(cells.values()):
         # Extracting a sample from the dict of potential points
         sample = list(cells.values())[0][0]
         index = np.array(list(cells.keys())[0])
-        coords.append(sample)
+        points.append(sample)
         # Remove all samples within r distance from the chosen sample
         remove_samples(sample, index, radius, cells)
-    return coords
+    return points
 
 
 def fill_spacial_hash_table(xyz_min, side_length, sample_pool):
     from collections import defaultdict
     cells = defaultdict(list)
     for sample in sample_pool:
-        index = np.floor((sample - xyz_min)/side_length).astype(int)
+        index = np.floor((sample.coord - xyz_min)/side_length).astype(int)
         cells[tuple(index)].append(sample)
 
     return cells
@@ -180,7 +191,7 @@ def remove_samples(sample, index, radius, cells):
     indices_to_check = [tuple(index + around) for around in product([-1, 0, 1], repeat=3)]
     indices_to_check = [index for index in indices_to_check if (np.asarray(index)>=[0,0,0]).all()]
     for index in indices_to_check:
-        cells[index] = [point for point in cells[index] if np.linalg.norm(sample - point) > radius]
+        cells[index] = [point for point in cells[index] if np.linalg.norm(sample.coord - point.coord) > radius]
         if not cells[index]:
             del cells[index]
 

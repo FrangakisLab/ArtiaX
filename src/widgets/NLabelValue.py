@@ -61,6 +61,13 @@ class NLabelValue(QWidget):
         f.setText(str(value))
         f.blockSignals(False)
 
+    def disable_fields(self, indices, disable):
+        for i in indices:
+            f = self._fields[i]
+            f.blockSignals(True)
+            f.setEnabled(not disable)
+            f.blockSignals(False)
+
     def _connect(self):
         """Connect child signals."""
         for field in self._fields:

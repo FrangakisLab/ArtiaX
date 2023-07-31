@@ -22,6 +22,14 @@ class GeoModel(Surface):
         self._color = self._get_unused_color()
         self.change_transparency(255)
 
+        self.generate_in_surface_method = 'uniform'
+        self.generate_in_surface_num_pts = 100
+        self.generate_in_surface_radius = 100
+
+        self.generate_on_surface_method = 'uniform'
+        self.generate_on_surface_num_pts = 100
+        self.generate_on_surface_radius = 100
+
         # Change trigger for UI
         self.triggers.add_trigger(GEOMODEL_CHANGED)
 

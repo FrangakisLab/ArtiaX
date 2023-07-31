@@ -628,6 +628,12 @@ class OptionsWindow(ToolInstance):
         ow.geomodel_color_selection.colorChanged.connect(ow._color_geomodel)
         ow.geomodel_color_selection.colorChangeFinished.connect(partial(ow._color_geomodel, log=True))
 
+        # Generate particles options
+        ow.generate_in_surface_widget.buttonPressed.connect(ow._generate_in_surface)
+        ow.generate_in_surface_widget.valueChanged.connect(ow._generate_in_surface_options_changed)
+        ow.generate_on_surface_widget.buttonPressed.connect(ow._generate_on_surface)
+        ow.generate_on_surface_widget.valueChanged.connect(ow._generate_on_surface_options_changed)
+
     def _update_tomo_ui(self):
         self._update_tomo_sliders()
         self._update_pixelsize_edit()
@@ -1431,6 +1437,36 @@ class OptionsWindow(ToolInstance):
     def _color_geomodel(self, *args, **kwargs):
         self.session.ArtiaX.color_geomodel(*args, **kwargs)
 
+    def _generate_in_surface(self):
+        artia = self.session.ArtiaX
+        gm = artia.geomodels.get(artia.options_geomodel)
+
+        from .util.generate_points import generate_points_in_surface
+        generate_points_in_surface(self.session, gm, gm.generate_in_surface_radius, gm.generate_in_surface_num_pts, gm.generate_in_surface_method)
+
+    def _generate_in_surface_options_changed(self):
+        artia = self.session.ArtiaX
+        gm = artia.geomodels.get(artia.options_geomodel)
+
+        gm.generate_in_surface_radius = self.generate_in_surface_widget.radius
+        gm.generate_in_surface_method = self.generate_in_surface_widget.method
+        gm.generate_in_surface_num_pts = self.generate_in_surface_widget.num_pts
+
+    def _generate_on_surface(self):
+        artia = self.session.ArtiaX
+        gm = artia.geomodels.get(artia.options_geomodel)
+
+        from .util.generate_points import generate_points_on_surface
+        generate_points_on_surface(self.session, gm, gm.generate_on_surface_num_pts, gm.generate_on_surface_radius, gm.generate_on_surface_method)
+
+    def _generate_on_surface_options_changed(self):
+        artia = self.session.ArtiaX
+        gm = artia.geomodels.get(artia.options_geomodel)
+
+        gm.generate_on_surface_radius = self.generate_on_surface_widget.radius
+        gm.generate_on_surface_method = self.generate_on_surface_widget.method
+        gm.generate_on_surface_num_pts = self.generate_on_surface_widget.num_pts
+
     def take_snapshot(self, session, flags):
         return
         {
@@ -1581,7 +1617,7 @@ class OptionsWindow(ToolInstance):
         color_select.setLayout(group_color_layout)
 
         # Generating points options
-        from .widgets import GenerateInSurfaceOptions
+        from .widgets import GenerateInSurfaceOptions, GenerateOnSurfaceOptions
         generate_points = QGroupBox("Generate Points:")
         generate_points.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
                                                QSizePolicy.Maximum))
@@ -1589,8 +1625,10 @@ class OptionsWindow(ToolInstance):
         generate_points.setCheckable(True)
         generate_points_layout = QVBoxLayout()
         self.generate_in_surface_widget = GenerateInSurfaceOptions()
+        self.generate_on_surface_widget = GenerateOnSurfaceOptions()
 
         generate_points_layout.addWidget(self.generate_in_surface_widget)
+        generate_points_layout.addWidget(self.generate_on_surface_widget)
         generate_points.setLayout(generate_points_layout)
 
 
@@ -1627,6 +1665,16 @@ class OptionsWindow(ToolInstance):
 
         # Set new model
         self.geomodel_color_selection.set_geomodel(geomodel)
+        self.generate_in_surface_widget.blockSignals(True)
+        self.generate_in_surface_widget.method = geomodel.generate_in_surface_method
+        self.generate_in_surface_widget.num_pts = geomodel.generate_in_surface_num_pts
+        self.generate_in_surface_widget.radius = geomodel.generate_in_surface_radius
+        self.generate_in_surface_widget.blockSignals(False)
+        self.generate_on_surface_widget.blockSignals(True)
+        self.generate_on_surface_widget.method = geomodel.generate_on_surface_method
+        self.generate_on_surface_widget.num_pts = geomodel.generate_on_surface_num_pts
+        self.generate_on_surface_widget.radius = geomodel.generate_on_surface_radius
+        self.generate_on_surface_widget.blockSignals(False)
         if type(geomodel).__name__ == "Sphere":
             self.sphere_options.set_sphere(geomodel)
         elif type(geomodel).__name__ == "CurvedLine":
