@@ -42,23 +42,23 @@ class GenerateInSurfaceOptions(QWidget):
         self._connect()
 
     @property
-    def cutoff(self):
-        return self._cutoff
+    def method(self):
+        return self._method
 
-    @cutoff.setter
-    def cutoff(self, method):
-        self.decay_method_buttons.blockSignals(True)
-        self.decay_method_buttons.set_value_checked(method)
-        self.decay_method_buttons.blockSignals(False)
-        self._cutoff = method
+    @method.setter
+    def method(self, v):
+        self.method_buttons.blockSignals(True)
+        self.method_buttons.set_value_checked(v)
+        self.method_buttons.blockSignals(False)
+        self._method = v
 
     @property
-    def pass_freq(self):
-        return float(self._pass_freq)
+    def num_pts(self):
+        return float(self._num_pts)
 
-    @pass_freq.setter
-    def pass_freq(self, value):
-        self._pass_freq = value
+    @num_pts.setter
+    def num_pts(self, value):
+        self._num_pts = value
         self.pf_edit.blockSignals(True)
         self.pf_edit.set_value(0, value)
         self.pf_edit.blockSignals(False)
