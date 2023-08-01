@@ -336,7 +336,7 @@ def artiax_move_camera_along_line(session, model, numFrames=None, backwards=Fals
 
 
 def artiax_remove_overlap(session, models=None, manifold=None, boundary=None, method='distance', thoroughness=None, precision=None):
-    # TODO: Also log everything that happens. Also add warning if it'll take long
+    # TODO: Log everything that happens. Also add warning if it'll take long
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running.")
         return
@@ -471,6 +471,17 @@ def artiax_remove_overlap(session, models=None, manifold=None, boundary=None, me
 
     from ..util.remove_overlap import remove_overlap
     remove_overlap(session, particles, pls, scms, bounds, method, on_surface_particles, in_surface_particles, thoroughness, precision)
+
+
+def artiax_generate_points(session, model, method, on_surface=True, num_pts=100, radius=100):
+
+
+    from ..util.generate_points import generate_points_in_surface, generate_points_on_surface
+    if on_surface:
+        generate_points_on_surface(session, model, num_pts, radius, method)
+    else:
+        generate_points_in_surface(session, model, radius, num_pts, method)
+
 
 def artiax_lock(session, models=None, type=None):
     # No ArtiaX
