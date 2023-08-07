@@ -473,14 +473,60 @@ def artiax_remove_overlap(session, models=None, manifold=None, boundary=None, me
     remove_overlap(session, particles, pls, scms, bounds, method, on_surface_particles, in_surface_particles, thoroughness, precision)
 
 
-def artiax_generate_points(session, model, method, on_surface=True, num_pts=100, radius=100):
+def artiax_generate_points_in_surface(session, model, method, num_pts=None, radius=None):
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running.")
+        return
+
+    from chimerax.core.models import Surface
+    if not isinstance(model, Surface):
+        session.logger.warning("{} is not a Surface.".format(model))
+        return
+
+    if method not in ['poisson', 'regular grid', 'uniform']:
+        session.logger.warning(
+            "{} is not a valid method of generating points in a surface. Please use one of 'poisson'"
+            ", 'regular grid', or 'uniform'.".format(method))
+        return
+    elif method in ['uniform', 'regular grid'] and (num_pts is None or num_pts<0):
+        session.logger.warning("Please input a number of points larger than 0 using the 'num_points' keyword when"
+                               " generating points in a surface using uniform sampling or on a regular grid.")
+        return
+    elif method == 'poisson' and (radius is None or radius<0):
+        session.logger.warning("Please input a radius larger than 0 using the 'radius' keyword when"
+                               " generating points in a surface using poisson disk sampling.")
+        return
+
+    from ..util.generate_points import generate_points_in_surface
+    generate_points_in_surface(session, model, radius, num_pts, method)
 
 
-    from ..util.generate_points import generate_points_in_surface, generate_points_on_surface
-    if on_surface:
-        generate_points_on_surface(session, model, num_pts, radius, method)
-    else:
-        generate_points_in_surface(session, model, radius, num_pts, method)
+def artiax_generate_points_on_surface(session, model, method, num_pts, radius=None):
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running.")
+        return
+
+    from chimerax.core.models import Surface
+    if not isinstance(model, Surface):
+        session.logger.warning("{} is not a Surface.".format(model))
+        return
+
+    if method not in ['poisson', 'uniform']:
+        session.logger.warning(
+            "{} is not a valid method of generating points on a surface. Please use one of 'poisson'"
+            " or 'uniform'.".format(method))
+        return
+    elif num_pts < 1:
+        session.logger.warning("Please input a number of points larger than 0 using the 'num_points' keyword when"
+                               " generating points on a surface.")
+        return
+    elif method == 'poisson' and (radius is None or radius < 0):
+        session.logger.warning("Please input a radius larger than 0 using the 'radius' keyword when"
+                               " generating points on a surface using poisson disk sampling.")
+        return
+
+    from ..util.generate_points import generate_points_on_surface
+    generate_points_on_surface(session, model, num_pts, radius, method)
 
 
 def artiax_lock(session, models=None, type=None):
@@ -1092,6 +1138,28 @@ def register_artiax(logger):
         )
         register('artiax remove overlap', desc, artiax_remove_overlap)
 
+    def register_artiax_generate_points_in_surface():
+        desc = CmdDesc(
+            required=[("model", ModelArg),
+                      ("method", EnumOf(("poisson", "uniform", "regular grid")))],
+            keyword=[("num_pts", IntArg),
+                     ("radius", FloatArg)],
+            synopsis='Generates points in the specified surface. Can generate points using uniform sampling, '
+                     'a poisson disk sampling method, or on a regular grid.'
+        )
+        register('artiax generate points in surface', desc, artiax_generate_points_in_surface)
+
+    def register_artiax_generate_points_on_surface():
+        desc = CmdDesc(
+            required=[("model", ModelArg),
+                      ("method", EnumOf(("poisson", "uniform"))),
+                      ("num_pts", IntArg)],
+            keyword=[("radius", FloatArg)],
+            synopsis='Generates points on the specified surface. Can generate points using uniform sampling, '
+                     'a poisson disk sampling method.'
+        )
+        register('artiax generate points on surface', desc, artiax_generate_points_on_surface)
+
     def register_artiax_lock():
         desc = CmdDesc(
             optional=[("models", Or(ModelsArg, EmptyArg)),
@@ -1195,6 +1263,8 @@ def register_artiax(logger):
     register_artiax_geomodel_color()
     register_artiax_move_camera_along_line()
     register_artiax_remove_overlap()
+    register_artiax_generate_points_in_surface()
+    register_artiax_generate_points_on_surface()
     register_artiax_tomo()
     register_artiax_colormap()
     register_artiax_label()

@@ -1,0 +1,58 @@
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=windows-1252">
+    <link rel="stylesheet" type="text/css" href="../userdocs.css">
+    <title>Command:artiax generate points in surface</title>
+  </head>
+  <body> <a name="top"></a> <a href="../artiax_index.html"> <img src="../ArtiaX-docs-icon.svg"
+        alt="ArtiaX docs icon" class="clRight" title="User Guide Index" width="60px"></a>
+    <h3><a href="../artiax_index.html#commands">Command</a>: artiax generate points in surface</h3>
+    <h3 class="usage"><a href="usageconventions.html">Usage</a>: <br>
+      <b>artiax generate points in surface</b> <a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+       <i>method</i> [<strong>numP
+        ts</strong> <i>value</i>]
+      [<strong>radius</strong> <i>value</i>] </h3>
+    <p> The <b>artiax generate points in surface</b> command generates points inside the closed volume of the chosen
+    surface. Three different methods of generating points are available. Similar to the
+      <a href="artiax_generate_points_on_surface.html"> <i>artiax generate points on surface command</i></a>.</p>
+    <table style="width: 1006px; height: 380px;" border="1">
+      <tbody>
+        <tr>
+          <td style="text-align: center; width: 176px;"><em><strong>property</strong></em></td>
+          <td style="text-align: center; width: 239.033px;"><em><strong>meaning</strong></em></td>
+          <td style="text-align: center; width: 242.033px;"><em><strong>expected
+                value type</strong></em></td>
+        </tr>
+        <tr>
+          <td style="height: 19px; text-align: center;"><strong>method</strong></td>
+          <td>Method for generating points. Available methods are: <strong>uniform</strong>,
+            <strong>regular grid</strong>, and <strong>poisson</strong>. The <strong>uniform</strong> method generates the specified
+            number of points uniformly sampled within the bounding box of the surface, the <strong>regular grid</strong>
+            method points on a regular 3D grid, and the <strong>poisson</strong> method generates points using a
+            poisson disk sampling scheme (meaning points are generated randomly but never within a certain radius of each other)
+            using the specified radius. All methods generate points withing the bounding box of the surface, and then removes
+            the points that are outside of the enclosed volume of the surface.</td>
+          <td style="text-align: center;"><em>string</em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>numPts</strong></td>
+          <td>The number of points to generate within the bounding box of the surface when using the <strong>uniform</strong>
+          , or <strong>regular grid</strong> method.</td>
+          <td style="text-align: center;"><em>int</em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>radius</strong></td>
+          <td>The poisson disk radius used for the <strong>poisson</strong> method.</td>
+          <td style="text-align: center;"><em>float</em></td>
+        </tr>
+      </tbody>
+    </table>
+    <p> Examples: </p>
+    <blockquote> <b>artiax generate points in surface #1.3.1 uniform numPts 100 <br>
+        artiax generate points in surface #1.3.1 "regular grid" numPts 500 <br>
+        artiax generate points in surface #1.3.1 poisson radius 100 </b> </blockquote>
+    <p></p>
+    <hr>
+    <address>BMLS Frangakis Group / August 2023</address>
+  </body>
+</html>
