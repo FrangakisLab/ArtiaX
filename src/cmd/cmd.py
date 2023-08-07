@@ -336,7 +336,6 @@ def artiax_move_camera_along_line(session, model, numFrames=None, backwards=Fals
 
 
 def artiax_remove_overlap(session, models=None, manifold=None, boundary=None, method='distance', thoroughness=None, precision=None):
-    # TODO: Log everything that happens. Also add warning if it'll take long
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running.")
         return
@@ -528,6 +527,65 @@ def artiax_generate_points_on_surface(session, model, method, num_pts, radius=No
     from ..util.generate_points import generate_points_on_surface
     generate_points_on_surface(session, model, num_pts, radius, method)
 
+
+def artiax_geomodel_to_volume(session, model=None, geomodels=None, subdivide_length=None):
+    from ..volume.Tomogram import Tomogram
+    from chimerax.surface import subdivide_mesh
+    from chimerax.map_data import ArrayGridData
+
+    new_model = False
+    if model is None:
+        new_model = True
+        ps = [1, 1, 1]
+        name = 'segmented surfaces'
+    elif not isinstance(model, Tomogram):
+        session.logger.warning("{} is not a tomogram loaded into ArtiaX".format(model))
+        return
+    else:
+        tomo = model
+        name = tomo.name
+        ps = tomo.pixelsize
+        mat = tomo.data.matrix().copy()
+
+    if geomodels is None:
+        geomodels = session.ArtiaX.geomodels.child_models()
+
+    if subdivide_length is None:
+        subdivide_length = min(ps)
+
+    if new_model:
+        xyz_max = np.max([gm.bounds().xyz_max for gm in geomodels], axis=0)
+        xyz_min = np.min([gm.bounds().xyz_min for gm in geomodels], axis=0)
+
+        mat = np.zeros(np.array(np.ceil(xyz_max - xyz_min), dtype=int))
+
+    # For each geomodel
+    for geomodel in geomodels:  # Get verts and subdiv
+        vs, ts, ns = geomodel.vertices, geomodel.triangles, geomodel.normals
+        vs, ts, ns = subdivide_mesh(vs, ts, ns, subdivide_length)
+
+        # Set voxels
+        for v in vs:
+            if new_model:
+                index = v
+                index = np.flip(index - xyz_min)
+            else:
+                index = tomo.data.xyz_to_ijk(v)
+            index = np.flip(np.array(np.floor(index), dtype=int))  # flipped to make it [zi, yi, xi]
+            if (index<[0,0,0]).any() or (index >= mat.shape).any():
+                session.logger.warning("Model is outside of volume.")
+                print(index)
+                print(v)
+                return
+            mat[index[0], index[1], index[2]] = 1
+
+    agd = ArrayGridData(mat, step=ps, name=name)
+
+    if new_model:
+        new_tomo = Tomogram(session, agd)
+        session.ArtiaX.add_tomogram(new_tomo)
+    else:
+        tomo.replace_data(agd)
 
 def artiax_lock(session, models=None, type=None):
     # No ArtiaX
@@ -1160,6 +1218,17 @@ def register_artiax(logger):
         )
         register('artiax generate points on surface', desc, artiax_generate_points_on_surface)
 
+    def register_artiax_geomodel_to_volume():
+        desc = CmdDesc(
+            optional=[("model", ModelArg)],
+            keyword=[("geomodels", ListOf(ModelArg)),
+                     ("subdivide_length", FloatArg)],
+            synopsis='Adds the specified geomodels to the specified volume. If no model is specified, a new one is'
+                     ' created. If no geomodels are specified, all are used. The subdivide_length keyword sets'
+                     ' the largest allowed triangle length, and defaults to the tomograms smallest pixelsize.'
+        )
+        register('artiax geomodel to volume', desc, artiax_geomodel_to_volume)
+
     def register_artiax_lock():
         desc = CmdDesc(
             optional=[("models", Or(ModelsArg, EmptyArg)),
@@ -1265,6 +1334,7 @@ def register_artiax(logger):
     register_artiax_remove_overlap()
     register_artiax_generate_points_in_surface()
     register_artiax_generate_points_on_surface()
+    register_artiax_geomodel_to_volume()
     register_artiax_tomo()
     register_artiax_colormap()
     register_artiax_label()

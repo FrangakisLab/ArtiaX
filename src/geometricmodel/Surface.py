@@ -187,6 +187,31 @@ class Surface(PopulatedModel):
             np.savez(file, model_type="Surface", particle_pos=self.particle_pos, resolution=self.resolution,
                      method=self.method, normal=self.normal, points=self.points)
 
+    def reorient_to_surface(self):
+        from chimerax.geometry._geometry import find_closest_points
+        from chimerax.geometry import z_align
+        ps = []
+        pls = []
+        search_length = 10
+        for particle_list in self.session.ArtiaX.partlists.child_models():
+            using_pl = False
+            for curr_id in particle_list.particle_ids[particle_list.selected_particles]:
+                if curr_id:
+                    using_pl = True
+                    p = particle_list.get_particle(curr_id)
+                    ps.append(p)
+            if using_pl:
+                pls.append(particle_list)
+        coords = [p.coord for p in ps]
+        points_with_close_vertex, throw, closest_verts = find_closest_points(coords, self.vertices, search_length)
+        for i, point_index in enumerate(points_with_close_vertex):
+            p = ps[point_index]
+            normal = self.normals[closest_verts[i]]
+            rotation = z_align(p.coord, p.coord + normal).zero_translation().inverse()
+            p.rotation = rotation
+        for pl in pls:
+            pl.update_places()
+
 
 def get_grid(particle_pos, normal, resolution, method, base=None):
     """ Interpolates the surface from the given particles and normal. See start of class for explanation of normal

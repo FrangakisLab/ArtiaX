@@ -96,14 +96,13 @@ def create_partlist_from_coords(session, name, points, using_points=False):
     partlist = artia.partlists.child_models()[-1]
     from chimerax.geometry import translation
     if using_points:
-        for point in points:
-            place = translation(point.coord)
-            partlist.new_particle(place, [0, 0, 0], point.rotation)
+        origins = [translation(point.coord) for point in points]
+        rotations = [point.rotation for point in points]
     else:
-        coords = points
-        for coord in coords:
-            place = translation(coord)
-            partlist.new_particle(place, [0, 0, 0], place)
+        origins = [translation(coord) for coord in points]
+        rotations = origins
+    shifts = np.zeros((len(points), 3))
+    partlist.new_particles(origins, shifts, rotations)
 
     return partlist
 

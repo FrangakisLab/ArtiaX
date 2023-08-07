@@ -53,7 +53,7 @@ class CurvedLine(PopulatedModel):
         self.display_options = True
         self.radius = 1
         """Line (which is drawn as a cylinder) radius"""
-        self.radius_edit_range = (0, 2)
+        self.radius_edit_range = (0, 100)
 
         self.spacing_edit_range = (1, 100)
         self.spacing = (self.spacing_edit_range[1] + self.spacing_edit_range[0]) / 2

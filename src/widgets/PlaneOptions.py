@@ -45,7 +45,11 @@ class PlaneOptions(QWidget):
         self.update_button.setToolTip("Updates the surface to fit the particles. Useful when the surface doesn't match"
                                       "the desired surface; simply move the particles that define the surface and "
                                       "press this button to update the surface.")
+        self.reorient_particles_button = QPushButton("Reorient Particles")
+        self.reorient_particles_button.setToolTip("Reorient the selected particles so that their z-axis points along "
+                                                  "the normal of the closest part of the surface.")
         layout.addWidget(self.update_button)
+        layout.addWidget(self.reorient_particles_button)
 
         #Fitting options
         self.fitting_checkbox = QGroupBox("Change surface fitting:")
@@ -143,6 +147,7 @@ class PlaneOptions(QWidget):
 
     def _connect(self):
         self.update_button.clicked.connect(self._update)
+        self.reorient_particles_button.clicked.connect(self._reorient_particles)
         self.fitting_checkbox.clicked.connect(self._fitting_toggled)
         self.method_buttons.valueChanged.connect(self._method_changed)
         self.resolution_slider.valueChanged.connect(self._resolution_changed)
@@ -159,6 +164,10 @@ class PlaneOptions(QWidget):
     def _update(self):
         if self.plane is not None:
             self.plane.recalc_and_update()
+
+    def _reorient_particles(self):
+        if self.plane is not None:
+            self.plane.reorient_to_surface()
 
     def _fitting_toggled(self):
         if self.plane is not None:

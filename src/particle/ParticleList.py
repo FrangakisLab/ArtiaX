@@ -743,7 +743,18 @@ class ParticleList(Model):
         print('fine')
         self.triggers.activate_trigger(PARTLIST_CHANGED, self)
 
-    def new_particle(self, origin, translation, rotation):
+    def new_particles(self, origins, translations, rotations):
+        pids = []
+        places = []
+        for (o, t, r) in zip(origins, translations, rotations):
+            p = self.new_particle(o, t, r, update_selectors=False, add_to_collection=False)
+            pids.append(p.id)
+            places.append(p.full_transform())
+
+        self.collection_model.add_places(pids, places)
+        self.update_position_selectors()
+
+    def new_particle(self, origin, translation, rotation, update_selectors=True, add_to_collection=True):
         particle = self._data.new_particle()
         particle.origin = origin
         particle.translation = translation
@@ -752,7 +763,8 @@ class ParticleList(Model):
         marker = self.markers.create_marker(particle.coord, self.color, self.radius, trigger=False)
 
         # Add to surface collection
-        self.collection_model.add_place(particle.id, particle.full_transform())
+        if add_to_collection:
+            self.collection_model.add_place(particle.id, particle.full_transform())
 
         # Set custom attributes
         self._attr_to_marker(marker, particle)
@@ -779,7 +791,10 @@ class ParticleList(Model):
             pc = self.particle_colors
             self.particle_colors = append(pc, reshape(pc[-1, :], (1, 4)), axis=0)
 
-        self.update_position_selectors()
+        if update_selectors:
+            self.update_position_selectors()
+
+        return particle
 
     def _marker_created(self, name, data):
         """Create Particle instances and add position to SurfaceCollection when new Marker was placed.

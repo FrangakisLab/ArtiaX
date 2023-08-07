@@ -85,5 +85,6 @@ class PopulatedModel(GeoModel):
         artia.create_partlist(name=self.name + " particles")
         partlist = artia.partlists.child_models()[-1]
         artia.ui.ow._show_tab("geomodel")
-        for i in range(0, len(self.spheres_places)):
-            partlist.new_particle(self.spheres_places[i], [0, 0, 0], self.spheres_places[i])
+
+
+        partlist.new_particles(self.spheres_places, np.zeros((len(self.spheres_places), 3)), self.spheres_places)
