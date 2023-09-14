@@ -530,7 +530,7 @@ def artiax_generate_points_on_surface(session, model, method, num_pts, radius=No
 
 def artiax_geomodel_to_volume(session, model=None, geomodels=None, subdivide_length=None):
     from ..volume.Tomogram import Tomogram
-    from chimerax.surface import subdivide_mesh
+    from chimerax.surface._surface import subdivide_mesh
     from chimerax.map_data import ArrayGridData
 
     new_model = False
@@ -554,10 +554,10 @@ def artiax_geomodel_to_volume(session, model=None, geomodels=None, subdivide_len
         subdivide_length = min(ps)
 
     if new_model:
-        xyz_max = np.max([gm.bounds().xyz_max for gm in geomodels], axis=0)
-        xyz_min = np.min([gm.bounds().xyz_min for gm in geomodels], axis=0)
+        xyz_max = np.max([gm.geometry_bounds().xyz_max for gm in geomodels], axis=0)
+        xyz_min = np.min([gm.geometry_bounds().xyz_min for gm in geomodels], axis=0)
 
-        mat = np.zeros(np.array(np.ceil(xyz_max - xyz_min), dtype=int))
+        mat = np.zeros(np.array(np.ceil(xyz_max - xyz_min), dtype=int), dtype=np.float32)
 
     # For each geomodel
     for geomodel in geomodels:  # Get verts and subdiv
@@ -573,10 +573,8 @@ def artiax_geomodel_to_volume(session, model=None, geomodels=None, subdivide_len
                 index = tomo.data.xyz_to_ijk(v)
             index = np.flip(np.array(np.floor(index), dtype=int))  # flipped to make it [zi, yi, xi]
             if (index<[0,0,0]).any() or (index >= mat.shape).any():
-                session.logger.warning("Model is outside of volume.")
-                print(index)
-                print(v)
-                return
+                session.logger.warning("Model {} is outside of volume.".format(geomodel))
+                break
             mat[index[0], index[1], index[2]] = 1
 
     agd = ArrayGridData(mat, step=ps, name=name)
