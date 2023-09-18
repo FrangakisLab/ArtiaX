@@ -1633,7 +1633,8 @@ class OptionsWindow(ToolInstance):
 
 
         # Define the model specific options
-        self.models = {"Sphere": 0, "CurvedLine": 1, "Surface": 2, "TriangulationSurface": 3, "Boundary": 4}
+        #Todo fix an own for arbitrary
+        self.models = {"Sphere": 0, "CurvedLine": 1, "Surface": 2, "TriangulationSurface": 3, "Boundary": 4, "ArbitraryModel": 0}
         self.model_options = QStackedWidget()
 
         self.sphere_options = SphereOptions(self.session)

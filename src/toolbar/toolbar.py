@@ -54,6 +54,7 @@ _providers = {
     "Flip Z": "artiax flip z",
     "Delete Picked Triangle": 'ui mousemode right "delete picked triangle"',
     "Delete Tetra From Boundary": 'ui mousemode right "delete tetra from boundary"',
+    "Mask Connected Triangles": 'ui mousemode right "mask connected triangles"'
 }
 
 

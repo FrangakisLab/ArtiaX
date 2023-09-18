@@ -585,6 +585,48 @@ def artiax_geomodel_to_volume(session, model=None, geomodels=None, subdivide_len
     else:
         tomo.replace_data(agd)
 
+def artiax_masked_triangles_to_geomodel(session, models=None, name='arbitrary model'):
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running.")
+        return
+
+    from chimerax.core.models import Drawing
+    surfaces = []
+
+    if models is not None:
+        for model in models:
+            if not isinstance(model, Drawing):
+                session.logger.warning("{} is not a drawing".format(model))
+                return
+            if model.empty_drawing():
+                surface = None
+                for d in model.child_drawings():
+                    if not d.empty_drawing():
+                        surface = d
+                        break
+                if surface is None:
+                    session.logger.warning("{} does not contain a drawing with a surface".format(model))
+                    return
+            else:
+                surface = model
+            surfaces.append(surface)
+    else:
+        return
+
+    verts = np.concatenate([surface.vertices for surface in surfaces])
+    normals = np.concatenate([surface.normals for surface in surfaces])
+    tris = []
+    for surface in surfaces:
+        t = surface.triangles if surface.triangle_mask is None else surface.triangles[surface.triangle_mask]
+        tris.extend(t)
+    tris = np.array(tris)
+
+    from ..geometricmodel.ArbitraryModel import ArbitraryModel
+    a = ArbitraryModel(name, session, verts, normals, tris)
+
+    session.ArtiaX.add_geomodel(a)
+
+
 def artiax_lock(session, models=None, type=None):
     # No ArtiaX
     if not hasattr(session, 'ArtiaX'):
@@ -1227,6 +1269,15 @@ def register_artiax(logger):
         )
         register('artiax geomodel to volume', desc, artiax_geomodel_to_volume)
 
+    def register_artiax_masked_triangles_to_geomodel():
+        desc = CmdDesc(
+            optional=[("models", ModelsArg)],
+            keyword=[("name", StringArg)],
+            synopsis='Creates a new geomodel from the specified models. Only uses the masked triangles. If no model is'
+                     'specified, the currently selected models are used'
+        )
+        register('artiax volume to geomodel', desc, artiax_masked_triangles_to_geomodel)
+
     def register_artiax_lock():
         desc = CmdDesc(
             optional=[("models", Or(ModelsArg, EmptyArg)),
@@ -1333,6 +1384,7 @@ def register_artiax(logger):
     register_artiax_generate_points_in_surface()
     register_artiax_generate_points_on_surface()
     register_artiax_geomodel_to_volume()
+    register_artiax_masked_triangles_to_geomodel()
     register_artiax_tomo()
     register_artiax_colormap()
     register_artiax_label()

@@ -7,6 +7,7 @@ from chimerax.geometry import z_align
 # ArtiaX imports
 from .GeoModel import GeoModel
 
+
 class Sphere(GeoModel):
     """
     A Sphere model that is fitted to particles. Can be used to reorient particles.

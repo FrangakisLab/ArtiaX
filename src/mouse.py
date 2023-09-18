@@ -1,4 +1,5 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+import numpy as np
 
 # ChimeraX
 from chimerax.mouse_modes.mousemodes import MouseMode
@@ -6,6 +7,9 @@ from chimerax.mouse_modes.std_modes import MoveMouseMode
 from chimerax.atomic.structure import PickedAtom
 from chimerax.graphics.drawing import PickedTriangle
 from chimerax.core.models import PickedModel
+from chimerax.map import PickedMap
+from chimerax.graphics import Drawing
+from chimerax.surface import connected_triangles
 
 # This package
 from .particle import PickedInstanceTriangle
@@ -306,3 +310,47 @@ class DeletePickedTetraMode(MouseMode):
     def vr_press(self, event):
         pick = event.picked_object(self.view)
         self.remove_from_pick(pick)
+
+
+class MaskConnectedTrianglesMode(MouseMode):
+    name = 'mask connected triangles'
+    #Todo: change image icon
+    icon_file = './icons/delete.png'
+
+    def __init__(self, session):
+        MouseMode.__init__(self, session)
+
+    def mask_connected_triangles(self, pick):
+        if hasattr(pick, "drawing") and isinstance(pick.drawing(), Drawing):
+            if isinstance(pick, PickedModel):
+                t_number = pick.picked_triangle.triangle_number
+                surface = pick.drawing()
+            elif isinstance(pick, PickedMap) and hasattr(pick, "triangle_pick"):
+                t_number = pick.triangle_pick.triangle_number
+                surface = None
+                for d in pick.drawing().child_drawings():
+                    if not d.empty_drawing():
+                        surface = d
+                        break
+                if surface is None:
+                    return
+            else:
+                return
+
+            if surface.triangle_mask is None:
+                connected_tris = connected_triangles(surface.triangles, t_number)
+                triangles_to_show = np.delete(np.arange(len(surface.triangles)), connected_tris)
+            else:
+                t_number = surface.triangle_mask[t_number] - 1  # No idea why I need the one but i do
+                connected_tris = connected_triangles(surface.triangles, t_number)
+                triangles_to_show = np.setdiff1d(surface.triangle_mask, connected_tris)
+            surface.set_geometry(surface.vertices, surface.normals, surface.triangles, triangle_mask=triangles_to_show)
+
+    def mouse_down(self, event):
+        x, y = event.position()
+        pick = self.view.picked_object(x, y)
+        self.mask_connected_triangles(pick)
+
+    def vr_press(self, event):
+        pick = event.picked_object(self.view)
+        self.mask_connected_triangles(pick)
