@@ -344,7 +344,9 @@ class MaskConnectedTrianglesMode(MouseMode):
                 t_number = surface.triangle_mask[t_number] - 1  # No idea why I need the one but i do
                 connected_tris = connected_triangles(surface.triangles, t_number)
                 triangles_to_show = np.setdiff1d(surface.triangle_mask, connected_tris)
+            vc = surface.get_vertex_colors()
             surface.set_geometry(surface.vertices, surface.normals, surface.triangles, triangle_mask=triangles_to_show)
+            surface.set_vertex_colors(vc)
 
     def mouse_down(self, event):
         x, y = event.position()

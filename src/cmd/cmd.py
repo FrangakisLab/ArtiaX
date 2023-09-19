@@ -548,7 +548,7 @@ def artiax_geomodel_to_volume(session, model=None, geomodels=None, subdivide_len
         mat = tomo.data.matrix().copy()
 
     if geomodels is None:
-        geomodels = session.ArtiaX.geomodels.child_models()
+        geomodels = [g for g in session.ArtiaX.geomodels.child_models() if g.visible]
 
     if subdivide_length is None:
         subdivide_length = min(ps)
@@ -611,15 +611,33 @@ def artiax_masked_triangles_to_geomodel(session, models=None, name='arbitrary mo
                 surface = model
             surfaces.append(surface)
     else:
-        return
+        for model in session.selection.models():
+            if isinstance(model, Drawing):
+                if model.empty_drawing():
+                    surface = None
+                    for d in model.child_drawings():
+                        if not d.empty_drawing():
+                            surface = d
+                            break
+                    if surface is None:
+                        continue
+                else:
+                    surface = model
+                surfaces.append(surface)
+        if not len(surfaces):
+            session.logger.warning("No drawing with a surface is currently selected")
+            return
 
-    verts = np.concatenate([surface.vertices for surface in surfaces])
-    normals = np.concatenate([surface.normals for surface in surfaces])
-    tris = []
+    surfaces = np.unique(surfaces)
+
+    verts, normals, tris = [], [], []
     for surface in surfaces:
         t = surface.triangles if surface.triangle_mask is None else surface.triangles[surface.triangle_mask]
+        t = t + len(verts)
         tris.extend(t)
-    tris = np.array(tris)
+        verts.extend(surface.vertices)
+        normals.extend(surface.normals)
+    verts, normals, tris = np.array(verts), np.array(normals), np.array(tris)
 
     from ..geometricmodel.ArbitraryModel import ArbitraryModel
     a = ArbitraryModel(name, session, verts, normals, tris)
@@ -1264,14 +1282,14 @@ def register_artiax(logger):
             keyword=[("geomodels", ListOf(ModelArg)),
                      ("subdivide_length", FloatArg)],
             synopsis='Adds the specified geomodels to the specified volume. If no model is specified, a new one is'
-                     ' created. If no geomodels are specified, all are used. The subdivide_length keyword sets'
+                     ' created. If no geomodels are specified, all shown are used. The subdivide_length keyword sets'
                      ' the largest allowed triangle length, and defaults to the tomograms smallest pixelsize.'
         )
         register('artiax geomodel to volume', desc, artiax_geomodel_to_volume)
 
     def register_artiax_masked_triangles_to_geomodel():
         desc = CmdDesc(
-            optional=[("models", ModelsArg)],
+            optional=[("models", ListOf(ModelArg))],
             keyword=[("name", StringArg)],
             synopsis='Creates a new geomodel from the specified models. Only uses the masked triangles. If no model is'
                      'specified, the currently selected models are used'

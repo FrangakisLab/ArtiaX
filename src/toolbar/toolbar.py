@@ -47,6 +47,8 @@ _providers = {
     "Triangulate": "artiax triangulate",
     "Boundary": "artiax boundary",
     "Create Mask": "artiax mask",
+    "Volume to Geomodel": "artiax volume to geomodel",
+    "Geomodel to Volume": "artiax geomodel to volume",
     "Remove Selected": 'artiax remove links',
     "Triangles From Links": "artiax triangles from links",
     "Flip X": "artiax flip x",

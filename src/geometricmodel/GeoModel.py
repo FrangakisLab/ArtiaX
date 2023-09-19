@@ -353,6 +353,9 @@ def open_model(session, modelname, model_type, data):
         from .Boundary import Boundary
         model = Boundary(modelname, session, data['particle_pos'], float(data['alpha']), triangles=data['triangles'],
                          delete_tri_list=data['delete_tri_list'])
+    elif model_type == "ArbitraryModel":
+        from .ArbitraryModel import ArbitraryModel
+        model = ArbitraryModel(modelname, session, data['vertices'], data['normals'], data['triangles'])
 
     return model
 

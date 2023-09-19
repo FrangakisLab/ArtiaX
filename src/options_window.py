@@ -36,7 +36,7 @@ from Qt.QtWidgets import (
 # This package
 from .volume.Tomogram import orthoplane_cmd
 from .widgets import LabelEditSlider, SelectionTableWidget, ColorRangeWidget, ColorGeomodelWidget, PlaneOptions,\
-    CurvedLineOptions, BoundaryOptions, SphereOptions, TriangulateOptions
+    CurvedLineOptions, BoundaryOptions, SphereOptions, TriangulateOptions, ArbitraryModelOptions
 from .ArtiaX import (
     OPTIONS_TOMO_CHANGED,
     OPTIONS_GEOMODEL_CHANGED,
@@ -1633,8 +1633,8 @@ class OptionsWindow(ToolInstance):
 
 
         # Define the model specific options
-        #Todo fix an own for arbitrary
-        self.models = {"Sphere": 0, "CurvedLine": 1, "Surface": 2, "TriangulationSurface": 3, "Boundary": 4, "ArbitraryModel": 0}
+        self.models = {"Sphere": 0, "CurvedLine": 1, "Surface": 2, "TriangulationSurface": 3, "Boundary": 4,
+                       "ArbitraryModel": 5}
         self.model_options = QStackedWidget()
 
         self.sphere_options = SphereOptions(self.session)
@@ -1642,12 +1642,14 @@ class OptionsWindow(ToolInstance):
         self.plane_options = PlaneOptions(self.session)
         self.tri_surface_options = TriangulateOptions(self.session)
         self.boundary_options = BoundaryOptions(self.session)
+        self.arbitrary_model_options = ArbitraryModelOptions(self.session)
 
         self.model_options.addWidget(self.sphere_options)
         self.model_options.addWidget(self.curved_options)
         self.model_options.addWidget(self.plane_options)
         self.model_options.addWidget(self.tri_surface_options)
         self.model_options.addWidget(self.boundary_options)
+        self.model_options.addWidget(self.arbitrary_model_options)
 
         geomodel_layout.addWidget(group_current_geomodel)
         geomodel_layout.addWidget(color_select)
@@ -1686,6 +1688,8 @@ class OptionsWindow(ToolInstance):
             self.tri_surface_options.set_tri_surface(geomodel)
         elif type(geomodel).__name__ == "Boundary":
             self.boundary_options.set_boundary(geomodel)
+        elif type(geomodel).__name__ == "ArbitraryModel":
+            self.arbitrary_model_options.set_arbitrary_model(geomodel)
 
         self.model_options.setCurrentIndex(self.models[self.curr_model])
 

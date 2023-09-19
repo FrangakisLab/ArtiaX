@@ -17,6 +17,6 @@ class ArbitraryModel(GeoModel):
         self.vertex_colors = np.full((len(vertices), 4), self.color)
 
     def write_file(self, file_name):
-        #Todo: fix
         with open(file_name, 'wb') as file:
-            np.savez(file, model_type="TriangulationSurface", triangles=self.tri)
+            np.savez(file, model_type="ArbitraryModel", vertices=self.vertices, normals=self.normals,
+                     triangles=self.triangles)
