@@ -598,13 +598,13 @@ def artiax_geomodel_to_volume(session, model=None, geomodels=None, subdivide_len
             vs, ts, ns = geomodel.vertices, geomodel.triangles[geomodel.triangle_mask,:], geomodel.normals
 
         vs, ts, ns = subdivide_mesh(vs, ts, ns, subdivide_length)
-        from chimerax.surface import triangle_vertices
-        vs_index = triangle_vertices(ts, np.arange(len(ts)))
+
+        vs_index = np.unique(ts[:])
+        vs = vs[vs_index, :]
 
         # Set voxels
         for i, v in enumerate(vs):
-            if i not in vs_index:
-                continue
+
             if new_model:
                 index = v
                 index = index - xyz_min
