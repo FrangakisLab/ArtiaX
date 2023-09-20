@@ -12,7 +12,7 @@ from chimerax.graphics import Drawing
 from chimerax.surface import connected_triangles
 
 # This package
-from .particle import PickedInstanceTriangle
+from .particle import PickedInstanceTriangle, SurfaceCollectionModel
 
 
 class MoveParticlesMode(MoveMouseMode):
@@ -337,16 +337,19 @@ class MaskConnectedTrianglesMode(MouseMode):
             else:
                 return
 
+            if isinstance(surface, SurfaceCollectionModel):
+                return
+
             if surface.triangle_mask is None:
                 connected_tris = connected_triangles(surface.triangles, t_number)
-                triangles_to_show = np.delete(np.arange(len(surface.triangles)), connected_tris)
+                triangles_to_show = np.ones((surface.triangles.shape[0],), dtype=bool)
+                triangles_to_show[connected_tris] = False
+
             else:
-                t_number = surface.triangle_mask[t_number] - 1  # No idea why I need the one but i do
                 connected_tris = connected_triangles(surface.triangles, t_number)
-                triangles_to_show = np.setdiff1d(surface.triangle_mask, connected_tris)
-            vc = surface.get_vertex_colors()
-            surface.set_geometry(surface.vertices, surface.normals, surface.triangles, triangle_mask=triangles_to_show)
-            surface.set_vertex_colors(vc)
+                triangles_to_show = surface.triangle_mask
+                triangles_to_show[connected_tris] = False
+            surface.triangle_mask = triangles_to_show
 
     def mouse_down(self, event):
         x, y = event.position()

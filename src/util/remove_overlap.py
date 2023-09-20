@@ -3,13 +3,13 @@ from chimerax.geometry import z_align
 import numpy as np
 import time
 
-def remove_overlap(session, particles, pls, scms, bounds, method='distance', on_surface_particles=None, in_surface_particles=None, num_points=100, move_factor=1, rotate_to_normal=True):
+def remove_overlap(session, particles, pls, scms, bounds, method='distance', on_surface_particles=None, in_surface_particles=None, particles_to_keep_still=None, max_iterations=100, num_points=100, move_factor=1, rotate_to_normal=True):
     if method == 'distance':
         calculate_overlap = calculate_overlap_distance
     else:
         calculate_overlap = calculate_overlap_point_volume
 
-    movements = get_movements(calculate_overlap, particles, scms, bounds, on_surface_particles, in_surface_particles, num_points, move_factor, rotate_to_normal)
+    movements = get_movements(calculate_overlap, particles, scms, bounds, on_surface_particles, in_surface_particles, particles_to_keep_still, num_points, move_factor, rotate_to_normal)
     iteration = 0
     while not all(not movement.any() for movement in movements.values()):
         # move all the particles away from each other
@@ -18,16 +18,15 @@ def remove_overlap(session, particles, pls, scms, bounds, method='distance', on_
         for pl in pls:
             pl.update_places()
         session.update_loop.draw_new_frame()
-        movements = get_movements(calculate_overlap, particles, scms, bounds, on_surface_particles, in_surface_particles, num_points, move_factor, rotate_to_normal)
-        # TODO: Make this iteration thing an option
+        movements = get_movements(calculate_overlap, particles, scms, bounds, on_surface_particles, in_surface_particles, particles_to_keep_still, num_points, move_factor, rotate_to_normal)
         iteration += 1
-        if iteration > 100:
-            print("Over 100 iterations...")
+        if iteration > max_iterations:
+            session.logger.warning("artiax remove overlap: {} iterations reached.".format(max_iterations))
             return
 
 
-def get_movements(calculate_overlap, particles, scms, bounds, on_surface_particles, in_surface_particles, num_points, move_factor, rotate_to_normal):
-    movements = calculate_overlap(particles, scms, bounds, num_points, move_factor)
+def get_movements(calculate_overlap, particles, scms, bounds, on_surface_particles, in_surface_particles, particles_to_keep_still, num_points, move_factor, rotate_to_normal):
+    movements = calculate_overlap(particles, scms, bounds, particles_to_keep_still, num_points, move_factor)
     if on_surface_particles is not None:
         for ps, surface in on_surface_particles:
             movements = project_movements_to_surface(movements, ps, surface, bounds, rotate_to_normal)
@@ -82,11 +81,29 @@ def project_movements_to_surface(movements, particles, surface, bounds, rotate_t
     return movements
 
 
-def bound_movements_inside_surface(movements, particles, surface):
-    pass
+def bound_movements_inside_surface(movements, particles, surface, scms):
+    from chimerax.geometry._geometry import find_close_points
+    for p in particles:
+        if not movements[p].any():
+            continue
+        scm = scms[p]
+        p_verts = p.full_transform().transform_points(scm.vertices) + movements[p]
+        close_points_indicies = find_close_points(p_verts, surface.vertices, 1)
+        if not len(close_points_indicies[0]):
+            continue
+        all_close_points = np.vstack((p_verts[close_points_indicies[0]], surface[close_points_indicies[1]]))
+
+        middle = all_close_points.mean(0)
+        svd = np.linalg.svd(all_close_points - middle)
+        normal = svd[2][2, :]
+        normal = normal / np.linalg.norm(normal)
+
+        p_to_middle = middle - np.array(p.coord)
+        if normal.dot(p_to_middle) < 0:
+            normal = -normal
 
 
-def calculate_overlap_distance(particles, scms, bounds, not_used=None, also_not_used=None):
+def calculate_overlap_distance(particles, scms, bounds, particles_to_keep_still=None, not_used=None, also_not_used=None):
     from chimerax.geometry._geometry import find_close_points
 
     overlaps = {p: [] for p in particles}
@@ -108,6 +125,8 @@ def calculate_overlap_distance(particles, scms, bounds, not_used=None, also_not_
         p_verts = p.full_transform().transform_points(scm.vertices)
         overlapping_particles = [other_p for other_p in overlaps[p] if other_p not in particles[:i]]
         for other_p in overlapping_particles:
+            if particles_to_keep_still is not None and particles_to_keep_still[p] and particles_to_keep_still[other_p]:
+                continue
             scm = scms[other_p]
             other_p_verts = other_p.full_transform().transform_points(scm.vertices)
             close_points_indicies = find_close_points(p_verts, other_p_verts, 1)
@@ -130,10 +149,17 @@ def calculate_overlap_distance(particles, scms, bounds, not_used=None, also_not_
 
             movement_direction = -normal
             move_dist = (p_in_other_p_depth + other_p_in_p_depth)/2
-            number_of_overlaps[p] += 1
-            number_of_overlaps[other_p] += 1
-            movements[p] += movement_direction * move_dist
-            movements[other_p] -= movement_direction * move_dist
+            if particles_to_keep_still is None or (not particles_to_keep_still[p] and not particles_to_keep_still[other_p]):
+                number_of_overlaps[p] += 1
+                number_of_overlaps[other_p] += 1
+                movements[p] += movement_direction * move_dist
+                movements[other_p] -= movement_direction * move_dist
+            elif particles_to_keep_still[p]:
+                number_of_overlaps[other_p] += 1
+                movements[other_p] -= movement_direction * move_dist*2
+            else:
+                number_of_overlaps[p] += 1
+                movements[p] += movement_direction * move_dist*2
 
     for p in particles:
         if number_of_overlaps[p]:
@@ -157,7 +183,7 @@ def find_depth_of_pts_from_plane(pts, middle, normal):
         return 0
 
 
-def calculate_overlap_point_volume(particles, scms, bounds, num_points=100, move_factor=0.33):
+def calculate_overlap_point_volume(particles, scms, bounds, particles_to_keep_still=None, num_points=100, move_factor=0.33):
     # return a dictionary with the movement vector to add to all particles. particles is a list of all particles to calculate overlap for, scms and bounds are dicts with the particles as keys and scms/bounds as values.
     generate_pts = generate_poisson_disc_pts
 
@@ -199,6 +225,8 @@ def calculate_overlap_point_volume(particles, scms, bounds, num_points=100, move
 
         overlapping_particles = [other_p for other_p in overlaps[p] if other_p not in ordered_particles[:i]]
         for other_p in overlapping_particles:
+            if particles_to_keep_still is not None and particles_to_keep_still[p] and particles_to_keep_still[other_p]:
+                continue
             scm = scms[other_p]
             p_verts = other_p.full_transform().transform_points(scm.vertices)
 
@@ -208,8 +236,13 @@ def calculate_overlap_point_volume(particles, scms, bounds, num_points=100, move
             movement_direction = np.asarray(p.coord) - other_p.coord
             movement_direction = movement_direction/np.linalg.norm(movement_direction)
             move_dist = (overlap_vol ** (1/3))*move_factor
-            movements[p] += movement_direction * move_dist
-            movements[other_p] -= movement_direction * move_dist
+            if particles_to_keep_still is None or (not particles_to_keep_still[p] and not particles_to_keep_still[other_p]):
+                movements[p] += movement_direction * move_dist
+                movements[other_p] -= movement_direction * move_dist
+            elif particles_to_keep_still[p]:
+                movements[other_p] -= movement_direction * move_dist * 2
+            else:
+                movements[p] += movement_direction * move_dist * 2
     return movements
 
 
