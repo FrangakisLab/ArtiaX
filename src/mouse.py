@@ -317,8 +317,9 @@ class MaskConnectedTrianglesMode(MouseMode):
     #Todo: change image icon
     icon_file = './icons/delete.png'
 
-    def __init__(self, session):
+    def __init__(self, session, radius=None):
         MouseMode.__init__(self, session)
+        self.radius = radius
 
     def mask_connected_triangles(self, pick):
         if hasattr(pick, "drawing") and isinstance(pick.drawing(), Drawing):
@@ -340,13 +341,17 @@ class MaskConnectedTrianglesMode(MouseMode):
             if isinstance(surface, SurfaceCollectionModel):
                 return
 
+
+            connected_tris = connected_triangles(surface.triangles, t_number)
+            if self.radius is not None:
+                def tri_coord(surface, tri):
+                    return surface.vertices[surface.triangles[tri]].mean(axis=0)
+                center = tri_coord(surface, t_number)
+                connected_tris = [tri for tri in connected_tris if np.linalg.norm(tri_coord(surface, tri) - center) < self.radius]
             if surface.triangle_mask is None:
-                connected_tris = connected_triangles(surface.triangles, t_number)
                 triangles_to_show = np.ones((surface.triangles.shape[0],), dtype=bool)
                 triangles_to_show[connected_tris] = False
-
             else:
-                connected_tris = connected_triangles(surface.triangles, t_number)
                 triangles_to_show = surface.triangle_mask
                 triangles_to_show[connected_tris] = False
             surface.triangle_mask = triangles_to_show

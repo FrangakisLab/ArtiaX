@@ -31,8 +31,8 @@ def get_movements(calculate_overlap, particles, scms, bounds, on_surface_particl
         for ps, surface in on_surface_particles:
             movements = project_movements_to_surface(movements, ps, surface, bounds, rotate_to_normal)
     if in_surface_particles is not None:
-        for ps, surface in in_surface_particles:
-            movements = bound_movements_inside_surface(movements, ps, surface)
+        for ps, surface, search_distance in in_surface_particles:
+            movements = bound_movements_inside_surface(movements, ps, surface, search_distance, scms)
     return movements
 
 
@@ -76,22 +76,20 @@ def project_movements_to_surface(movements, particles, surface, bounds, rotate_t
                 rotation = rotation_to_z.zero_translation().inverse()
                 p.rotation = rotation
 
-
-
     return movements
 
 
-def bound_movements_inside_surface(movements, particles, surface, scms):
+def bound_movements_inside_surface(movements, particles, surface, search_distance, scms):
     from chimerax.geometry._geometry import find_close_points
     for p in particles:
         if not movements[p].any():
             continue
         scm = scms[p]
         p_verts = p.full_transform().transform_points(scm.vertices) + movements[p]
-        close_points_indicies = find_close_points(p_verts, surface.vertices, 1)
+        close_points_indicies = find_close_points(p_verts, surface.vertices, search_distance)
         if not len(close_points_indicies[0]):
             continue
-        all_close_points = np.vstack((p_verts[close_points_indicies[0]], surface[close_points_indicies[1]]))
+        all_close_points = np.vstack((p_verts[close_points_indicies[0]], surface.vertices[close_points_indicies[1]]))
 
         middle = all_close_points.mean(0)
         svd = np.linalg.svd(all_close_points - middle)
@@ -101,7 +99,12 @@ def bound_movements_inside_surface(movements, particles, surface, scms):
         p_to_middle = middle - np.array(p.coord)
         if normal.dot(p_to_middle) < 0:
             normal = -normal
+        p_on_other_side_of_surface = find_depth_of_pts_from_plane(p_verts, middle, normal, calc_depth=False)
 
+        if p_on_other_side_of_surface:
+            movements[p] = np.array([0, 0, 0])
+
+    return movements
 
 def calculate_overlap_distance(particles, scms, bounds, particles_to_keep_still=None, not_used=None, also_not_used=None):
     from chimerax.geometry._geometry import find_close_points
@@ -167,7 +170,7 @@ def calculate_overlap_distance(particles, scms, bounds, particles_to_keep_still=
     return movements
 
 
-def find_depth_of_pts_from_plane(pts, middle, normal):
+def find_depth_of_pts_from_plane(pts, middle, normal, calc_depth=True):
     # Returns distance from the plane to the point furthest away from the plane on the side the normal points to.
     # Could maybe be faster?
     normal = np.asarray(normal)/np.linalg.norm(normal)
@@ -175,10 +178,13 @@ def find_depth_of_pts_from_plane(pts, middle, normal):
     offset = np.dot(normal, middle)
     pts_on_right_side = pts[np.dot(pts, normal) > offset]
     if len(pts_on_right_side):
-        projected_to_normal = [normal * np.dot(normal, pt) for pt in pts_on_right_side]
-        middle_projected_onto_normal = normal * np.dot(normal, middle)
-        lengths = [np.linalg.norm(pt-middle_projected_onto_normal) for pt in projected_to_normal]
-        return max(lengths)
+        if calc_depth:
+            projected_to_normal = [normal * np.dot(normal, pt) for pt in pts_on_right_side]
+            middle_projected_onto_normal = normal * np.dot(normal, middle)
+            lengths = [np.linalg.norm(pt-middle_projected_onto_normal) for pt in projected_to_normal]
+            return max(lengths)
+        else:
+            return 1
     else:
         return 0
 

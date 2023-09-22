@@ -335,7 +335,7 @@ def artiax_move_camera_along_line(session, model, numFrames=None, backwards=Fals
     model.move_camera_along_line(False, numFrames, backwards, distanceBehind, topRotation, facingRotation)
 
 
-def artiax_remove_overlap(session, models=None, manifold=None, boundary=None, freeze=None, method='distance', iterations=None, thoroughness=None, precision=None):
+def artiax_remove_overlap(session, models=None, manifold=None, boundary=None, freeze=None, method='distance', iterations=None, thoroughness=None, precision=None, maxSearchDistance=None):
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running.")
         return
@@ -418,6 +418,7 @@ def artiax_remove_overlap(session, models=None, manifold=None, boundary=None, fr
 
     in_surface_particles = None
     if boundary is not None:
+        from chimerax.surface import vertex_areas
         in_surface_particles = []
         for pair in boundary:
             if len(pair) != 2:
@@ -446,7 +447,23 @@ def artiax_remove_overlap(session, models=None, manifold=None, boundary=None, fr
                 scms[p] = scm
                 bounds[p] = bound
             particles.extend(ps)
-            in_surface_particles.append([ps, pair[1]])
+
+            surface = pair[1]
+
+            # Get an estimate of the distance between the surface vertices
+            max_search_distance = maxSearchDistance
+            if max_search_distance is None:
+                max_search_distance = 100
+            elif max_search_distance <= 0:
+                raise errors.UserError(
+                    'artiax remove overlap: Select a positive max search distance.'.format(
+                        pl.id_string, pl.name))
+
+            search_distance = np.sqrt(vertex_areas(surface.vertices, surface.triangles).mean())
+            if search_distance > max_search_distance:
+                search_distance = max_search_distance
+
+            in_surface_particles.append([ps, surface, search_distance])
 
     if len(pls) != len(set(pls)):
         raise errors.UserError(
@@ -501,7 +518,7 @@ def artiax_remove_overlap(session, models=None, manifold=None, boundary=None, fr
     remove_overlap(session, particles, pls, scms, bounds, method, on_surface_particles, in_surface_particles, particles_to_keep_still, max_iterations, thoroughness, precision)
 
 
-def artiax_generate_points_in_surface(session, model, method, num_pts=None, radius=None):
+def artiax_gen_in_surface(session, model, method, num_pts=None, radius=None):
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running.")
         return
@@ -529,7 +546,7 @@ def artiax_generate_points_in_surface(session, model, method, num_pts=None, radi
     generate_points_in_surface(session, model, radius, num_pts, method)
 
 
-def artiax_generate_points_on_surface(session, model, method, num_pts, radius=None):
+def artiax_gen_on_surface(session, model, method, num_pts, radius=None):
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running.")
         return
@@ -684,6 +701,16 @@ def artiax_masked_triangles_to_geomodel(session, models=None, name='arbitrary mo
 
     session.ArtiaX.add_geomodel(a)
 
+def artiax_mask_triangles_radius(session, radius=None):
+    if radius is not None and radius<=0:
+        session.logger.warning("Select a positive radius.")
+        return
+    from ..mouse import MaskConnectedTrianglesMode
+    mct = session.ArtiaX.mask_connected_triangles
+    session.ui.mouse_modes.remove_mode(mct)
+    mct = session.ArtiaX.mask_connected_triangles = MaskConnectedTrianglesMode(session, radius)
+    session.ui.mouse_modes.add_mode(mct)
+    run(session, 'ui mousemode right "mask connected triangles"')
 
 def artiax_lock(session, models=None, type=None):
     # No ArtiaX
@@ -1290,13 +1317,14 @@ def register_artiax(logger):
                      ("method", EnumOf(("volume", "distance"))),
                      ("iterations", IntArg),
                      ("thoroughness", IntArg),
-                     ("precision", FloatArg)],
+                     ("precision", FloatArg),
+                     ("maxSearchDistance", FloatArg)],
             synopsis='Moves selected particles to remove overlap. Can be made to move particles along surface or inside'
                      ' surface.'
         )
         register('artiax remove overlap', desc, artiax_remove_overlap)
 
-    def register_artiax_generate_points_in_surface():
+    def register_artiax_gen_in_surface():
         desc = CmdDesc(
             required=[("model", ModelArg),
                       ("method", EnumOf(("poisson", "uniform", "regular grid")))],
@@ -1305,9 +1333,9 @@ def register_artiax(logger):
             synopsis='Generates points in the specified surface. Can generate points using uniform sampling, '
                      'a poisson disk sampling method, or on a regular grid.'
         )
-        register('artiax generate points in surface', desc, artiax_generate_points_in_surface)
+        register('artiax gen in surface', desc, artiax_gen_in_surface)
 
-    def register_artiax_generate_points_on_surface():
+    def register_artiax_gen_on_surface():
         desc = CmdDesc(
             required=[("model", ModelArg),
                       ("method", EnumOf(("poisson", "uniform"))),
@@ -1316,7 +1344,7 @@ def register_artiax(logger):
             synopsis='Generates points on the specified surface. Can generate points using uniform sampling, '
                      'a poisson disk sampling method.'
         )
-        register('artiax generate points on surface', desc, artiax_generate_points_on_surface)
+        register('artiax gen on surface', desc, artiax_gen_on_surface)
 
     def register_artiax_geomodel_to_volume():
         desc = CmdDesc(
@@ -1327,7 +1355,7 @@ def register_artiax(logger):
                      ' created. If no geomodels are specified, all shown are used. The subdivide_length keyword sets'
                      ' the largest allowed triangle length, and defaults to the tomograms smallest pixelsize.'
         )
-        register('artiax geomodel to volume', desc, artiax_geomodel_to_volume)
+        register('artiax geo2vol', desc, artiax_geomodel_to_volume)
 
     def register_artiax_masked_triangles_to_geomodel():
         desc = CmdDesc(
@@ -1336,7 +1364,15 @@ def register_artiax(logger):
             synopsis='Creates a new geomodel from the specified models. Only uses the masked triangles. If no model is'
                      'specified, the currently selected models are used'
         )
-        register('artiax volume to geomodel', desc, artiax_masked_triangles_to_geomodel)
+        register('artiax vol2geo', desc, artiax_masked_triangles_to_geomodel)
+
+    def register_artiax_mask_triangles_radius():
+        desc = CmdDesc(
+            optional=[("radius", FloatArg)],
+            synopsis='Enables the "mask connected triangles" mouse mode with a specified radius, such that pressing a '
+                     'triangle only masks connected triangles within the radius of the pressed one.'
+        )
+        register('artiax mask triangle radius', desc, artiax_mask_triangles_radius)
 
     def register_artiax_lock():
         desc = CmdDesc(
@@ -1441,10 +1477,11 @@ def register_artiax(logger):
     register_artiax_geomodel_color()
     register_artiax_move_camera_along_line()
     register_artiax_remove_overlap()
-    register_artiax_generate_points_in_surface()
-    register_artiax_generate_points_on_surface()
+    register_artiax_gen_in_surface()
+    register_artiax_gen_on_surface()
     register_artiax_geomodel_to_volume()
     register_artiax_masked_triangles_to_geomodel()
+    register_artiax_mask_triangles_radius()
     register_artiax_tomo()
     register_artiax_colormap()
     register_artiax_label()

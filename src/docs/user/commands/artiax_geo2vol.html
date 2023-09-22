@@ -1,0 +1,48 @@
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=windows-1252">
+    <link rel="stylesheet" type="text/css" href="../userdocs.css">
+    <title>Command:artiax geo2vol</title>
+  </head>
+  <body> <a name="top"></a> <a href="../artiax_index.html"> <img src="../ArtiaX-docs-icon.svg"
+        alt="ArtiaX docs icon" class="clRight" title="User Guide Index" width="60px"></a>
+    <h3><a href="../artiax_index.html#commands">Command</a>: artiax geo2vol</h3>
+    <h3 class="usage"><a href="usageconventions.html">Usage</a>: <br>
+      <b>artiax geo2vol</b> [<a href="atomspec.html#hierarchy"><i>model-spec</i></a>]
+      [<strong>geomodels</strong> <a href="atomspec.html#hierarchy"><i>model-specs</i></a>]
+      [<strong>subdivideLength</strong> <i>value</i>] </h3>
+    <p> The <b>artiax geo2vol</b> command adds the specified geomodels (comma seperated) to the chosen volume by voxelizing the geomodel,
+      as long as it fits inside the bounding box of the volume. If no volume is specified, a new one is created.
+      If no geomodels are specified, all shown ones are used.</p>
+    <table style="width: 1006px; height: 380px;" border="1">
+      <tbody>
+        <tr>
+          <td style="text-align: center; width: 176px;"><em><strong>property</strong></em></td>
+          <td style="text-align: center; width: 239.033px;"><em><strong>meaning</strong></em></td>
+          <td style="text-align: center; width: 242.033px;"><em><strong>expected
+                value type</strong></em></td>
+        </tr>
+        <tr>
+          <td style="height: 19px; text-align: center;"><strong>geomodels</strong></td>
+          <td>The geomodels to voxelize and add to the volume. A comma seperated list. Can only add geomodels within
+          the bounding box of the volume. If no geomodels are specified, all shown ones are used.</td>
+          <td style="text-align: center;"><em>comma seperated <a href="atomspec.html#hierarchy"><i>model-specs</i></a></em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>subdivideLength</strong></td>
+          <td>Specifies how finely the geomodels will be voxelized. A smaller value gives a higher resolution, but
+          also takes longer. Specifically, the command subdivides all triangles longer than <i>subdivideLength</i>
+          before voxelizing. Defaults to the smallest pixelsize of the specified volume, or 1 if no volume is specified.</td>
+          <td style="text-align: center;"><em>float</em></td>
+        </tr>
+      </tbody>
+    </table>
+    <p> Examples: </p>
+    <blockquote> <b>artiax geo2vol #1.1.1 geomodels #1.3.1,#1.3.2 <br>
+        artiax geo2vol subdivideLength 0.5 <br>
+        artiax geo2vol #1.1.2 subdivideLength 0.25 </b> </blockquote>
+    <p></p>
+    <hr>
+    <address>BMLS Frangakis Group / August 2023</address>
+  </body>
+</html>
