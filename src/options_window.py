@@ -397,13 +397,14 @@ class OptionsWindow(ToolInstance):
         process_filter_layout = QVBoxLayout()
 
         from .widgets import RadioButtonsStringOptions
-        self.filtering_unit_buttons = RadioButtonsStringOptions('Unit', ['Hz', 'pixels'])
+        self.filtering_unit_buttons = RadioButtonsStringOptions('Unit', ['angstrom', 'pixels'])
 
         self.lp_box = QGroupBox('Low pass')
         self.lp_box.setCheckable(True)
-        self.lp_box.setToolTip('Low pass filter the current tomogram. Use Gaussian or Cosine decay, or Box for no decay. If '
-                          'pass frequency is set to zero the center of decay will be at zero. If decay size is set to '
-                          'zero a box filter is used.')
+        tooltip = 'Low pass filter the current tomogram. Use Gaussian or Cosine decay, or Box for no decay. If the unit is set to pixels and the ' \
+                  'pass frequency is set to zero the center of decay will be at zero. If decay size is set to zero a box ' \
+                  'filter is used. If the unit is set to "angstrom", the decay size is always set to 1/pass*0.25.'
+        self.lp_box.setToolTip(tooltip)
         lp_box_layout = QVBoxLayout()
         from .widgets import FilterOptionsWidget
         self.lp_filter_options = FilterOptionsWidget()
@@ -412,9 +413,7 @@ class OptionsWindow(ToolInstance):
 
         self.hp_box = QGroupBox('High pass')
         self.hp_box.setCheckable(True)
-        self.hp_box.setToolTip('High pass filter the current tomogram. Use Gaussian or Cosine decay, or Box for no decay. If '
-                          'pass frequency is set to zero the center of decay will be at zero. If decay size is set to '
-                          'zero a box filter is used.')
+        self.hp_box.setToolTip(tooltip)
         hp_box_layout = QVBoxLayout()
         from .widgets import FilterOptionsWidget
         self.hp_filter_options = FilterOptionsWidget()

@@ -138,23 +138,34 @@ class Tomogram(VolumePlus):
         if self.auto_hpd:
             hpd = hp/4
 
+        px = self.pixelsize
+        if unit=='angstrom' and px == (1,1,1):
+            self.session.logger.warning("Are you sure you're pixelsize is {}?".format(px))
+
+        Nz, Ny, Nx = shape[2], shape[1], shape[0]
         if unit == 'pixels':
-            Nz, Ny, Nx = shape[2], shape[1], shape[0] // 2 + 1
-            zz, yy, xx = np.meshgrid(np.arange(Nz), np.arange(Ny), np.arange(Nx), indexing='ij')
-            xx, yy, zz = xx - math.floor(Nx / 2), yy - math.floor(Ny / 2), zz - math.floor(Nz / 2)  # centering
-        elif unit == 'hz':
-            Nz, Ny, Nx = shape[2], shape[1], shape[0]
             zz, yy, xx = np.meshgrid(fft.fftfreq(Nz), fft.fftfreq(Ny), fft.rfftfreq(Nx), indexing='ij')
-            xx, yy, zz = xx - xx[0][0].mean(), fft.fftshift(yy), fft.fftshift(zz)  # centering
+            xx, yy, zz = xx*Nx, yy*Ny, zz*Nz  # centering
+        elif unit == 'angstrom':
+            zz, yy, xx = np.meshgrid(fft.fftfreq(Nz, px[2]), fft.fftfreq(Ny, px[1]), fft.rfftfreq(Nx, px[0]), indexing='ij')
+            if (self.use_low_pass and lp == 0) or (self.use_high_pass and hp == 0):
+                self.session.logger.warning('Cannot have a pass length of 0 angstrom. Use the checkboxes to disable the filter you do not want.')
+                return
+            if self.use_low_pass:
+                lp = 1/lp
+                lpd = lp/4
+            if self.use_high_pass:
+                hp = 1/hp
+                hpd = hp/4
         else:
-            raise NotImplementedError('Only "pixels" and "hz" implemented as units.')
+            raise NotImplementedError('Only "pixels" and "angstrom" implemented as units.')
         r = np.sqrt(np.square(xx) + np.square(yy) + np.square(zz))
 
         from .ProcessableTomogram import create_filter
-        lp_filt = create_filter(True, r, lp, lpd, thresh=thresh) if self.use_low_pass else np.ones(r.shape)
-        hp_filt = create_filter(False, r, hp, hpd, thresh=thresh) if self.use_high_pass else np.zeros(r.shape)
+        lp_filt = create_filter(True, r, lp, lpd, method=self.lp_method, thresh=thresh) if self.use_low_pass else np.ones(r.shape)
+        hp_filt = create_filter(False, r, hp, hpd, method=self.hp_method, thresh=thresh) if self.use_high_pass else np.ones(r.shape)
         filter = np.multiply(lp_filt, hp_filt)
-        filtered_data = np.array(fft.irfftn(np.multiply(fft.rfftn(self.data.matrix()), fft.fftshift(filter))), dtype=np.float32)
+        filtered_data = np.array(fft.irfftn(np.multiply(fft.rfftn(self.data.matrix()), filter)), dtype=np.float32)
 
         name = "Filtered " + self.data.name
         if self.use_low_pass:
@@ -188,7 +199,7 @@ class Tomogram(VolumePlus):
 
     def create_tomo_from_array(self, array, name):
         from chimerax.map_data import ArrayGridData
-        new_tomogram = Tomogram(self.session, ArrayGridData(array, name=name))
+        new_tomogram = Tomogram(self.session, ArrayGridData(array, name=name, step=self.data.step))
         self.session.ArtiaX.add_tomogram(new_tomogram)
         self.show(show=False)
 

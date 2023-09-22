@@ -34,7 +34,7 @@ class FilterOptionsWidget(QWidget):
         from .RadioButtonsStringOptions import RadioButtonsStringOptions
         from .AutoManualWidget import AutoManualWidget
         self.decay_method_buttons = RadioButtonsStringOptions('Decay', ["Gaussian", 'Raised Cosine', 'Box'])
-        self.pf_edit = NLabelValue(['Pass Frequency'], only_pos_values=True)
+        self.pf_edit = NLabelValue(['Pass'], only_pos_values=True)
         self.decay_edit = AutoManualWidget("Decay size")
         layout.addWidget(self.decay_method_buttons)
         layout.addWidget(self.pf_edit)

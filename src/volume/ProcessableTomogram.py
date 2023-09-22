@@ -137,7 +137,6 @@ class ProcessableTomogram(Tomogram):
 
 
 def create_filter(is_lp, r, pass_freq, decay, method='gaussian', thresh=0.001):
-    # TODO: add support for cosine
     if pass_freq == 0 and decay == 0:  # skip low pass
         if is_lp:
             filt = np.ones(r.shape)
@@ -145,13 +144,24 @@ def create_filter(is_lp, r, pass_freq, decay, method='gaussian', thresh=0.001):
             filt = np.zeros(r.shape)
     elif pass_freq > 0 and decay == 0:  # box filter (not smart but who said you have to be smart)
         filt = np.array(r < pass_freq, dtype=np.float32)
-    elif pass_freq == 0 and decay > 0:  # gaussian from the start
-        filt = np.exp(-np.square(np.divide(r - (pass_freq - decay * 0.5), decay * 0.5)))
-    else:  # normal box + gaussian decay
-        filt = np.array(r < pass_freq, dtype=np.float32)
-        sel = (r > (pass_freq - decay * 0.5))
-        filt[sel] = np.exp(-np.square(np.divide(r[sel] - (pass_freq - decay * 0.5), decay * 0.5)))
-    filt[filt < thresh] = 0
+    else:
+        if method == 'gaussian':
+            if pass_freq == 0 and decay > 0:  # gaussian from the start
+                filt = np.exp(-np.square(np.divide(r, decay * 0.5)))
+            else:  # normal box + gaussian decay
+                filt = np.array(r < pass_freq, dtype=np.float32)
+                sel = (r > (pass_freq - decay * 0.5))
+                filt[sel] = np.exp(-np.square(np.divide(r[sel] - (pass_freq - decay * 0.5), decay * 0.5)))
+            filt[filt < thresh] = 0
+        else:
+            if pass_freq == 0 and decay > 0:  # raised cosine from the start
+                filt = np.array(r < decay, dtype=np.float32)
+                sel = (r <= decay)
+                filt[sel] = 0.5 + 0.5*np.cos(np.divide(np.pi * r[sel], decay))
+            else:  # normal box + raised cosine
+                filt = np.array(r < pass_freq, dtype=np.float32)
+                sel = (r < (pass_freq + decay * 0.5)) & (r > (pass_freq - decay * 0.5))
+                filt[sel] = 0.5 + 0.5*np.cos(np.divide(np.pi * (r[sel] - (pass_freq - decay * 0.5)), decay))
     if not is_lp:
         filt = 1 - filt
     return filt

@@ -712,6 +712,34 @@ def artiax_mask_triangles_radius(session, radius=None):
     session.ui.mouse_modes.add_mode(mct)
     run(session, 'ui mousemode right "mask connected triangles"')
 
+def artiax_filter_tomo(session, tomo, lp, hp, lpd=None, hpd=None, unit='pixels', threshold=0.001):
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running.")
+        return
+
+    from ..volume import Tomogram
+    if not isinstance(tomo, Tomogram):
+        session.logger.warning("Model {} is not a tomogram.".format(tomo))
+        return
+
+    if lp < 0 or hp < 0:
+        session.logger.warning("Select non-negative pass-frequencies.")
+        return
+
+    if (lpd is not None and lpd<0) or (hpd is not None and hpd<0):
+        session.logger.warning("Select non-negative decay-frequencies.")
+        return
+
+    if threshold<0:
+        session.logger.warning("Select a non-negative threshold.")
+        return
+
+    if unit not in ['pixels', 'hz']:
+        session.logger.warning("'{}' is not an implemented unit. 'pixels' and 'hz' are available.".format(unit))
+        return
+
+    tomo.create_filtered_tomogram(lp, hp, lpd, hpd, threshold, unit)
+
 def artiax_lock(session, models=None, type=None):
     # No ArtiaX
     if not hasattr(session, 'ArtiaX'):
@@ -1374,6 +1402,24 @@ def register_artiax(logger):
         )
         register('artiax mask triangle radius', desc, artiax_mask_triangles_radius)
 
+    def register_artiax_filter_tomo():
+        desc = CmdDesc(
+            required=[("tomo", ModelArg),
+                      ('lp', FloatArg),
+                      ('hp', FloatArg)],
+            keyword=[("lpd", FloatArg),
+                     ('hpd', FloatArg),
+                     ('unit', StringArg),
+                     ('threshold', FloatArg)],
+            synopsis='Creates a filtered tomogram using lp and hp as lowpass and highpass frequencies, respectively.'
+                     'Input 0 as pass-frequency for no low/high-pass.'
+                     'lpd and hpd represents the decays, which default to a a fourth of the respective pass-frequencies'
+                     'if left empty. Input 0 for a box filter. '
+                     'Available units are "hz" and "pixels". The threshold keywords selects how far the '
+                     'gaussian curve extends in the filter.'
+        )
+        register('artiax filter', desc, artiax_filter_tomo)
+
     def register_artiax_lock():
         desc = CmdDesc(
             optional=[("models", Or(ModelsArg, EmptyArg)),
@@ -1482,6 +1528,7 @@ def register_artiax(logger):
     register_artiax_geomodel_to_volume()
     register_artiax_masked_triangles_to_geomodel()
     register_artiax_mask_triangles_radius()
+    register_artiax_filter_tomo()
     register_artiax_tomo()
     register_artiax_colormap()
     register_artiax_label()
