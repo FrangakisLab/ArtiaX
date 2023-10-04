@@ -1390,7 +1390,7 @@ def register_artiax(logger):
             optional=[("models", ListOf(ModelArg))],
             keyword=[("name", StringArg)],
             synopsis='Creates a new geomodel from the specified models. Only uses the masked triangles. If no model is'
-                     'specified, the currently selected models are used'
+                     'specified, the currently selected models are used.'
         )
         register('artiax vol2geo', desc, artiax_masked_triangles_to_geomodel)
 
