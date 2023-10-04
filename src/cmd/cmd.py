@@ -676,7 +676,7 @@ def artiax_masked_triangles_to_geomodel(session, models=None, name='arbitrary mo
                         if not d.empty_drawing():
                             surface = d
                             break
-                    if surface is None:
+                    if surface is not None:
                         continue
                 else:
                     surface = model
@@ -712,7 +712,7 @@ def artiax_mask_triangles_radius(session, radius=None):
     session.ui.mouse_modes.add_mode(mct)
     run(session, 'ui mousemode right "mask connected triangles"')
 
-def artiax_filter_tomo(session, tomo, lp, hp, lpd=None, hpd=None, unit='pixels', threshold=0.001):
+def artiax_filter_tomo(session, tomo, lp, hp, lpd=None, hpd=None, unit='pixels', cutoff='gaussian', threshold=0.001):
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running.")
         return
@@ -734,11 +734,24 @@ def artiax_filter_tomo(session, tomo, lp, hp, lpd=None, hpd=None, unit='pixels',
         session.logger.warning("Select a non-negative threshold.")
         return
 
-    if unit not in ['pixels', 'hz']:
-        session.logger.warning("'{}' is not an implemented unit. 'pixels' and 'hz' are available.".format(unit))
+    unit = unit.lower()
+    if unit not in ['pixels', 'angstrom']:
+        session.logger.warning("'{}' is not an implemented unit. 'pixels' and 'angstrom' are available.".format(unit))
+        return
+    if unit == 'angstrom':
+        if lpd is not None or hpd is not None:
+            session.logger.warning('Cannot set low-pass or high-pass decay when using "angstrom" as a unit. Decay is'
+                                   'always set to 0.25/pass-lenght.')
+            return
+
+    cutoff = cutoff.lower()
+    if cutoff not in ['gaussian', 'cosine']:
+        session.logger.warning(
+            "{} is not a valid cutoff method. 'gaussian' and 'cosine' are available.".format(cutoff))
         return
 
-    tomo.create_filtered_tomogram(lp, hp, lpd, hpd, threshold, unit)
+    tomo.create_filtered_tomogram(lp, hp, lpd, hpd, threshold, unit, cutoff, True)
+
 
 def artiax_lock(session, models=None, type=None):
     # No ArtiaX
@@ -1410,6 +1423,7 @@ def register_artiax(logger):
             keyword=[("lpd", FloatArg),
                      ('hpd', FloatArg),
                      ('unit', StringArg),
+                     ('cutoff', StringArg),
                      ('threshold', FloatArg)],
             synopsis='Creates a filtered tomogram using lp and hp as lowpass and highpass frequencies, respectively.'
                      'Input 0 as pass-frequency for no low/high-pass.'

@@ -130,13 +130,29 @@ class Tomogram(VolumePlus):
     def integer_slab_position(self, value):
         self._set_integer_slice(slice=value)
 
-    def create_filtered_tomogram(self, lp, hp, lpd=None, hpd=None, thresh=0.001, unit='pixels'):
+    def create_filtered_tomogram(self, lp, hp, lpd=None, hpd=None, thresh=0.001, unit='pixels', method=None, always_use_both=False):
         import numpy.fft as fft
         shape = self.size
         if self.auto_lpd:
             lpd = lp/4
         if self.auto_hpd:
             hpd = hp/4
+
+        if always_use_both:
+            use_lp = False if lp==0 and (lpd is None or lpd==0) else True
+            use_hp = False if hp==0 and (hpd is None or hpd==0) else True
+        else:
+            use_lp, use_hp = self.use_low_pass, self.use_high_pass
+
+        if method is None:
+            lp_method = self.lp_method
+            hp_method = self.hp_method
+        elif method in ['gaussian', 'cosine']:
+            lp_method = method
+            hp_method = method
+        else:
+            self.session.logger.warning("{} is not a valid cutoff method. 'gaussian' and 'cosine' are available.".format(method))
+            return
 
         px = self.pixelsize
         if unit=='angstrom' and px == (1,1,1):
@@ -148,13 +164,13 @@ class Tomogram(VolumePlus):
             xx, yy, zz = xx*Nx, yy*Ny, zz*Nz  # centering
         elif unit == 'angstrom':
             zz, yy, xx = np.meshgrid(fft.fftfreq(Nz, px[2]), fft.fftfreq(Ny, px[1]), fft.rfftfreq(Nx, px[0]), indexing='ij')
-            if (self.use_low_pass and lp == 0) or (self.use_high_pass and hp == 0):
+            if (use_lp and lp == 0) or (use_hp and hp == 0):
                 self.session.logger.warning('Cannot have a pass length of 0 angstrom. Use the checkboxes to disable the filter you do not want.')
                 return
-            if self.use_low_pass:
+            if use_lp:
                 lp = 1/lp
                 lpd = lp/4
-            if self.use_high_pass:
+            if use_hp:
                 hp = 1/hp
                 hpd = hp/4
         else:
@@ -162,15 +178,15 @@ class Tomogram(VolumePlus):
         r = np.sqrt(np.square(xx) + np.square(yy) + np.square(zz))
 
         from .ProcessableTomogram import create_filter
-        lp_filt = create_filter(True, r, lp, lpd, method=self.lp_method, thresh=thresh) if self.use_low_pass else np.ones(r.shape)
-        hp_filt = create_filter(False, r, hp, hpd, method=self.hp_method, thresh=thresh) if self.use_high_pass else np.ones(r.shape)
+        lp_filt = create_filter(True, r, lp, lpd, method=lp_method, thresh=thresh) if use_lp else np.ones(r.shape)
+        hp_filt = create_filter(False, r, hp, hpd, method=hp_method, thresh=thresh) if use_hp else np.ones(r.shape)
         filter = np.multiply(lp_filt, hp_filt)
         filtered_data = np.array(fft.irfftn(np.multiply(fft.rfftn(self.data.matrix()), filter)), dtype=np.float32)
 
         name = "Filtered " + self.data.name
-        if self.use_low_pass:
+        if use_lp:
             name += ", lp={}".format(lp)
-        if self.use_high_pass:
+        if use_hp:
             name += ", hp={}".format(hp)
 
         self.create_tomo_from_array(filtered_data, name)

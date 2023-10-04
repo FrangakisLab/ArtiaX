@@ -393,7 +393,7 @@ class OptionsWindow(ToolInstance):
         group_process_layout.addWidget(process_average_group)
 
         process_filter_group = QGroupBox("Filtering")
-        process_filter_group.setToolTip("Create a copy of the tomogram that is filter using a LP, BP, or HP filter.")
+        process_filter_group.setToolTip("Create a copy of the tomogram that is filtered using a LP, BP, or HP filter.")
         process_filter_layout = QVBoxLayout()
 
         from .widgets import RadioButtonsStringOptions
@@ -401,7 +401,7 @@ class OptionsWindow(ToolInstance):
 
         self.lp_box = QGroupBox('Low pass')
         self.lp_box.setCheckable(True)
-        tooltip = 'Low pass filter the current tomogram. Use Gaussian or Cosine decay, or Box for no decay. If the unit is set to pixels and the ' \
+        tooltip = 'Low pass filter the current tomogram. Use Gaussian or Cosine decay. If the unit is set to pixels and the ' \
                   'pass frequency is set to zero the center of decay will be at zero. If decay size is set to zero a box ' \
                   'filter is used. If the unit is set to "angstrom", the decay size is always set to 1/pass*0.25.'
         self.lp_box.setToolTip(tooltip)
@@ -778,6 +778,17 @@ class OptionsWindow(ToolInstance):
         artia = self.session.ArtiaX
         tomo = artia.tomograms.get(artia.options_tomogram)
         tomo.unit = value.lower()
+
+        self.lp_filter_options.blockSignals(True)
+        self.hp_filter_options.blockSignals(True)
+        if value == 'angstrom':
+            self.lp_filter_options.enable_decay_setter(False)
+            self.hp_filter_options.enable_decay_setter(False)
+        else:
+            self.lp_filter_options.enable_decay_setter(True)
+            self.hp_filter_options.enable_decay_setter(True)
+        self.lp_filter_options.blockSignals(False)
+        self.hp_filter_options.blockSignals(False)
 
     def _lp_filter_changed(self):
         artia = self.session.ArtiaX

@@ -33,7 +33,7 @@ class FilterOptionsWidget(QWidget):
         from .NLabelValue import NLabelValue
         from .RadioButtonsStringOptions import RadioButtonsStringOptions
         from .AutoManualWidget import AutoManualWidget
-        self.decay_method_buttons = RadioButtonsStringOptions('Decay', ["Gaussian", 'Raised Cosine', 'Box'])
+        self.decay_method_buttons = RadioButtonsStringOptions('Decay', ["Gaussian", 'Raised Cosine'])
         self.pf_edit = NLabelValue(['Pass'], only_pos_values=True)
         self.decay_edit = AutoManualWidget("Decay size")
         layout.addWidget(self.decay_method_buttons)
@@ -85,6 +85,11 @@ class FilterOptionsWidget(QWidget):
         self._auto_decay = auto
         self.decay_edit.blockSignals(True)
         self.decay_edit.auto = auto
+        self.decay_edit.blockSignals(False)
+
+    def enable_decay_setter(self, enable):
+        self.decay_edit.blockSignals(True)
+        self.decay_edit.setEnabled(enable)
         self.decay_edit.blockSignals(False)
 
     def _connect(self):

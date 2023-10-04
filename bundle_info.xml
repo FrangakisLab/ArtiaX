@@ -301,10 +301,10 @@ will be displayed without the ChimeraX- prefix.
     <Provider tab="ArtiaX Models" section="Generate New Models"
       name="Create Mask" icon="create_mesh.png" description="Creates a mask from the selected geometric model."/>
     <Provider tab="ArtiaX Models" section="Generate New Models"
-      name="Volume to Geomodel" icon="create_mesh.png" description="Creates a geomodel from the shown triangles
+      name="Volume to Geomodel" icon="vol2geo.png" description="Creates a geomodel from the shown triangles
       of the selected volumes."/>
     <Provider tab="ArtiaX Models" section="Generate New Models"
-      name="Geomodel to Volume" icon="create_mesh.png" description="Creates a new volume by merging all shown geomodels."/>
+      name="Geomodel to Volume" icon="geo2vol.png" description="Creates a new volume by merging all shown geomodels."/>
 
     <!-- ArtiaX Model tab, Delete Surface-->
 
@@ -318,7 +318,7 @@ will be displayed without the ChimeraX- prefix.
       name="Delete Tetra From Boundary" display_name="Delete Tetra" icon="delete_tetra.png"
       description="Delete picked tetrahedron from a boundary model."/>
     <Provider tab="ArtiaX Models" section="Change Models" mouse_mode="mask connected triangles"
-      name="Mask Connected Triangles" display_name="Mask Triangles" icon="delete_tetra.png"
+      name="Mask Connected Triangles" display_name="Mask Triangles" icon="mask_triangle.png"
       description="Hides all triangles connected to the picked triangle."/>
 
   </Providers>
