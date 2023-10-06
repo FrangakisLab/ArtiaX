@@ -98,8 +98,15 @@ class ParticleList(Model):
 
         # Some parameters for display
         self.display_mode = 'markers'
-        self._radius = 4 * self.origin_pixelsize
-        self._axes_size = 15 * self.origin_pixelsize
+
+        if session.ArtiaX.tomograms.count > 0:
+            pix = session.ArtiaX.tomograms.get(0).pixelsize[0]
+            self._radius = 4 * pix
+            self._axes_size = 15 * pix
+        else:
+            self._radius = 4 * self.origin_pixelsize
+            self._axes_size = 15 * self.origin_pixelsize
+
         self._marker_cache = []
 
         # Initialize the surface collection model
@@ -234,7 +241,7 @@ class ParticleList(Model):
         if value < 0.1:
             raise UserError("Axes size needs to be > 0.1.")
 
-        print('set axis size {}'.format(value))
+        # print('set axis size {}'.format(value))
         self._axes_size = value
         scm = self.collection_model
         v, n, t, vc = get_axes_surface(self.session, self._axes_size)
@@ -740,21 +747,40 @@ class ParticleList(Model):
         self.displayed_particles = self.displayed_particles[mask]
 
         self.particle_colors = self.particle_colors[mask, :]
-        print('fine')
+        #print('fine')
         self.triggers.activate_trigger(PARTLIST_CHANGED, self)
 
     def new_particles(self, origins, translations, rotations):
         pids = []
         places = []
         for (o, t, r) in zip(origins, translations, rotations):
-            p = self.new_particle(o, t, r, update_selectors=False, add_to_collection=False)
+            p = self.new_particle(o, t, r, update_selectors=False, add_to_collection=False, update_masks=False)
             pids.append(p.id)
             places.append(p.full_transform())
 
         self.collection_model.add_places(pids, places)
+
+        from numpy import array, append, reshape, tile
+        if self.selected_particles is None:
+            self.selected_particles = array([True] * len(pids))
+        else:
+            self.selected_particles = append(self.selected_particles, array([True] * len(pids)))
+
+        if self.displayed_particles is None:
+            self.displayed_particles = array(array([True] * len(pids)))
+        else:
+            self.displayed_particles = append(self.displayed_particles, array([True] * len(pids)))
+
+        if self.particle_colors is None:
+            self.particle_colors = tile(self.color, (len(pids), 1))  # array(self.color)
+        else:
+            pc = self.particle_colors
+            cols = tile(reshape(pc[-1, :], (1, 4)), (len(pids), 1))
+            self.particle_colors = append(pc, cols, axis=0)
+
         self.update_position_selectors()
 
-    def new_particle(self, origin, translation, rotation, update_selectors=True, add_to_collection=True):
+    def new_particle(self, origin, translation, rotation, update_selectors=True, add_to_collection=True, update_masks=True):
         particle = self._data.new_particle()
         particle.origin = origin
         particle.translation = translation
@@ -775,21 +801,22 @@ class ParticleList(Model):
         # Now reset selection and so on to keep things consistent
         from numpy import array, append, reshape
 
-        if self.selected_particles is None:
-            self.selected_particles = array([True])
-        else:
-            self.selected_particles = append(self.selected_particles, True)
+        if update_masks:
+            if self.selected_particles is None:
+                self.selected_particles = array([True])
+            else:
+                self.selected_particles = append(self.selected_particles, True)
 
-        if self.displayed_particles is None:
-            self.displayed_particles = array([True])
-        else:
-            self.displayed_particles = append(self.displayed_particles, True)
+            if self.displayed_particles is None:
+                self.displayed_particles = array([True])
+            else:
+                self.displayed_particles = append(self.displayed_particles, True)
 
-        if self.particle_colors is None:
-            self.particle_colors = array(self.color)
-        else:
-            pc = self.particle_colors
-            self.particle_colors = append(pc, reshape(pc[-1, :], (1, 4)), axis=0)
+            if self.particle_colors is None:
+                self.particle_colors = array(self.color)
+            else:
+                pc = self.particle_colors
+                self.particle_colors = append(pc, reshape(pc[-1, :], (1, 4)), axis=0)
 
         if update_selectors:
             self.update_position_selectors()
@@ -1016,9 +1043,9 @@ def get_axes_surface(session, size):
     # Axes from https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/bild.html
     from chimerax.bild.bild import _BildFile
     b = _BildFile(session, 'dummy')
-    print(size)
+    # print(size)
     b.color_command('.color 1 0 0'.split())
-    print('.arrow 0 0 0 {} 0 0 {} {}'.format(size, size/15, size/15*4).split())
+    # print('.arrow 0 0 0 {} 0 0 {} {}'.format(size, size/15, size/15*4).split())
     b.arrow_command('.arrow 0 0 0 {} 0 0 {} {}'.format(size, size/15, size/15*4).split())
     b.color_command('.color 1 1 0'.split())
     b.arrow_command('.arrow 0 0 0 0 {} 0 {} {}'.format(size, size/15, size/15*4).split())

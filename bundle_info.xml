@@ -135,6 +135,7 @@ will be displayed without the ChimeraX- prefix.
 
    <Providers manager="presets">
     <Provider category="ArtiaX" name="artiax default" />
+    <Provider category="ArtiaX" name="artiax record" />
   </Providers>
 
   <Providers manager="toolbar">

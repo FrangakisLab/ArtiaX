@@ -642,18 +642,25 @@ def artiax_geomodel_to_volume(session, model=None, geomodels=None, subdivide_len
     else:
         tomo.replace_data(agd)
 
+        from chimerax.map.volume import VolumeImage
+        for drawing in tomo._child_drawings:
+            if isinstance(drawing, VolumeImage):
+                drawing.close_model()
+                tomo.integer_slab_position = tomo.integer_slab_position
+
+
 def artiax_masked_triangles_to_geomodel(session, models=None, name='arbitrary model'):
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running.")
         return
 
-    from chimerax.core.models import Drawing
+    from chimerax.map.volume import VolumeSurface
     surfaces = []
 
     if models is not None:
         for model in models:
-            if not isinstance(model, Drawing):
-                session.logger.warning("{} is not a drawing".format(model))
+            if not isinstance(model, Volume):
+                session.logger.warning("{} is not a volume".format(model))
                 return
             if model.empty_drawing():
                 surface = None
@@ -669,18 +676,12 @@ def artiax_masked_triangles_to_geomodel(session, models=None, name='arbitrary mo
             surfaces.append(surface)
     else:
         for model in session.selection.models():
-            if isinstance(model, Drawing):
-                if model.empty_drawing():
-                    surface = None
-                    for d in model.child_drawings():
-                        if not d.empty_drawing():
-                            surface = d
-                            break
-                    if surface is not None:
-                        continue
+            if isinstance(model, Volume):
+                childs = [x for x in model.child_drawings() if isinstance(x, VolumeSurface)]
+                if not len(childs):
+                    break
                 else:
-                    surface = model
-                surfaces.append(surface)
+                    surfaces.extend(childs)
         if not len(surfaces):
             session.logger.warning("No drawing with a surface is currently selected")
             return
@@ -934,6 +935,8 @@ def artiax_tomo(session,
                 contrastCenter=None,
                 contrastWidth=None,
                 slice=None,
+                endSlice=None,
+                slicePerFrame=None,
                 sliceDirection=None,
                 pixelSize=None):
     # No ArtiaX
@@ -972,6 +975,19 @@ def artiax_tomo(session,
         slice = min(slice, model.slab_count - 1)
         slice = max(slice, 0)
         model.integer_slab_position = round(slice)
+
+        spf = 1
+        if slicePerFrame is not None:
+            spf = slicePerFrame
+
+        if endSlice is not None:
+            endSlice = min(endSlice, model.slab_count - 1)
+            endSlice = max(endSlice, 0)
+            endSlice = round(endSlice)
+
+            for i in range(slice, endSlice+1, spf):
+                model.integer_slab_position = round(i)
+                session.update_loop.draw_new_frame()
 
     if pixelSize is not None:
         if pixelSize <= 0:
@@ -1472,6 +1488,8 @@ def register_artiax(logger):
             keyword=[("contrastCenter", FloatArg),
                      ("contrastWidth", FloatArg),
                      ("slice", IntArg),
+                     ("endSlice", IntArg),
+                     ("slicePerFrame", IntArg),
                      ('sliceDirection', Float3Arg),
                      ('pixelSize', FloatArg)],
             synopsis='Set tomogram properties.',

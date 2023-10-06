@@ -265,7 +265,7 @@ class CurvedLine(PopulatedModel):
 
         return d.vertices, d.normals, d.triangles, d.vertex_colors
 
-    def move_camera_along_line(self, draw=False, no_frames=None, backwards=False, distance_behind=10000, x_rotation=0, z_rotation=0):
+    def move_camera_along_line(self, draw=False, no_frames=None, backwards=False, distance_behind=10000, x_rotation=0, z_rotation=0, y_rotation=0):
         points = np.transpose(self.points)
         ders = np.transpose(self.der_points)
         if no_frames is not None:
@@ -281,6 +281,8 @@ class CurvedLine(PopulatedModel):
         rotation_along_line = rotation_to_z.zero_translation().inverse()
         rotation_around_z = rotation(rotation_along_line.z_axis(), x_rotation)
         rot = rotation_around_z * rotation_along_line
+        rotation_around_x = rotation(rot.transform_vector((1, 0, 0)), y_rotation)
+        rot = rotation_around_x * rot
         rotation_around_y = rotation(rot.transform_vector((0, 1, 0)), z_rotation)
         rot = rotation_around_y * rot
 
@@ -312,6 +314,8 @@ class CurvedLine(PopulatedModel):
                 theta = -theta
             rotation_around_z = rotation(rotation_along_line.z_axis(), theta)
             rot = rotation_around_z * rotation_along_line
+            rotation_around_x = rotation(rot.transform_vector((1, 0, 0)), y_rotation)
+            rot = rotation_around_x * rot
             rotation_around_y = rotation(rot.transform_vector((0, 1, 0)), z_rotation)
             rot = rotation_around_y * rot
             if draw:
