@@ -97,7 +97,6 @@ class CurvedLineOptions(QWidget):
         # Move camera along line options
         self.camera_checkbox = QGroupBox("Move camera along line:")
         self.camera_checkbox.setCheckable(True)
-        self.camera_checkbox.setChecked(False)
         camera_checkbox_layout = QVBoxLayout()
 
         self.move_camera_button = QPushButton("Move Camera Along Line")
@@ -114,12 +113,14 @@ class CurvedLineOptions(QWidget):
         direction_box_layout.addWidget(self.backwards_button)
         direction_box.setLayout(direction_box_layout)
         self.no_frames_slider = LabelEditRangeSlider([2, 100], "Numer of frames", step_size=1, min=2, max=self.resolution_slider.value)
+        self.move_camera_slider = LabelEditSlider([0, self.no_frames_slider.value], "Move To Specific Frame", step_size=1)
         self.camera_distance_behind_line = LabelEditRangeSlider([0, 1000], "Camera distance behind line", step_size=1, min=0)
         self.camera_distance_behind_line.setToolTip("Use this to set the distance between the line and the camera,"
                                                     " useful for avoiding clipping. However, if the camera is to enter"
                                                     " a model, the distance needs to be short.")
         self.camera_top_rotation = LabelEditSlider((0, 360), "Camera Top Rotation [deg]:", step_size=0.01)
         self.camera_facing_rotation = LabelEditSlider((0, 360), "Camera Facing Rotation [deg]:", step_size=0.01)
+        self.camera_rotation = LabelEditSlider((0, 360), "Camera Rotation [deg]:", step_size=0.01)
 
         self.camera_axes_checkbox = QGroupBox("Show camera orientation:")
         self.camera_axes_checkbox.setCheckable(True)
@@ -134,11 +135,13 @@ class CurvedLineOptions(QWidget):
         self.camera_axes_checkbox.setLayout(camera_axes_checkbox_layout)
 
         camera_checkbox_layout.addWidget(self.move_camera_button)
+        camera_checkbox_layout.addWidget(self.move_camera_slider)
         camera_checkbox_layout.addWidget(direction_box)
         camera_checkbox_layout.addWidget(self.no_frames_slider)
         camera_checkbox_layout.addWidget(self.camera_distance_behind_line)
         camera_checkbox_layout.addWidget(self.camera_top_rotation)
         camera_checkbox_layout.addWidget(self.camera_facing_rotation)
+        camera_checkbox_layout.addWidget(self.camera_rotation)
         camera_checkbox_layout.addWidget(self.camera_axes_checkbox)
         self.camera_checkbox.setLayout(camera_checkbox_layout)
         layout.addWidget(self.camera_checkbox)
@@ -211,10 +214,12 @@ class CurvedLineOptions(QWidget):
         self.camera_distance_behind_line.blockSignals(True)
         self.camera_top_rotation.blockSignals(True)
         self.camera_facing_rotation.blockSignals(True)
+        self.camera_rotation.blockSignals(True)
         self.camera_axes_checkbox.blockSignals(True)
         self.camera_axes_size_slider.blockSignals(True)
         self.no_camera_axes.blockSignals(True)
         self.move_camera_button.blockSignals(True)
+        self.move_camera_slider.blockSignals(True)
 
         if self.line is not None:
             self.spacing_checkbox.setChecked(line.has_particles)
@@ -258,11 +263,14 @@ class CurvedLineOptions(QWidget):
             self.no_frames_slider.set_range(line.no_frames_edit_range)
             self.no_frames_slider.value = line.no_frames
             self.no_frames_slider.max_allowed = line.resolution
+            self.move_camera_slider.set_range([0, line.no_frames], 0)
+            self.move_camera_slider.setEnabled(self.camera_checkbox.isChecked())
             self.no_camera_axes.max_allowed = line.resolution
             self.camera_distance_behind_line.set_range(line.distance_behind_camera_edit_range)
             self.camera_distance_behind_line.value = line.distance_behind_camera
             self.camera_top_rotation.value = line.top_rotation
             self.camera_facing_rotation.value = line.facing_rotation
+            self.camera_rotation.value = line.facing_rotation
             self.no_camera_axes.set_range(line.no_camera_axes_edit_range)
             self.no_camera_axes.value = line.no_camera_axes
             self.camera_axes_size_slider.set_range(line.camera_axes_size_edit_range)
@@ -290,10 +298,12 @@ class CurvedLineOptions(QWidget):
         self.camera_distance_behind_line.blockSignals(False)
         self.camera_top_rotation.blockSignals(False)
         self.camera_facing_rotation.blockSignals(False)
+        self.camera_rotation.blockSignals(False)
         self.camera_axes_checkbox.blockSignals(False)
         self.camera_axes_size_slider.blockSignals(False)
         self.no_camera_axes.blockSignals(False)
         self.move_camera_button.blockSignals(False)
+        self.move_camera_slider.blockSignals(False)
         self.line = line
 
     def _connect(self):
@@ -323,12 +333,14 @@ class CurvedLineOptions(QWidget):
 
         self.camera_checkbox.clicked.connect(self._camera_toggled)
         self.move_camera_button.clicked.connect(self._move_camera)
+        self.move_camera_slider.valueChanged.connect(self._move_camera_to_specific_frame)
         self.forwards_button.clicked.connect(self._direction_pressed)
         self.backwards_button.clicked.connect(self._direction_pressed)
         self.no_frames_slider.valueChanged.connect(self._no_frames_changed)
         self.camera_distance_behind_line.valueChanged.connect(self._distance_behind_line_changed)
         self.camera_top_rotation.valueChanged.connect(self._top_rotation_changed)
         self.camera_facing_rotation.valueChanged.connect(self._facing_rotation_changed)
+        self.camera_rotation.valueChanged.connect(self._rotation_changed)
         self.camera_axes_checkbox.clicked.connect(self._camera_axes_toggled)
         self.no_camera_axes.valueChanged.connect(self._no_axes_changed)
         self.camera_axes_size_slider.valueChanged.connect(self._camera_axes_size_changed)
@@ -343,23 +355,41 @@ class CurvedLineOptions(QWidget):
     def _camera_toggled(self):
         if self.line is not None:
             self.line.camera_options = self.camera_checkbox.isChecked()
+            self.move_camera_slider.setEnabled(self.camera_checkbox.isChecked())
 
     def _move_camera(self):
+        from chimerax.core.commands import run
+        run(self.session, "camera mono")
         if self.camera_checkbox.isChecked():
             self.line.move_camera_along_line(no_frames=self.line.no_frames, backwards=self.line.backwards,
                                              distance_behind=self.line.distance_behind_camera,
-                                             x_rotation=self.line.top_rotation, z_rotation=self.line.facing_rotation)
+                                             x_rotation=self.line.top_rotation, z_rotation=self.line.facing_rotation, y_rotation=self.line.camera_rotation)
+        from chimerax.core.commands import log_equivalent_command
+        log_equivalent_command(self.session, "artiax moveCameraAlongLine #{} numframes {} backward {} distanceBehind {}"
+                                             " topRotation {} facingRotation {} cameraRotation {} monoCamera {}".format(
+                                              self.line.id_string, int(self.line.no_frames), self.line.backwards,
+                                              self.line.distance_behind_camera, self.line.top_rotation,
+                                              self.line.facing_rotation, self.line.camera_rotation, True))
+
+    def _move_camera_to_specific_frame(self):
+        if self.camera_checkbox.isChecked():
+            self.line.move_camera_along_line(no_frames=self.line.no_frames, backwards=self.line.backwards,
+                                             distance_behind=self.line.distance_behind_camera,
+                                             x_rotation=self.line.top_rotation, z_rotation=self.line.facing_rotation,
+                                             y_rotation=self.line.camera_rotation, specific_frame=self.move_camera_slider.value)
 
     def _direction_pressed(self):
         if self.camera_checkbox.isChecked():
             self.line.backwards = self.backwards_button.isChecked()
-            if self.camera_axes_checkbox.isChecked():
-                self.line.create_camera_markers()
+            self._camera_markers_updated()
 
     def _no_frames_changed(self):
         if self.camera_checkbox.isChecked():
             self.line.no_frames_edit_range = self.no_frames_slider.get_range()
             self.line.no_frames = self.no_frames_slider.value
+            self.move_camera_slider.blockSignals(True)
+            self.move_camera_slider.set_range([0, self.no_frames_slider.value], 0)
+            self.move_camera_slider.blockSignals(False)
 
     def _distance_behind_line_changed(self):
         if self.camera_checkbox.isChecked():
@@ -369,11 +399,20 @@ class CurvedLineOptions(QWidget):
     def _top_rotation_changed(self):
         if self.camera_checkbox.isChecked():
             self.line.top_rotation = self.camera_top_rotation.value
-            self.line.create_camera_markers()
+            self._camera_markers_updated()
 
     def _facing_rotation_changed(self):
         if self.camera_checkbox.isChecked():
             self.line.facing_rotation = self.camera_facing_rotation.value
+            self._camera_markers_updated()
+
+    def _rotation_changed(self):
+        if self.camera_checkbox.isChecked():
+            self.line.camera_rotation = self.camera_rotation.value
+            self._camera_markers_updated()
+
+    def _camera_markers_updated(self):
+        if self.line.has_camera_markers:
             self.line.create_camera_markers()
 
     def _camera_axes_toggled(self):
@@ -478,10 +517,14 @@ class CurvedLineOptions(QWidget):
     def _resolution_changed(self):
         if self.line is not None and self.fitting_checkbox.isChecked():
             resolution = self.resolution_slider.value
+            self.no_frames_slider.blockSignals(True)
+            self.no_camera_axes.blockSignals(True)
             self.no_frames_slider.max_allowed = resolution
             self.no_frames_slider.set_range((self.no_frames_slider.get_range()[0], resolution), self.no_frames_slider.value)
             self.no_camera_axes.max_allowed = resolution
             self.no_camera_axes.set_range((self.no_camera_axes.get_range()[0], resolution), self.no_camera_axes.value)
+            self.no_frames_slider.blockSignals(False)
+            self.no_camera_axes.blockSignals(False)
             self.line.change_resolution(resolution)
             self.line.resolution_edit_range = self.resolution_slider.get_range()
 

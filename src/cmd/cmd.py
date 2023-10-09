@@ -322,7 +322,8 @@ def artiax_geomodel_color(session, model, color):
 
     model.color = color.uint8x4()
 
-def artiax_move_camera_along_line(session, model, numFrames=None, backwards=False, distanceBehind=10000, topRotation=0, facingRotation=0):
+def artiax_move_camera_along_line(session, model, numFrames=None, backwards=False, distanceBehind=10000, topRotation=0,
+                                  facingRotation=0, cameraRotation=0, monoCamera=True):
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running.")
         return
@@ -331,8 +332,11 @@ def artiax_move_camera_along_line(session, model, numFrames=None, backwards=Fals
         errors.UserError("artiax moveCameraAlongLine: '{}' is not a valid argument. Input a 'line' geometric model.".format(model))
     if numFrames is not None and numFrames >= len(model.points[0]):
         numFrames = None
+    if monoCamera:
+        from chimerax.core.commands import run
+        run(session, "camera mono")
 
-    model.move_camera_along_line(False, numFrames, backwards, distanceBehind, topRotation, facingRotation)
+    model.move_camera_along_line(False, numFrames, backwards, distanceBehind, topRotation, facingRotation, cameraRotation)
 
 
 def artiax_remove_overlap(session, models=None, manifold=None, boundary=None, freeze=None, method='distance', iterations=None, thoroughness=None, precision=None, maxSearchDistance=None):
@@ -1360,7 +1364,9 @@ def register_artiax(logger):
                      ("backwards", BoolArg),
                      ("distanceBehind", FloatArg),
                      ("topRotation", FloatArg),
-                     ("facingRotation", FloatArg)],
+                     ("facingRotation", FloatArg),
+                     ('cameraRotation', FloatArg),
+                     ('monoCamera', BoolArg)],
             synopsis='Moves the camera along the specified line.'
         )
         register('artiax moveCameraAlongLine', desc, artiax_move_camera_along_line)
