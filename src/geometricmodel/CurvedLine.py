@@ -302,6 +302,8 @@ class CurvedLine(PopulatedModel):
             place = translation(point) * camera_rot
             self.session.view.camera.position = place
             self.session.update_loop.draw_new_frame()
+            if specific_frame is not None and specific_frame == 0:
+                return
 
         n = rot.transform_vector((0, 1, 0))
         n = n / np.linalg.norm(n)
@@ -332,9 +334,10 @@ class CurvedLine(PopulatedModel):
                 point = point + rot.z_axis() * distance_behind
                 place = translation(point) * rot
                 self.session.view.camera.position = place
-                self.session.update_loop.draw_new_frame()
-                if specific_frame == frame + 1:
+                if specific_frame is not None and specific_frame == frame + 1:
                     return
+                else:
+                    self.session.update_loop.draw_new_frame()
         if draw:
             self.has_camera_markers = True
             self.camera_marker_indices = [str(i) for i in range(0, len(camera_markers_places))]
