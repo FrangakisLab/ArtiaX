@@ -6,7 +6,7 @@ import math
 from scipy import interpolate
 
 # ChimeraX imports
-from chimerax.geometry import z_align, rotation, translation
+from chimerax.geometry import z_align, rotation, translation, Place
 from chimerax.bild.bild import _BildFile
 from chimerax.atomic import AtomicShapeDrawing
 
@@ -267,7 +267,7 @@ class CurvedLine(PopulatedModel):
         return d.vertices, d.normals, d.triangles, d.vertex_colors
 
     def move_camera_along_line(self, draw=False, no_frames=None, backwards=False, distance_behind=10000, x_rotation=0,
-                               z_rotation=0, y_rotation=0, specific_frame=None):
+                               z_rotation=0, y_rotation=0, specific_frame=None, max_angle=None):
         points = np.transpose(self.points)
         ders = np.transpose(self.der_points)
         if no_frames is not None:
@@ -278,6 +278,21 @@ class CurvedLine(PopulatedModel):
         if backwards:
             points = np.flip(points, 0)
             ders = np.flip(-ders, 0)
+
+        if max_angle is not None:
+            if max_angle <= 0 or max_angle >= 180:
+                max_quat_diff = None
+            else:
+                max_quat_diff = (np.cos(max_angle) + 1)/2
+        else:
+            quat_dists = []
+            max_quat_diff = None
+
+        frames = 0
+        def update_camera_to_place(place, frames):
+            self.session.view.camera.position = place
+            self.session.update_loop.draw_new_frame()
+            return frames + 1
 
         tangent = - ders[0] / np.linalg.norm(ders[0])
         rotation_to_z = z_align(points[0], points[0] + tangent)
@@ -300,14 +315,14 @@ class CurvedLine(PopulatedModel):
         elif specific_frame is None or specific_frame == 0:
             point = points[0] + camera_rot.z_axis() * distance_behind
             place = translation(point) * camera_rot
-            self.session.view.camera.position = place
-            self.session.update_loop.draw_new_frame()
+            frames = update_camera_to_place(place, frames)
             if specific_frame is not None and specific_frame == 0:
                 return
 
         n = rot.transform_vector((0, 1, 0))
         n = n / np.linalg.norm(n)
         normals = np.array([n])
+
         for frame, (point, der) in enumerate(zip(points[1:], ders[1:])):
             n = normals[-1] - (np.dot(normals[-1], tangent)) * tangent
             n = n / np.linalg.norm(n)
@@ -333,16 +348,37 @@ class CurvedLine(PopulatedModel):
             elif specific_frame is None or specific_frame == frame + 1:
                 point = point + rot.z_axis() * distance_behind
                 place = translation(point) * rot
-                self.session.view.camera.position = place
                 if specific_frame is not None and specific_frame == frame + 1:
+                    self.session.view.camera.position = place
                     return
                 else:
-                    self.session.update_loop.draw_new_frame()
+                    if max_quat_diff is not None or max_angle is None:
+                        p1, p2 = self.session.view.camera.position, place
+                        q1, q2 = p1.rotation_quaternion(), p2.rotation_quaternion()
+                        quat_dist = np.square(np.dot(q1, q2))
+                        if max_angle is None:
+                            quat_dists.append(quat_dist)
+                            if len(quat_dists) > 10:
+                                max_quat_diff = np.mean(quat_dists[-10:]) - np.std(quat_dists[-10:])
+                        if max_quat_diff is not None and quat_dist < max_quat_diff:
+                            angle_diff = np.arccos(2*quat_dist - 1)
+                            if max_angle is not None:
+                                frames_inbetween = np.floor(angle_diff/max_angle).astype(int)
+                            else:
+                                max_angle_this_time = np.arccos(2*np.mean(quat_dists[-10:]) - 1)
+                                frames_inbetween = np.floor(angle_diff/max_angle_this_time).astype(int)
+                            m1, m2 = p1.matrix, p2.matrix
+                            for i in range(frames_inbetween):
+                                inbetween = ((frames_inbetween - i)*m1 + (i + 1)*m2)/(frames_inbetween+1)
+                                frames = update_camera_to_place(Place(inbetween), frames)
+                    frames = update_camera_to_place(place, frames)
         if draw:
             self.has_camera_markers = True
             self.camera_marker_indices = [str(i) for i in range(0, len(camera_markers_places))]
             self.move_along_line_collection_model.add_places(self.camera_marker_indices, camera_markers_places)
             self.move_along_line_collection_model.color = self.color
+
+        self.session.logger.info("artiax moveCameraAlongLine: Total number of frames was {}.". format(frames))
 
     def create_camera_markers(self):
         self.move_camera_along_line(draw=True, no_frames=self.no_camera_axes, backwards=self.backwards,

@@ -363,13 +363,15 @@ class CurvedLineOptions(QWidget):
         if self.camera_checkbox.isChecked():
             self.line.move_camera_along_line(no_frames=self.line.no_frames, backwards=self.line.backwards,
                                              distance_behind=self.line.distance_behind_camera,
-                                             x_rotation=self.line.top_rotation, z_rotation=self.line.facing_rotation, y_rotation=self.line.camera_rotation)
+                                             x_rotation=self.line.top_rotation, z_rotation=self.line.facing_rotation,
+                                             y_rotation=self.line.camera_rotation, max_angle=0)
         from chimerax.core.commands import log_equivalent_command
         log_equivalent_command(self.session, "artiax moveCameraAlongLine #{} numframes {} backward {} distanceBehind {}"
-                                             " topRotation {} facingRotation {} cameraRotation {} monoCamera {}".format(
+                                             " topRotation {} facingRotation {} cameraRotation {} monoCamera {}"
+                                             " maxAngle {}".format(
                                               self.line.id_string, int(self.line.no_frames), self.line.backwards,
                                               self.line.distance_behind_camera, self.line.top_rotation,
-                                              self.line.facing_rotation, self.line.camera_rotation, True))
+                                              self.line.facing_rotation, self.line.camera_rotation, True, 0))
 
     def _move_camera_to_specific_frame(self):
         if self.camera_checkbox.isChecked():
