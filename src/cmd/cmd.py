@@ -524,7 +524,7 @@ def artiax_remove_overlap(session, models=None, manifold=None, boundary=None, fr
     remove_overlap(session, particles, pls, scms, bounds, method, on_surface_particles, in_surface_particles, particles_to_keep_still, max_iterations, thoroughness, precision)
 
 
-def artiax_gen_in_surface(session, model, method, num_pts=None, radius=None):
+def artiax_gen_in_surface(session, model, method, num_pts=None, radius=None, exactNum=False):
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running.")
         return
@@ -547,12 +547,15 @@ def artiax_gen_in_surface(session, model, method, num_pts=None, radius=None):
         session.logger.warning("Please input a radius larger than 0 using the 'radius' keyword when"
                                " generating points in a surface using poisson disk sampling.")
         return
+    if method in ['poisson', 'regular grid'] and exactNum:
+        session.logger.warning("Cannot create an exact number of particles when using 'poisson' or 'regular grid' method.")
+        return
 
     from ..util.generate_points import generate_points_in_surface
-    generate_points_in_surface(session, model, radius, num_pts, method)
+    generate_points_in_surface(session, model, radius, num_pts, method, exact_num=exactNum)
 
 
-def artiax_gen_on_surface(session, model, method, num_pts, radius=None):
+def artiax_gen_on_surface(session, model, method, num_pts, radius=None, exactNum=True):
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running.")
         return
@@ -577,7 +580,7 @@ def artiax_gen_on_surface(session, model, method, num_pts, radius=None):
         return
 
     from ..util.generate_points import generate_points_on_surface
-    generate_points_on_surface(session, model, num_pts, radius, method)
+    generate_points_on_surface(session, model, num_pts, radius, method, exact_num=exactNum)
 
 
 def artiax_geomodel_to_volume(session, model=None, geomodels=None, subdivide_length=None):
@@ -719,7 +722,7 @@ def artiax_mask_triangles_radius(session, radius=None):
     session.ui.mouse_modes.add_mode(mct)
     run(session, 'ui mousemode right "mask connected triangles"')
 
-def artiax_filter_tomo(session, tomo, lp, hp, lpd=None, hpd=None, unit='pixels', cutoff='gaussian', threshold=0.001):
+def artiax_filter_tomo(session, tomo, lp, hp, lpd=None, hpd=None, unit='pixels', lp_cutoff='gaussian', hp_cutoff='gaussian', threshold=0.001):
     if not hasattr(session, 'ArtiaX'):
         session.logger.warning("ArtiaX is not currently running.")
         return
@@ -751,13 +754,15 @@ def artiax_filter_tomo(session, tomo, lp, hp, lpd=None, hpd=None, unit='pixels',
                                    'always set to 0.25/pass-lenght.')
             return
 
-    cutoff = cutoff.lower()
-    if cutoff not in ['gaussian', 'cosine']:
+    lp_cutoff = lp_cutoff.lower()
+    hp_cutoff = hp_cutoff.lower()
+    available = ['gaussian', 'cosine']
+    if lp_cutoff not in available or hp_cutoff not in available:
         session.logger.warning(
-            "{} is not a valid cutoff method. 'gaussian' and 'cosine' are available.".format(cutoff))
+            "Only 'gaussian' and 'cosine' are available as cutoff methods.".format(lp_cutoff))
         return
 
-    tomo.create_filtered_tomogram(lp, hp, lpd, hpd, threshold, unit, cutoff, True)
+    tomo.create_filtered_tomogram(lp, hp, lpd, hpd, threshold, unit, lp_cutoff, hp_cutoff)
 
 
 def artiax_lock(session, models=None, type=None):
@@ -1396,7 +1401,8 @@ def register_artiax(logger):
             required=[("model", ModelArg),
                       ("method", EnumOf(("poisson", "uniform", "regular grid")))],
             keyword=[("num_pts", IntArg),
-                     ("radius", FloatArg)],
+                     ("radius", FloatArg),
+                     ('exactNum', BoolArg)],
             synopsis='Generates points in the specified surface. Can generate points using uniform sampling, '
                      'a poisson disk sampling method, or on a regular grid.'
         )
@@ -1407,7 +1413,8 @@ def register_artiax(logger):
             required=[("model", ModelArg),
                       ("method", EnumOf(("poisson", "uniform"))),
                       ("num_pts", IntArg)],
-            keyword=[("radius", FloatArg)],
+            keyword=[("radius", FloatArg),
+                     ('exactNum', BoolArg)],
             synopsis='Generates points on the specified surface. Can generate points using uniform sampling, '
                      'a poisson disk sampling method.'
         )
@@ -1446,10 +1453,11 @@ def register_artiax(logger):
             required=[("tomo", ModelArg),
                       ('lp', FloatArg),
                       ('hp', FloatArg)],
-            keyword=[("lpd", FloatArg),
-                     ('hpd', FloatArg),
+            keyword=[("lpd", Or(FloatArg, NoneArg)),
+                     ('hpd', Or(FloatArg, NoneArg)),
                      ('unit', StringArg),
-                     ('cutoff', StringArg),
+                     ('lp_cutoff', EnumOf(('gaussian', 'cosine'))),
+                     ('hp_cutoff', EnumOf(('gaussian', 'cosine'))),
                      ('threshold', FloatArg)],
             synopsis='Creates a filtered tomogram using lp and hp as lowpass and highpass frequencies, respectively.'
                      'Input 0 as pass-frequency for no low/high-pass.'

@@ -130,28 +130,20 @@ class Tomogram(VolumePlus):
     def integer_slab_position(self, value):
         self._set_integer_slice(slice=value)
 
-    def create_filtered_tomogram(self, lp, hp, lpd=None, hpd=None, thresh=0.001, unit='pixels', method=None, always_use_both=False):
+    def create_filtered_tomogram(self, lp, hp, lpd=None, hpd=None, thresh=0.001, unit='pixels', lp_method='gaussian', hp_method='gaussian'):
         import numpy.fft as fft
         shape = self.size
-        if self.auto_lpd:
-            lpd = lp/4
-        if self.auto_hpd:
-            hpd = hp/4
 
-        if always_use_both:
-            use_lp = False if lp==0 and (lpd is None or lpd==0) else True
-            use_hp = False if hp==0 and (hpd is None or hpd==0) else True
-        else:
-            use_lp, use_hp = self.use_low_pass, self.use_high_pass
+        use_lp = False if lp == 0 and (lpd is None or lpd == 0) else True
+        if lp != 0 and lpd is None:
+            lpd = lp / 4
+        use_hp = False if hp == 0 and (hpd is None or hpd == 0) else True
+        if hp != 0 and hpd is None:
+            hpd = hp / 4
 
-        if method is None:
-            lp_method = self.lp_method
-            hp_method = self.hp_method
-        elif method in ['gaussian', 'cosine']:
-            lp_method = method
-            hp_method = method
-        else:
-            self.session.logger.warning("{} is not a valid cutoff method. 'gaussian' and 'cosine' are available.".format(method))
+        if lp_method not in ['gaussian', 'cosine'] or hp_method not in ['gaussian', 'cosine']:
+            self.session.logger.warning(
+                "Only 'gaussian' and 'cosine' are available cutoff methods.")
             return
 
         px = self.pixelsize
