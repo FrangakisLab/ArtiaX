@@ -19,7 +19,7 @@ def generate_points_in_bbox(session, surface, radius=1, num_pts=100, method='poi
     create_partlist_from_coords(session, surface.name + " " + method + " particles", coords)
 
 
-def generate_points_in_surface(session, surface, radius=100, num_pts=100, method='poisson', n_candidates=30):
+def generate_points_in_surface(session, surface, radius=100, num_pts=100, method='poisson', n_candidates=30, exact_num=False):
     if method not in ['poisson', 'uniform', 'regular grid']:
         return
     bbox = surface.bounds()
@@ -35,6 +35,13 @@ def generate_points_in_surface(session, surface, radius=100, num_pts=100, method
     for coord in coords:
         if is_point_in_surface(coord, surface.vertices, surface.triangles, xyz_min, xyz_max):
             coords_in_surface.append(coord)
+    if method == 'uniform' and exact_num:
+        while len(coords_in_surface) < num_pts:
+            coords = generate_random_pts(num_pts, xyz_min, xyz_max)
+            for coord in coords:
+                if is_point_in_surface(coord, surface.vertices, surface.triangles, xyz_min, xyz_max):
+                    coords_in_surface.append(coord)
+        coords_in_surface = coords_in_surface[:num_pts]
 
     create_partlist_from_coords(session, surface.name + " " + method + " particles inside", coords_in_surface)
 
@@ -113,14 +120,14 @@ class Point:
         self.rotation = rotation
 
 
-def generate_points_on_surface(session, surface, num_pts=100, radius=10, method='poisson', oV=10):
+def generate_points_on_surface(session, surface, num_pts=100, radius=10, method='poisson', exact_num=True):
     if method not in ['poisson', 'uniform']:
         return
 
     if method == 'uniform':
         points = uniform_on_surface(surface, num_pts)
     else:
-        points = poisson_on_surface(surface, radius, num_pts, oV)
+        points = poisson_on_surface(surface, radius, num_pts, exact_num)
 
     create_partlist_from_coords(session, "Particles on " + surface.name + " " + method, points, using_points=True)
 
@@ -154,11 +161,12 @@ def generate_point_on_tri(verts):
     return verts[0] + u1*a + u2*b
 
 
-def poisson_on_surface(surface, radius, num_pts, oV=10):
+def poisson_on_surface(surface, radius, num_pts, exact_num=True):
     # Using the Constrained Sample-Based Poisson-Disk Sampling from https://vcg.isti.cnr.it/Publications/2012/CCS12/TVCG-2011-07-0217.pdf
 
     # Generate a pool of points using uniform sampling
-    sample_pool = uniform_on_surface(surface, num_pts*oV)
+    num_to_gen = num_pts * 10 if exact_num else num_pts
+    sample_pool = uniform_on_surface(surface, num_to_gen)
     bounds = surface.bounds()
     xyz_min = bounds.xyz_min
     # Sort all the points into cells with side length r
@@ -172,6 +180,25 @@ def poisson_on_surface(surface, radius, num_pts, oV=10):
         points.append(sample)
         # Remove all samples within r distance from the chosen sample
         remove_samples(sample, index, radius, cells)
+
+    if exact_num:
+        while len(points) < num_pts:
+            old_num_of_pts = len(points)
+
+            sample_pool = np.append(points, uniform_on_surface(surface, num_to_gen))
+            cells = fill_spacial_hash_table(xyz_min, radius, sample_pool)
+            points = []
+            while list(cells.values()):
+                # Extracting a sample from the dict of potential points
+                sample = list(cells.values())[0][0]
+                index = np.array(list(cells.keys())[0])
+                points.append(sample)
+                # Remove all samples within r distance from the chosen sample
+                remove_samples(sample, index, radius, cells)
+            if len(points) <= old_num_of_pts:
+                break
+        points = points[:num_pts]
+
     return points
 
 

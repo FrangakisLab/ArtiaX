@@ -814,7 +814,31 @@ class OptionsWindow(ToolInstance):
         if num_voxels > 100000000:
             self.session.logger.warning("Large Tomogram, might take time.")
 
-        tomo.create_filtered_tomogram(tomo.lp, tomo.hp, tomo.lpd, tomo.hpd, tomo.thresh, tomo.unit)
+        if tomo.use_low_pass:
+            lp = tomo.lp
+            lpd = None if tomo.auto_lpd else tomo.lpd
+        else:
+            lp, lpd = 0, 0
+        if tomo.use_high_pass:
+            hp = tomo.hp
+            hpd = None if tomo.auto_hpd else tomo.hpd
+        else:
+            hp, hpd = 0, 0
+
+        lp_method = 'cosine' if tomo.lp_method.lower() == 'raised cosine' else tomo.lp_method.lower()
+        hp_method = 'cosine' if tomo.hp_method.lower() == 'raised cosine' else tomo.hp_method.lower()
+
+
+        tomo.create_filtered_tomogram(lp, hp, lpd, hpd, tomo.thresh, tomo.unit, lp_method, hp_method)
+
+        from chimerax.core.commands import log_equivalent_command
+        if lp_method == 'gaussian' or hp_method == 'gaussian':
+            log_equivalent_command(self.session, "artiax filter #{} {} {} lpd {} hpd {} unit {} lp_cutoff {} hp_cutoff {} threshold {}".format(
+                                              tomo.id_string, lp, hp, lpd, hpd, tomo.unit, lp_method, hp_method, tomo.thresh))
+        else:
+            log_equivalent_command(self.session,
+                                   "artiax filter #{} {} {} lpd {} hpd {} unit {} lp_cutoff {} hp_cutoff {}".format(
+                                       tomo.id_string, lp, hp, lpd, hpd, tomo.unit, lp_method, hp_method))
 
     def _average_axis_changed(self, axis):
         artia = self.session.ArtiaX
@@ -1454,6 +1478,16 @@ class OptionsWindow(ToolInstance):
         from .util.generate_points import generate_points_in_surface
         generate_points_in_surface(self.session, gm, gm.generate_in_surface_radius, gm.generate_in_surface_num_pts, gm.generate_in_surface_method)
 
+        from chimerax.core.commands import log_equivalent_command
+        if gm.generate_in_surface_method.lower() == 'poisson':
+            log_equivalent_command(self.session, "artiax gen in surface #{} poisson radius {}".format(gm.id_string, gm.generate_in_surface_radius))
+        elif gm.generate_in_surface_method.lower() == 'uniform':
+            log_equivalent_command(self.session, "artiax gen in surface #{} uniform numPts {} exactNum False".format(gm.id_string,
+                                                                                                     gm.generate_in_surface_num_pts))
+        else:
+            log_equivalent_command(self.session, "artiax gen in surface #{} regular numPts {}".format(gm.id_string,
+                                                                                                     gm.generate_in_surface_num_pts))
+
     def _generate_in_surface_options_changed(self):
         artia = self.session.ArtiaX
         gm = artia.geomodels.get(artia.options_geomodel)
@@ -1467,7 +1501,15 @@ class OptionsWindow(ToolInstance):
         gm = artia.geomodels.get(artia.options_geomodel)
 
         from .util.generate_points import generate_points_on_surface
-        generate_points_on_surface(self.session, gm, gm.generate_on_surface_num_pts, gm.generate_on_surface_radius, gm.generate_on_surface_method)
+        generate_points_on_surface(self.session, gm, gm.generate_on_surface_num_pts, gm.generate_on_surface_radius, gm.generate_on_surface_method, exact_num=True)
+
+        from chimerax.core.commands import log_equivalent_command
+        if gm.generate_on_surface_method.lower() == 'poisson':
+            log_equivalent_command(self.session, "artiax gen on surface #{} poisson {} radius {} exactNum true".format(gm.id_string, gm.generate_on_surface_num_pts,
+                                                                                                     gm.generate_on_surface_radius))
+        else:
+            log_equivalent_command(self.session, "artiax gen on surface #{} uniform {}".format(gm.id_string,
+                                                                                                gm.generate_on_surface_num_pts))
 
     def _generate_on_surface_options_changed(self):
         artia = self.session.ArtiaX
