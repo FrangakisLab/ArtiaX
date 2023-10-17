@@ -21,10 +21,15 @@ class PopulatedModel(GeoModel):
         self.has_particles = False
         """Whether the model should display how particles would look when created."""
         self.marker_axis_display_options = True
-        self.marker_size = 4
-        self.marker_size_edit_range = (1, 7)
-        self.axes_size = 15
-        self.axes_size_edit_range = (10, 20)
+        if session.ArtiaX.tomograms.count > 0:
+            pix = session.ArtiaX.tomograms.get(0).pixelsize[0]
+            self.marker_size = 4 * pix
+            self.axes_size = 15 * pix
+        else:
+            self.marker_size = 4
+            self.axes_size = 15
+        self.marker_size_edit_range = (0, self.marker_size*2)
+        self.axes_size_edit_range = (0, self.axes_size*2)
         """Options for the widget."""
 
         self.collection_model = SurfaceCollectionModel('Spheres', session)

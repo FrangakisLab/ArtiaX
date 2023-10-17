@@ -602,16 +602,19 @@ def artiax_geomodel_to_volume(session, model=None, geomodels=None, subdivide_len
     if geomodels is None:
         geomodels = [g for g in session.ArtiaX.geomodels.child_models() if g.visible]
 
-    if subdivide_length is None:
-        subdivide_length = min(ps)
-
     if new_model:
         from chimerax.geometry.bounds import union_bounds
         union = union_bounds([gm.geometry_bounds() for gm in geomodels])
         xyz_max = union.xyz_max
         xyz_min = union.xyz_min
         matsize = np.flip(np.ceil(xyz_max - xyz_min).astype(int))
+        if (matsize > 400).any():
+            ps = [max(matsize)/400] * 3
+            matsize = np.ceil(matsize/ps[0]).astype(int)
         mat = np.zeros(matsize, dtype=np.float32)
+
+    if subdivide_length is None:
+        subdivide_length = min(ps)
 
     # For each geomodel
     for geomodel in geomodels:  # Get verts and subdiv
@@ -629,8 +632,7 @@ def artiax_geomodel_to_volume(session, model=None, geomodels=None, subdivide_len
         for i, v in enumerate(vs):
 
             if new_model:
-                index = v
-                index = index - xyz_min
+                index = (v - xyz_min)/ps[0]
             else:
                 index = tomo.data.xyz_to_ijk(v)
             index = np.flip(np.array(np.floor(index), dtype=int))  # flipped to make it [zi, yi, xi]

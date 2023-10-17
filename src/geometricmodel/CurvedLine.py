@@ -62,7 +62,7 @@ class CurvedLine(PopulatedModel):
         """Whether to rotate particles around the line."""
         self.rotation = 0
         """Degrees to rotate per Angstrom"""
-        self.rotation_edit_range = (0, 1)
+        self.rotation_edit_range = (-1, 1)
         self.start_rotation = 0
         """Rotation of first particle."""
 
@@ -80,8 +80,8 @@ class CurvedLine(PopulatedModel):
         self.no_camera_axes_edit_range = (2, resolution)
         self.no_camera_axes = 30
         self.has_camera_markers = False
-        self.camera_axes_size = 15
-        self.camera_axes_size_edit_range = (10, 20)
+        self.camera_axes_size = self.axes_size
+        self.camera_axes_size_edit_range = (0, self.axes_size*2)
         if surface_collection_models is not None:
             for scm in surface_collection_models:
                 scm.triggers.add_handler(MODELS_MOVED, self._particle_moved)
@@ -252,6 +252,7 @@ class CurvedLine(PopulatedModel):
             self.recalc_and_update()
 
     def get_camera_marker_surface(self):
+
         b = _BildFile(self.session, 'dummy')
 
         b.color_command('.color 1 1 0'.split())
