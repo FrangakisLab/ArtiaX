@@ -751,9 +751,9 @@ def artiax_filter_tomo(session, tomo, lp, hp, lpd=None, hpd=None, unit='pixels',
         session.logger.warning("'{}' is not an implemented unit. 'pixels' and 'angstrom' are available.".format(unit))
         return
     if unit == 'angstrom':
-        if lpd is not None or hpd is not None:
+        if not (lpd is None or lpd == 0) or not (hpd is None or hpd == 0):
             session.logger.warning('Cannot set low-pass or high-pass decay when using "angstrom" as a unit. Decay is'
-                                   'always set to 0.25/pass-lenght.')
+                                   'always set to 0.25*pass-lenght.')
             return
 
     lp_cutoff = lp_cutoff.lower()

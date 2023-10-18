@@ -12,18 +12,19 @@
       [<strong>geomodels</strong> <a href="atomspec.html#hierarchy"><i>model-specs</i></a>]
       [<strong>subdivideLength</strong> <i>value</i>] </h3>
     <p> The <b>artiax geo2vol</b> command adds the specified geomodels (comma seperated) to the chosen volume by voxelizing the geomodel,
-      as long as it fits inside the bounding box of the volume. If no volume is specified, a new one is created.
+      as long as it fits inside the bounding box of the volume. If no volume is specified, a new one is created. The
+      new volume is automatically scaled so that the maximum side length is 400 angstrom.
       If no geomodels are specified, all shown ones are used.</p>
     <table style="width: 1006px; height: 380px;" border="1">
       <tbody>
         <tr>
-          <td style="text-align: center; width: 176px;"><em><strong>property</strong></em></td>
-          <td style="text-align: center; width: 239.033px;"><em><strong>meaning</strong></em></td>
-          <td style="text-align: center; width: 242.033px;"><em><strong>expected
+          <td style="text-align: center; width: 100px;"><em><strong>property</strong></em></td>
+          <td style="text-align: center; width: 300px;"><em><strong>meaning</strong></em></td>
+          <td style="text-align: center; width: 120px;"><em><strong>expected
                 value type</strong></em></td>
         </tr>
         <tr>
-          <td style="height: 19px; text-align: center;"><strong>geomodels</strong></td>
+          <td style="text-align: center;"><strong>geomodels</strong></td>
           <td>The geomodels to voxelize and add to the volume. A comma seperated list. Can only add geomodels within
           the bounding box of the volume. If no geomodels are specified, all shown ones are used.</td>
           <td style="text-align: center;"><em>comma seperated <a href="atomspec.html#hierarchy"><i>model-specs</i></a></em></td>

@@ -1,0 +1,95 @@
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=windows-1252">
+    <link rel="stylesheet" type="text/css" href="../userdocs.css">
+    <title>Command:artiax filter</title>
+  </head>
+  <body> <a name="top"></a> <a href="../artiax_index.html"> <img src="../ArtiaX-docs-icon.svg"
+        alt="ArtiaX docs icon" class="clRight" title="User Guide Index" width="60px"></a>
+    <h3><a href="../artiax_index.html#commands">Command</a>: artiax filter</h3>
+    <h3 class="usage"><a href="usageconventions.html">Usage</a>: <br>
+      <b>artiax filter</b> <a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+      <em>low-pass length</em> <em>high-pass length</em>
+      [<strong>lpd</strong> <i>value</i>] [<strong>hpd</strong> <i>value</i>] [<strong>unit</strong> <i>value</i>]
+      [<strong>lpCutoff</strong> <i>value</i>] [<strong>hpCutoff</strong> <i>value</i>] [<strong>threshold</strong> <i>value</i>]</h3>
+    <p> The <b>artiax filter</b> command lets the user apply low-pass, high-pass, and band-pass filters to a specified
+     tomogram. Gaussian, raised cosine, and box decays are available.</p>
+    <table style="width: 1006px; height: 380px;" border="1">
+      <tbody>
+        <tr>
+          <td style="text-align: center; width: 150px;"><em><strong>property</strong></em></td>
+          <td style="text-align: center; width: 400px;"><em><strong>meaning</strong></em></td>
+          <td style="text-align: center; width: 130px;"><em><strong>default</strong></em></td>
+          <td style="text-align: center; width: 120px;"><em><strong>expected value type</strong></em></td>
+        </tr>
+        <tr>
+          <td style="height: 19px; text-align: center;"><strong>low-pass length</strong></td>
+          <td>The low-pass cutoff length, in pixels or angstrom depending on the unit. If no low-pass component is required
+             for the filter, set to 0 (in combination with a non-zero low-pass decay). The low-pass length cannot be 0 when
+           the unit is set to angstrom, unless the low-pass decay is also set to 0 or "None", in which case no low-pass component is used.</td>
+          <td style="text-align: center;">N/A</td>
+          <td style="text-align: center;"><em>float</em></td>
+        </tr>
+        <tr>
+          <td style="height: 19px; text-align: center;"><strong>high-pass length</strong></td>
+          <td>The high-pass cutoff length, in pixels or angstrom depending on the unit. If no high-pass component is required
+             for the filter, set to 0 (in combination with a non-zero high-pass decay). The high-pass length cannot be 0 when
+           the unit is set to angstrom, unless the high-pass decay is also set to 0 or "None", in which case no high-pass component is used.</td>
+          <td style="text-align: center;">N/A</td>
+          <td style="text-align: center;"><em>float</em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>lpd</strong></td>
+          <td>The low-pass decay length in pixels. If set to 0, a box filter is used. If set to "None", the default
+            value is used. Cannot be used when using angstrom as the unit, but is always set automatically in that case.</td>
+          <td style="text-align: center;">low-pass cutoff / 4</td>
+          <td style="text-align: center;"><em>float</em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>hpd</strong></td>
+          <td>The high-pass decay length in pixels. If set to 0, a box filter is used. If set to "None", the default
+            value is used. Cannot be used when using angstrom as the unit, but is always set automatically in that case.</td>
+          <td style="text-align: center;">high-pass cutoff / 4</td>
+          <td style="text-align: center;"><em>float</em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>unit</strong></td>
+          <td>The unit for which the other values are entered. "pixels" and "angstrom" are available. When using angstrom
+           the cutoff lenghts cannot be set to 0, and the decays can not be set manually.</td>
+          <td style="text-align: center;">pixels</td>
+          <td style="text-align: center;"><em>string</em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>lpCutoff</strong></td>
+          <td>The cutoff method used for the low-pass component. "gaussian" and (raised-)"cosine" are available. If the low-pass
+             decay is set to 0, a box filter is used instead. If a gaussian cutoff is selected, the values below the threshold
+             value set by the "threshold" parameter are set to 0.</td>
+          <td style="text-align: center;">gaussian</td>
+          <td style="text-align: center;"><em>string</em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>hpCutoff</strong></td>
+          <td>The cutoff method used for the high-pass component. "gaussian" and (raised-)"cosine" are available. If the high-pass
+             decay is set to 0, a box filter is used instead. If a gaussian cutoff is selected, the values below the threshold
+             value set by the "threshold" parameter are set to 0.</td>
+          <td style="text-align: center;">gaussian</td>
+          <td style="text-align: center;"><em>string</em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>threshold</strong></td>
+          <td>The value used as the threshold for the gaussian cutoff method.</td>
+          <td style="text-align: center;">0.001</td>
+          <td style="text-align: center;"><em>float</em></td>
+        </tr>
+      </tbody>
+    </table>
+    <p> Examples: </p>
+    <blockquote> <b>artiax filter #1.1.1 200 50 <br>
+        artiax filter #1.1.4 0 40 hpd 20 hpCutoff cosine <br>
+        artiax filter #1.1.2 50 0 unit angstrom <br>
+        artiax filter #1.1.2 150 40 lpd 0 threshold 0.000001 </b> </blockquote>
+    <p></p>
+    <hr>
+    <address>BMLS Frangakis Group / August 2023</address>
+  </body>
+</html>
