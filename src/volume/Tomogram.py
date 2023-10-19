@@ -175,7 +175,7 @@ class Tomogram(VolumePlus):
         filter = np.multiply(lp_filt, hp_filt)
         filtered_data = np.array(fft.irfftn(np.multiply(fft.rfftn(self.data.matrix()), filter)), dtype=np.float32)
 
-        name = "Filtered " + self.data.name
+        name = "Filtered " + self.data.name + ' ' + unit
         if use_lp:
             name += ", lp={}".format(lp)
         if use_hp:

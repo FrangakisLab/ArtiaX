@@ -415,7 +415,28 @@ will be displayed without the ChimeraX- prefix.
      Set geomodel color.</ChimeraXClassifier>
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax moveCameraAlongLine :: General ::
-     Moves camera along the specified line.</ChimeraXClassifier>
+     Moves camera along a specified line.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax filter tomo :: General ::
+     Filter a tomogram using low, high, or band-pass filters.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax gen in surface :: General ::
+     Generates points inside a specified surface.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax gen on surface :: General ::
+     Generates points on a specified surface.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax geo2vol :: General ::
+     Add geomodels to volumes.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax vol2geo :: General ::
+     Create geomodels from volumes.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax mask triangle radius :: General ::
+     Mouse mode for  masking connected triangles.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax remove overlap :: General ::
+     Moves particles with attached surfaces so that no surfaces overlap.</ChimeraXClassifier>
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax info :: General ::
       Print information about tomograms or particle lists.</ChimeraXClassifier>

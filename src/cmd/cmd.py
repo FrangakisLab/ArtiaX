@@ -1378,7 +1378,8 @@ def register_artiax(logger):
                      ('cameraRotation', FloatArg),
                      ('monoCamera', BoolArg),
                      ('maxAngle', Or(FloatArg, NoneArg))],
-            synopsis='Moves the camera along the specified line.'
+            synopsis='Moves the camera along the specified line.',
+            url='help:user/commands/artiax_move_camera_along_line.html'
         )
         register('artiax moveCameraAlongLine', desc, artiax_move_camera_along_line)
 
@@ -1393,7 +1394,8 @@ def register_artiax(logger):
                      ("thoroughness", IntArg),
                      ("precision", FloatArg),
                      ("maxSearchDistance", FloatArg)],
-            synopsis='Moves selected particles to remove overlap. Can be made to move particles along surface or inside'
+            synopsis='Moves selected particles to remove overlap. Can be made to move particles along surface or inside',
+            url='help:user/commands/artiax_remove_overlap.html'
                      ' surface.'
         )
         register('artiax remove overlap', desc, artiax_remove_overlap)
@@ -1406,7 +1408,8 @@ def register_artiax(logger):
                      ("radius", FloatArg),
                      ('exactNum', BoolArg)],
             synopsis='Generates points in the specified surface. Can generate points using uniform sampling, '
-                     'a poisson disk sampling method, or on a regular grid.'
+                     'a poisson disk sampling method, or on a regular grid.',
+            url='help:user/commands/artiax_generate_points_in_surface.html'
         )
         register('artiax gen in surface', desc, artiax_gen_in_surface)
 

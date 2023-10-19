@@ -84,10 +84,31 @@
       </tbody>
     </table>
     <p> Examples: </p>
-    <blockquote> <b>artiax filter #1.1.1 200 50 <br>
-        artiax filter #1.1.4 0 40 hpd 20 hpCutoff cosine <br>
-        artiax filter #1.1.2 50 0 unit angstrom <br>
-        artiax filter #1.1.2 150 40 lpd 0 threshold 0.000001 </b> </blockquote>
+    <table style="width: 1006px; height: 300px;" border="1">
+      <tbody>
+        <tr>
+          <td style="height: 19px; width: 450px; text-align: center;"><em><strong>command</strong></em></td>
+          <td style="height: 19px; text-align: center;"><em><strong>effect</strong></em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;">artiax filter #1.1.1 200 10</td>
+          <td>A band-pass filter with cutoff lengths 200 pixels and 10 pixels, with a gaussian decay of size 50 and 2.5 respectively.</td>
+        </tr>
+        <tr>
+          <td style="text-align: center;">artiax filter #1.1.4 0 5 hpd 20 hpCutoff cosine</td>
+          <td>A high-pass filter with cutoff lengths 5 pixels, with a raised cosine decay of size 20.</td>
+        </tr>
+        <tr>
+          <td style="text-align: center;">artiax filter #1.1.2 50 0 unit angstrom</td>
+          <td>A low-pass filter with cutoff lengths 50 angstrom, with a gaussian decay.</td>
+        </tr>
+        <tr>
+          <td style="text-align: center;">artiax filter #1.1.2 150 7 lpd 0 hpCutoff gaussian threshold 0.000001</td>
+          <td>A band-pass filter with cutoff lengths 150 and 7 angstrom, with a box cutoff on the low-pass component
+             and a gaussian decay on the high-pass component. All values below 0.000001 are set to 0.</td>
+        </tr>
+      </tbody>
+    </table>
     <p></p>
     <hr>
     <address>BMLS Frangakis Group / August 2023</address>
