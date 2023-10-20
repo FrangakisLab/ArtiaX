@@ -1394,9 +1394,8 @@ def register_artiax(logger):
                      ("thoroughness", IntArg),
                      ("precision", FloatArg),
                      ("maxSearchDistance", FloatArg)],
-            synopsis='Moves selected particles to remove overlap. Can be made to move particles along surface or inside',
+            synopsis='Moves selected particles to remove overlap. Can be made to move particles along surface or inside a surface',
             url='help:user/commands/artiax_remove_overlap.html'
-                     ' surface.'
         )
         register('artiax remove overlap', desc, artiax_remove_overlap)
 
@@ -1421,7 +1420,8 @@ def register_artiax(logger):
             keyword=[("radius", FloatArg),
                      ('exactNum', BoolArg)],
             synopsis='Generates points on the specified surface. Can generate points using uniform sampling, '
-                     'a poisson disk sampling method.'
+                     'a poisson disk sampling method.',
+            url='help:user/commands/artiax_generate_points_on_surface.html'
         )
         register('artiax gen on surface', desc, artiax_gen_on_surface)
 
@@ -1432,7 +1432,8 @@ def register_artiax(logger):
                      ("subdivide_length", FloatArg)],
             synopsis='Adds the specified geomodels to the specified volume. If no model is specified, a new one is'
                      ' created. If no geomodels are specified, all shown are used. The subdivide_length keyword sets'
-                     ' the largest allowed triangle length, and defaults to the tomograms smallest pixelsize.'
+                     ' the largest allowed triangle length, and defaults to the tomograms smallest pixelsize.',
+            url='help:user/commands/artiax_geo2vol.html'
         )
         register('artiax geo2vol', desc, artiax_geomodel_to_volume)
 
@@ -1441,7 +1442,8 @@ def register_artiax(logger):
             optional=[("models", ListOf(ModelArg))],
             keyword=[("name", StringArg)],
             synopsis='Creates a new geomodel from the specified models. Only uses the masked triangles. If no model is'
-                     'specified, the currently selected models are used.'
+                     'specified, the currently selected models are used.',
+            url='help:user/commands/artiax_vol2geo.html'
         )
         register('artiax vol2geo', desc, artiax_masked_triangles_to_geomodel)
 
@@ -1449,7 +1451,8 @@ def register_artiax(logger):
         desc = CmdDesc(
             optional=[("radius", FloatArg)],
             synopsis='Enables the "mask connected triangles" mouse mode with a specified radius, such that pressing a '
-                     'triangle only masks connected triangles within the radius of the pressed one.'
+                     'triangle only masks connected triangles within the radius of the pressed one.',
+            url='help:user/commands/artiax_mask_triangle_radius.html'
         )
         register('artiax mask triangle radius', desc, artiax_mask_triangles_radius)
 
@@ -1468,8 +1471,9 @@ def register_artiax(logger):
                      'Input 0 as pass-frequency for no low/high-pass.'
                      'lpd and hpd represents the decays, which default to a a fourth of the respective pass-frequencies'
                      'if left empty. Input 0 for a box filter. '
-                     'Available units are "hz" and "pixels". The threshold keywords selects how far the '
-                     'gaussian curve extends in the filter.'
+                     'Available units are "angstrom" and "pixels". The threshold keywords selects how far the '
+                     'gaussian curve extends in the filter.',
+            url='help:user/commands/artiax_filter.html'
         )
         register('artiax filter', desc, artiax_filter_tomo)
 
