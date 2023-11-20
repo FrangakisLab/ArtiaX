@@ -221,3 +221,14 @@ class ManagerModel(Model):
             model.delete()
 
         Model.delete(self)
+
+    def take_snapshot(self, session, flags):
+        print('Snapshot Manager')
+        data = Model.take_snapshot(self, session, flags)
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        print('Restore Manager')
+
+        return cls('test', session)
