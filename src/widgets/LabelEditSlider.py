@@ -18,24 +18,35 @@ class LabelEditSlider(QWidget):
     ----------
     range : list of float
         The minimum and maximum value of the slider.
-
+    text : str
+        The widget label.
+    slider_ratio : float
+        The ratio of the widget width to be taken up by the slider.
+    step_size : float
+        The step size of the slider. Defaults to float precision (10^-8).
+    parent : QWidget
+        The parent widget.
     """
 
     valueChanged = Signal(float)
     editingFinished = Signal(float)
 
-    def __init__(self, range, text='', slider_ratio=0.6, step_size=0.00001, parent=None):
+    def __init__(self, range, text='', slider_ratio=0.6, step_size=0.00000001, parent=None):
         super().__init__(parent=parent)
+
+        self._precision = round(abs(math.log10(step_size)))
+        """The precision of the widget."""
 
         self._range = list(range)
         """The range of the slider, 2 element list."""
+
         self._init_range = list(range)
+
         self._constant = False
         """Wheter or not the range is 0."""
+
         self._value = None
         """The value of the widget."""
-
-        self._precision = round(abs(math.log10(step_size)))
 
         self._layout = QGridLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)
@@ -72,8 +83,8 @@ class LabelEditSlider(QWidget):
 
     @value.setter
     def value(self, val):
-        val = min(max(val, self._range[0]), self._range[1])
         val = round(val, self._precision)
+        val = min(max(val, self._range[0]), self._range[1])
         self._value = val
 
         prev_slider = self._slider.blockSignals(True)
@@ -148,8 +159,8 @@ class LabelEditSlider(QWidget):
 
         # Clamp value to range
         val = float(self._edit.text())
-        val = min(max(val, self._range[0]), self._range[1])
         val = round(val, self._precision)
+        val = min(max(val, self._range[0]), self._range[1])
         self._value = val
 
         # Set slider
@@ -164,6 +175,7 @@ class LabelEditSlider(QWidget):
         """Callback for changing slider."""
         # Get value
         val = round(self._slider.value(), self._precision)
+        val = min(max(val, self._range[0]), self._range[1])
         self._value = val
 
         # Set edit

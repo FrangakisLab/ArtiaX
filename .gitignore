@@ -133,5 +133,6 @@ build/
 dist/
 ChimeraX_TestBundle.egg-info/
 .idea/
+.run/
 *.css
 *.bak
