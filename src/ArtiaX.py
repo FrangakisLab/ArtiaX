@@ -42,25 +42,30 @@ GEOMODEL_DISPLAY_CHANGED = 'geomodel display changed'
 class ArtiaX(Model):
 
     DEBUG = False
+    SESSION_SAVE = True
 
-    def __init__(self, session):
+    def __init__(self, session,
+                 add: bool = True,
+                 tomograms: ManagerModel = None,
+                 partlists: ManagerModel = None,
+                 geomodels: ManagerModel = None):
         super().__init__('ArtiaX', session)
 
         # GUI
-
         #self.ui = ui
 
         # Add self to session
-        self.session.models.add([self])
+        if add:
+            self.session.models.add([self])
 
         # Set color maps
         add_colors(self.session)
         self.standard_colors = ARTIAX_COLORS
 
         # Model Managers
-        self._tomograms = ManagerModel('Tomograms', self.session)
-        self._partlists = ManagerModel('Particle Lists', self.session)
-        self._geomodels = ManagerModel('Geometric Models', self.session)
+        self._tomograms = ManagerModel('Tomograms', self.session) if tomograms is None else tomograms
+        self._partlists = ManagerModel('Particle Lists', self.session) if partlists is None else partlists
+        self._geomodels = ManagerModel('Geometric Models', self.session) if geomodels is None else geomodels
 
         self.add([self.tomograms])
         self.add([self.partlists])
@@ -139,6 +144,8 @@ class ArtiaX(Model):
         self.session.ui.mouse_modes.add_mode(self.delete_picked_triangle)
         self.session.ui.mouse_modes.add_mode(self.delete_picked_tetra)
         self.session.ui.mouse_modes.add_mode(self.mask_connected_triangles)
+
+
 
     @property
     def tomograms(self):
@@ -558,12 +565,29 @@ class ArtiaX(Model):
 
     def take_snapshot(self, session, flags):
         print('Snapshot ArtiaX')
-        data = Model.take_snapshot(self, session, flags)
+        #data = Model.take_snapshot(self, session, flags)
+        data = {}
+        data["model state"] = Model.take_snapshot(self, session, flags)
+        data["tomograms"] = self.tomograms.take_snapshot(session, flags)
+        data["tomograms"]["parent"] = None
+        data["partlists"] = self.partlists.take_snapshot(session, flags)
+        data["partlists"]["parent"] = None
+        data["geomodels"] = self.geomodels.take_snapshot(session, flags)
+        data["geomodels"]["parent"] = None
         return data
 
     @classmethod
     def restore_snapshot(cls, session, data):
         print('Restore ArtiaX')
+
+        # Create ArtiaX instance
+        tomograms = ManagerModel.restore_snapshot(session, data["tomograms"])
+        partlists = ManagerModel.restore_snapshot(session, data["partlists"])
+        geomodels = ManagerModel.restore_snapshot(session, data["geomodels"])
+
+        artia = cls(session, add=False, tomograms=tomograms, partlists=partlists, geomodels=geomodels)
+        Model.set_state_from_snapshot(artia, session, data["model state"])
+        session.models.add([artia])
 
         # First make sure UI is running. This also creates the model.
         from .cmd import get_singleton

@@ -8,9 +8,12 @@ import numpy as np
 import math as ma
 
 # ChimeraX
+from chimerax.core.session import Session
+from chimerax.core.models import Model
 from chimerax.core.commands import run
 from chimerax.geometry import inner_product
 from chimerax.graphics import Drawing
+from chimerax.map_data import GridData
 from chimerax.map_data.tom_em.em_grid import EMGrid
 from chimerax.core import errors
 
@@ -20,7 +23,7 @@ from .VolumePlus import VolumePlus
 
 class Tomogram(VolumePlus):
 
-    def __init__(self, session, data, rendering_options=None):
+    def __init__(self, session: Session, data: GridData, rendering_options=None):
         VolumePlus.__init__(self, session, data, rendering_options=rendering_options)
 
         # Image Levels
@@ -450,6 +453,18 @@ class Tomogram(VolumePlus):
         return
 
     positions = property(Drawing.positions.fget, _tomogram_set_positions)
+
+    def take_snapshot(self, session, flags):
+        print(f'Snapshot Tomogram {self.name}')
+        data = VolumePlus.take_snapshot(self, session, flags)
+        print(data)
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        tomo = super().restore_snapshot(session, data)
+        print(f"Restored Tomogram {type(tomo)}")
+        return tomo
 
 
 def orthoplane_cmd(tomogram, axes, offset=None):

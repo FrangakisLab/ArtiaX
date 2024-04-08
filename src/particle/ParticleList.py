@@ -37,11 +37,13 @@ class ParticleList(Model):
     '''A ParticleList displays ParticleData using a MarkerSetPlus and a SurfaceCollectionModel.'''
 
     DEBUG = False
+    SESSION_SAVE = False
 
     def __init__(self,
                  name,
                  session,
-                 data: ParticleData):
+                 data: ParticleData,
+                 display_model: ManagerModel = None,):
 
         super().__init__(name, session)
 
@@ -60,7 +62,7 @@ class ParticleList(Model):
         # Child models that display data
         self.markers = MarkerSetPlus(session, 'Markers')
         """MarkerSetPlus object for displaying and manipulating particles."""
-        self._display_model = ManagerModel('DisplayModel', session)
+        self._display_model = ManagerModel('DisplayModel', session) if display_model is None else display_model
         """The model from which to extract the surface displayed in the SurfaceCollectionModel."""
         self._collection_model = SurfaceCollectionModel('Particles', session)
         """SurfaceCollectionModel for displaying and manipulating particles."""
@@ -92,7 +94,7 @@ class ParticleList(Model):
         # Contains mapping Particle.id -> (Particle, Atom)
         self._map = {}
         # Register particle id tuple as attribute of atoms
-        Atom.register_attr(self.session, 'particle_id', 'artiax', attr_type=str)
+        # Atom.register_attr(self.session, 'particle_id', 'artiax', attr_type=str)
 
         # MarkerSet changes connections
         self._connect_markers()
@@ -1051,9 +1053,7 @@ class ParticleList(Model):
         data = {
             'id': self.id,
             'name': self.name,
-            'data': self._data,#self.data.take_snapshot(session, flags),
-            #'data_class': data_class,
-            #'data_module': data_module,
+            'data': self._data,
             'selected': self._selected_particles,
             'displayed': self._displayed_particles,
             'colors': self._particle_colors,
@@ -1062,7 +1062,8 @@ class ParticleList(Model):
             'selection_settings': self.selection_settings,
             'color_settings': self.color_settings,
             'radius': self._radius,
-            'axes_size': self._axes_size
+            'axes_size': self._axes_size,
+            'DisplayModel': self._display_model.take_snapshot(session, flags),
         }
 
         return data
@@ -1071,17 +1072,7 @@ class ParticleList(Model):
     def restore_snapshot(cls, session, data):
 
         from numpy import copy
-        pl = cls(data['name'], session, data['data'])
-
-        # Restore particle data
-        # print(data['data_module'])
-        # import_module(data['data_module'])
-        # data_class = getattr(import_module(data['data_module']), data['data_class'])
-        # pd = data_class.restore_snapshot(session, data['data'])
-        #
-        # # Create particle list and apply settings
-        # from numpy import copy
-        # pl = cls(data['name'], session, pd)
+        pl = cls(data['name'], session, data['data'], ManagerModel.restore_snapshot(session, data['DisplayModel']))
 
         pl._selected_particles = data['selected']
         pl.markers.selected_markers = copy(pl._selected_particles)
@@ -1102,6 +1093,8 @@ class ParticleList(Model):
         pl.color_settings = data['color_settings']
         pl._radius = data['radius']
         pl._axes_size = data['axes_size']
+
+        print(f"PARTICLE LIST DATA: {data}")
 
         # Attach to session
         # from ..cmd import get_singleton

@@ -51,7 +51,7 @@ class ArtiaXUI(ToolInstance):
     # Does this instance persist when session closes
     SESSION_ENDURING = False
     # We do save/restore in sessions
-    SESSION_SAVE = True
+    SESSION_SAVE = False
     # Let ChimeraX know about our help page
     help = "help:user/tools/artiax.html"
 
@@ -90,7 +90,7 @@ class ArtiaXUI(ToolInstance):
 # Shortcut Functions ===========================================================
 # ==============================================================================
 
-    def get_root(self, update_ui=True):
+    def get_root(self, update_ui=True, ):
         # Make if not there
         if not hasattr(self.session, 'ArtiaX'):
             self.session.ArtiaX = ArtiaX(self.session)
@@ -712,7 +712,7 @@ class ArtiaXUI(ToolInstance):
 
     def take_snapshot(self, session, flags):
         print('Snapshot ArtiaXUI')
-        data = {}#ToolInstance.take_snapshot(self, session, flags)
+        data = {}
         return data
 
     @classmethod
@@ -728,7 +728,5 @@ class ArtiaXUI(ToolInstance):
         tool = get_singleton(session)
 
         return tool
-        #inst = class_obj(session, "Tomo Bundle")
-        #return inst
 
 

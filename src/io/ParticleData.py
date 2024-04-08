@@ -14,7 +14,7 @@ from chimerax.atomic import Atom
 from chimerax.core.attributes import type_attrs
 
 
-class EulerRotation:
+class EulerRotation(State):
     """
     EulerRotation specifies the axes and order of rotation for a transform parametrized by three rotations, and provides
     methods for computing the rotation angles from a rotation matrix.
@@ -27,6 +27,7 @@ class EulerRotation:
     invert_dir == True:
     M_full = M(axis_3, -ang_3) * M(axis_2, -ang_2) * M(axis_1, -ang_1)
     """
+
     def __init__(self, axis_1, axis_2, axis_3, invert_dir=False):
         self.axis_1 = axis_1
         """Axis for 1st rotation, 3-tuple of float."""
@@ -705,17 +706,17 @@ class ParticleData(State):
 
     def _register_keys(self):
         # Make sure all keys are added as custom attributes for the Atom class
-        #pass
-        for key, value in self._data_keys.items():
-            if key not in type_attrs(Atom):
-                Atom.register_attr(self.session, key, 'artiax', attr_type=float)
-            for v in value:
-                if v not in type_attrs(Atom):
-                    Atom.register_attr(self.session, v, 'artiax', attr_type=float)
-
-        for key in self._default_params.keys():
-            if key not in type_attrs(Atom):
-                Atom.register_attr(self.session, key, 'artiax', attr_type=float)
+        pass
+        # for key, value in self._data_keys.items():
+        #     if key not in type_attrs(Atom):
+        #         Atom.register_attr(self.session, key, 'artiax', attr_type=float)
+        #     for v in value:
+        #         if v not in type_attrs(Atom):
+        #             Atom.register_attr(self.session, v, 'artiax', attr_type=float)
+        #
+        # for key in self._default_params.keys():
+        #     if key not in type_attrs(Atom):
+        #         Atom.register_attr(self.session, key, 'artiax', attr_type=float)
 
 
     def get_all_transforms(self):
@@ -740,14 +741,14 @@ class ParticleData(State):
 
     def take_snapshot(self, session, flags):
 
+        print("Snapshot ParticleData")
+
         parts = []
         for _id, p in self:
-            #parts.append(p.take_snapshot())
             parts.append(p)
 
         orig_parts = []
         for _id, p in self._orig_particles.items():
-            #orig_parts.append(p.take_snapshot())
             orig_parts.append(p)
 
         data = {

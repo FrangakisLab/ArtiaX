@@ -81,7 +81,7 @@ class ArtiaXFormat:
         self.particle_data = particle_data
         """The particle data class associated with this format."""
         self.geomodel_data = geomodel_data
-        """The particle data class associated with this format."""
+        """The geomodel data class associated with this format."""
 
         if opener_info is None:
             opener_info = ArtiaXOpenerInfo(self.name)

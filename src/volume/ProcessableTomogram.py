@@ -135,6 +135,16 @@ class ProcessableTomogram(Tomogram):
         if self._image and not self._image.deleted:
             self._image._remove_planes()
 
+    def take_snapshot(self, session, flags):
+        data = Tomogram.take_snapshot(self, session, flags)
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        tomo = super().restore_snapshot(session, data)
+        print(f"Restored Tomogram {type(tomo)}")
+        return tomo
+
 
 def create_filter(is_lp, r, pass_freq, decay, method='gaussian', thresh=0.001):
     if pass_freq == 0 and decay == 0:  # skip low pass

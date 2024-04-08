@@ -37,16 +37,38 @@ class _MyAPI(BundleAPI):
         from .util import ManagerModel
         from .particle import ParticleList, MarkerSetPlus, SurfaceCollectionModel, SurfaceCollectionDrawing
         from .io.ParticleData import Particle, ParticleData
+        from .io.Artiatomi.ArtiatomiParticleData import ArtiatomiParticleData
+        from .io.Dynamo.DynamoParticleData import DynamoParticleData
+        from .io.Generic.GenericParticleData import GenericParticleData
+        from .io.PEET.PEETParticleData import PEETParticleData
+        from .io.RELION.RELIONParticleData import RELIONParticleData
+        from .volume import VolumePlus, Tomogram, ProcessableTomogram
+
+        from chimerax.core.state import State
 
         classes = {
+            # UI and tool
             'ArtiaXUI': ArtiaXUI,
             'OptionsWindow': OptionsWindow,
             'ArtiaX': ArtiaX,
+
+            # Manager models
             'ManagerModel': ManagerModel,
+
+            # Particle models
             'ParticleList': ParticleList,
             'MarkerSetPlus': MarkerSetPlus,
             'SurfaceCollectionModel': SurfaceCollectionModel,
-            'SurfaceCollectionDrawing': SurfaceCollectionDrawing
+            'SurfaceCollectionDrawing': SurfaceCollectionDrawing,
+            'Tomogram': Tomogram,
+            'VolumePlus': VolumePlus,
+            'Particle': Particle,
+            'ParticleData': ParticleData,
+            'ArtiatomiParticleData': ArtiatomiParticleData,
+            'DynamoParticleData': DynamoParticleData,
+            'GenericParticleData': GenericParticleData,
+            'PEETParticleData': PEETParticleData,
+            'RELIONParticleData': State,
         }
 
         return classes.get(class_name)

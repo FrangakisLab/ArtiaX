@@ -21,6 +21,11 @@ class ManagerModel(Model):
         The chimerax session object.
 
     """
+
+    SESSION_SAVE = False
+    SESSION_SAVE_DRAWING = False
+    SESSION_ENDURING = False
+
     def __init__(self, name, session):
         super().__init__(name, session)
 
@@ -85,7 +90,7 @@ class ManagerModel(Model):
         Returns
         -------
         success : bool
-            Whether or not any child model has the model id.
+            Whether any child model has the model id.
         """
         models = [model for model in self.child_models() if model.id == id]
         if len(models) > 0:
@@ -223,12 +228,23 @@ class ManagerModel(Model):
         Model.delete(self)
 
     def take_snapshot(self, session, flags):
-        print('Snapshot Manager')
+        print(f'Snapshot Manager {self.name}')
         data = Model.take_snapshot(self, session, flags)
+        print(data)
         return data
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        print('Restore Manager')
-
-        return cls('test', session)
+        print(f"Restore Manager {data}")
+        print(f"Restore Manager {data['name']} {data}")
+        #m = cls(data['name'], session)
+        print(session.models._models)
+        # The ArtiaX model is always initiated first, so it should alread exist
+        # But for particle list models we want to restore the manager from the snapshot
+        if data['id'] in session.models._models:
+            m = session.models._models.get(data['id'])
+            Model.set_state_from_snapshot(m, session, data)
+        else:
+            m = cls(data['name'], session)
+        #m = session.models._models.get(data['id'], cls(data['name'], session))
+        return m

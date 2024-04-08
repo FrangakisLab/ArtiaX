@@ -204,10 +204,7 @@ class MarkerSetPlus(MarkerSet):
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        print('MARKERSET DATA {}'.format(data))
-        data['model state']['id'] = None
-        ret = MarkerSet.restore_snapshot(session, data)
-        #ret.delete()
-        #ret = cls(session, 'test')
-        print('RESTORED MARKERSET')
+        # Markers newly created by parent particle list, so don't restore again
+        # TODO: Clean up restore sequence.
+        ret = data["model state"]["parent"].markers
         return ret
