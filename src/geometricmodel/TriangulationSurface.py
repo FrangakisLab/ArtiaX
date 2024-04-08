@@ -6,6 +6,7 @@ from scipy import interpolate
 # ChimeraX imports
 from chimerax.bild.bild import _BildFile
 from chimerax.atomic import AtomicShapeDrawing
+from chimerax.core.models import Model
 
 # ArtiaX imports
 from .GeoModel import GeoModel
@@ -139,6 +140,21 @@ class TriangulationSurface(GeoModel):
         with open(file_name, 'wb') as file:
             np.savez(file, model_type="TriangulationSurface", triangles=self.tri)
 
+    def take_snapshot(self, session, flags):
+        data = {
+            'triangles': self.tri,
+        }
+        data["model state"] = Model.take_snapshot(self, session, flags)
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        triangles = data['triangles']
+        model = cls(data["model state"]["name"], session, triangles=triangles)
+        Model.set_state_from_snapshot(model, session, data["model state"])
+        return model
+
+
 
 def make_links(markers, connections):
     """Creates links between the markers where using the connections.
@@ -200,4 +216,4 @@ def find_bonds_containing_corner(particle_pairs, corner):
     for bond in range(0, len(particle_pairs[0])):
         if particle_pairs[0][bond] == corner or particle_pairs[1][bond] == corner:
             bonds_containing_corner = np.append(bonds_containing_corner, bond)
-    return bonds_containing_corner.astype(np.int)
+    return bonds_containing_corner.astype(np.int32)

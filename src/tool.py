@@ -8,6 +8,7 @@ from sys import platform
 from chimerax.core.tools import ToolInstance
 from chimerax.core.commands import run
 from chimerax.ui import MainToolWindow
+from chimerax.core import triggerset
 
 # Qt
 from Qt.QtCore import Qt
@@ -47,6 +48,9 @@ from .ArtiaX import (
 from .options_window import OptionsWindow
 from .io import get_partlist_formats
 
+END_SESSION_RESTORE = 'end restore session'
+START_SESSION_RESTORE = 'start restore session'
+
 class ArtiaXUI(ToolInstance):
     # Does this instance persist when session closes
     SESSION_ENDURING = False
@@ -62,7 +66,6 @@ class ArtiaXUI(ToolInstance):
     def __init__(self, session, tool_name):
         # 'session'     - chimerax.core.session.Session instance
         # 'tool_name'   - string
-
         # Initialize base class
         super().__init__(session, tool_name)
 
@@ -93,7 +96,7 @@ class ArtiaXUI(ToolInstance):
     def get_root(self, update_ui=True):
         # Make if not there
         if not hasattr(self.session, 'ArtiaX'):
-            self.session.ArtiaX = ArtiaX(self)
+            self.session.ArtiaX = ArtiaX(self.session)
 
             # Update UI if UI exists already, but model was deleted by user.
             if update_ui:
@@ -135,6 +138,37 @@ class ArtiaXUI(ToolInstance):
         artia.triggers.add_handler(PARTLIST_DISPLAY_CHANGED, self._update_partlist_shown)
         artia.triggers.add_handler(TOMO_DISPLAY_CHANGED, self._update_tomo_shown)
         artia.triggers.add_handler(GEOMODEL_DISPLAY_CHANGED, self._update_geomodel_shown)
+
+        self.end_restore_handler = self.session.triggers.add_handler(END_SESSION_RESTORE, self._update_ui)
+
+
+    def _update_ui(self, name: str = '', data: any = None):
+        # Update the table models
+        self.update_managers()
+        self._update_tomo_table()
+        self._update_partlist_table()
+        self._update_geomodel_table()
+
+        # Update the model chooser widget
+        self.tomo_from_session.exclude = self.session.ArtiaX
+
+        # Connect triggers
+        self._connect_triggers()
+
+        # Update options window
+        self.ow.update_root()
+
+        return triggerset.DEREGISTER
+
+
+    def delete(self):
+        # This is not nice, but I can't figure out the destructor for the widget.
+        # TODO: do this in a nicer way.
+        self.session.triggers.remove_handler(self.tomo_from_session.handler_add)
+        self.session.triggers.remove_handler(self.tomo_from_session.handler_del)
+        self.session.triggers.remove_handler(self.end_restore_handler)
+
+        ToolInstance.delete(self)
 
 # ==============================================================================
 # Interface construction =======================================================
@@ -379,6 +413,7 @@ class ArtiaXUI(ToolInstance):
         ui.group_geomodel_open_button.clicked.connect(self._open_geomodel)
         ui.group_geomodel_save_button.clicked.connect(self._save_geomodel)
         ui.group_geomodel_close_button.clicked.connect(self._close_geomodel)
+
 
     # ==============================================================================
     # Menu Bar Functions ===========================================================
@@ -657,9 +692,10 @@ class ArtiaXUI(ToolInstance):
         artia = self.get_root()
         artia.selected_geomodel = artia.geomodels.get_id(idx)
 
-        if state == Qt.Checked:
+        from .widgets import qt_enum_equal
+        if qt_enum_equal(Qt.CheckState.Checked, state):
             artia.show_geomodel(idx)
-        elif state == Qt.Unchecked:
+        elif qt_enum_equal(Qt.CheckState.Unchecked, state):
             artia.hide_geomodel(idx)
 
     def _show_geomodel_options(self, idx, state):
@@ -673,25 +709,6 @@ class ArtiaXUI(ToolInstance):
 
         if item is not None:
             artia.selected_geomodel = artia.geomodels.get_id(item.row())
-    # ==============================================================================
-    # Shortcut Functions ===========================================================
-    # ==============================================================================
-
-    # The following 4 jump functions only work if a tomogram is selected
-    def jump_1_forwards_pressed(self, session):
-        print("Yes, the shortcut worked.")
-
-
-    def jump_10_forwards_pressed(self, session):
-        print("Yes, the shortcut worked.")
-
-
-    def jump_1_backwards_pressed(self, session):
-        print("Yes, the shortcut worked.")
-
-
-    def jump_10_backwards_pressed(self, session):
-        print("Yes, the shortcut worked.")
 
     # ==============================================================================
     # Options Window ===============================================================
@@ -702,20 +719,19 @@ class ArtiaXUI(ToolInstance):
         self.ow = OptionsWindow(self.session, tool_name)
 
     def take_snapshot(self, session, flags):
-        return
-        {
-            'version': 1,
-            'current text': self.line_edit.text()
-        }
+        data = {}
+        return data
 
     @classmethod
-    def restore_snapshot(class_obj, session, data):
+    def restore_snapshot(cls, session, data):
         # Instead of using a fixed string when calling the constructor below,
         # we could have save the tool name during take_snapshot()
         # (from self.tool_name, inherited from ToolInstance) and used that saved
         # tool name. There are pros and cons to both approaches.
-        inst = class_obj(session, "Tomo Bundle")
-        inst.line_edit.setText(data['current text'])
-        return inst
+        # The tool should already exist
+        from .cmd import get_singleton
+        tool = get_singleton(session)
+
+        return tool
 
 

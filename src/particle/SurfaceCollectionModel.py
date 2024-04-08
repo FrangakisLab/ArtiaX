@@ -21,6 +21,8 @@ class SurfaceCollectionModel(Model):
     mouse modes, because this causes unexpected behavior. Hiding the positions in a drawing prevents this, because
     seleceted instances are determined using the "selected" attribute, not the "highlighted_positions" attribute.
     """
+    SESSION_ENDURING = False
+    SESSION_SAVE = False
     DEBUG = False
 
     def __init__(self, name, session):

@@ -3,6 +3,7 @@
 # General imports
 from __future__ import annotations
 import numpy as np
+from importlib import import_module
 
 # ChimeraX imports
 from chimerax.core.commands import run
@@ -32,15 +33,19 @@ from .MarkerSetPlus import (
 PARTLIST_CHANGED = 'partlist changed'  # Data is the modified particle list.
 PARTLIST_DISPLAY_CHANGED = 'partlist '
 
+END_SESSION_RESTORE = 'end restore session'
+
 class ParticleList(Model):
     '''A ParticleList displays ParticleData using a MarkerSetPlus and a SurfaceCollectionModel.'''
 
     DEBUG = False
+    SESSION_SAVE = True
 
     def __init__(self,
                  name,
                  session,
-                 data: ParticleData):
+                 data: ParticleData,
+                 create_managers=True,):
 
         super().__init__(name, session)
 
@@ -59,13 +64,17 @@ class ParticleList(Model):
         # Child models that display data
         self.markers = MarkerSetPlus(session, 'Markers')
         """MarkerSetPlus object for displaying and manipulating particles."""
-        self._display_model = ManagerModel('DisplayModel', session)
+        self._display_model = None
         """The model from which to extract the surface displayed in the SurfaceCollectionModel."""
+
+        if create_managers:
+            self._display_model = ManagerModel('DisplayModel', session)
+            self.add([self._display_model])
+
         self._collection_model = SurfaceCollectionModel('Particles', session)
         """SurfaceCollectionModel for displaying and manipulating particles."""
 
         # Add the child models
-        self.add([self._display_model])
         self.add([self._collection_model])
         self.add([self.markers])
 
@@ -91,15 +100,22 @@ class ParticleList(Model):
         # Contains mapping Particle.id -> (Particle, Atom)
         self._map = {}
         # Register particle id tuple as attribute of atoms
-        Atom.register_attr(self.session, 'particle_id', 'artiax', attr_type=str)
+        # Atom.register_attr(self.session, 'particle_id', 'artiax', attr_type=str)
 
         # MarkerSet changes connections
         self._connect_markers()
 
         # Some parameters for display
         self.display_mode = 'markers'
-        self._radius = 4 * self.origin_pixelsize
-        self._axes_size = 15 * self.origin_pixelsize
+
+        if session.ArtiaX.tomograms.count > 0:
+            pix = session.ArtiaX.tomograms.get(0).pixelsize[0]
+            self._radius = 4 * pix
+            self._axes_size = 15 * pix
+        else:
+            self._radius = 4 * self.origin_pixelsize
+            self._axes_size = 15 * self.origin_pixelsize
+
         self._marker_cache = []
 
         # Initialize the surface collection model
@@ -113,6 +129,8 @@ class ParticleList(Model):
 
         # Change trigger for UI
         self.triggers.add_trigger(PARTLIST_CHANGED)
+
+        self.restore_handler = self.session.triggers.add_handler(END_SESSION_RESTORE, self._display_set_after_restore)
 
     @classmethod
     def from_particle_list(cls, particle_list: ParticleList, datatype=None):
@@ -129,6 +147,12 @@ class ParticleList(Model):
 
     @property
     def display_model(self):
+        if self._display_model is None:
+            mod = [c for c in self.child_models() if c.name == 'DisplayModel']
+            if len(mod) == 1:
+                self._display_model = mod[0]
+            else:
+                return ManagerModel('DisplayModel', self.session)
         if self._display_model.deleted:
             self._display_model = ManagerModel('DisplayModel', self.session)
             self.add([self._display_model])
@@ -234,7 +258,6 @@ class ParticleList(Model):
         if value < 0.1:
             raise UserError("Axes size needs to be > 0.1.")
 
-        print('set axis size {}'.format(value))
         self._axes_size = value
         scm = self.collection_model
         v, n, t, vc = get_axes_surface(self.session, self._axes_size)
@@ -409,6 +432,12 @@ class ParticleList(Model):
 
         self._add_display_set()
         self.triggers.activate_trigger(PARTLIST_CHANGED, self)
+
+    def _display_set_after_restore(self, name: str = None, value=None):
+        if self.has_display_model():
+            self.display_model.get(0).update_drawings()
+            self._add_display_set()
+            self.triggers.activate_trigger(PARTLIST_CHANGED, self)
 
     def store_marker_information(self):
         self.session._marker_settings = {
@@ -649,7 +678,6 @@ class ParticleList(Model):
         # this trigger after being deleted below. The parent model is deleted if surface was deleted.
         # if data.id is None:
         #     return
-        #print('called delete model {}'.format(data))
         if data.id in self._map.keys():
             particle_id = data.id
         else:
@@ -663,7 +691,6 @@ class ParticleList(Model):
 
         triggered by MARKER_DELETED
         """
-        #print('called delete marker {}'.format(data))
         # Data should be list of deleted markers
         self.delete_data([m.particle_id for m in data if m not in self._marker_cache])
         # for m in data:
@@ -678,7 +705,6 @@ class ParticleList(Model):
         # if not isinstance(particle_ids, list):
         #     particle_ids = [particle_ids]
 
-        #print('called delete data {}'.format(particle_ids))
 
         if len(particle_ids) == 0:
             return
@@ -740,10 +766,39 @@ class ParticleList(Model):
         self.displayed_particles = self.displayed_particles[mask]
 
         self.particle_colors = self.particle_colors[mask, :]
-        print('fine')
         self.triggers.activate_trigger(PARTLIST_CHANGED, self)
 
-    def new_particle(self, origin, translation, rotation):
+    def new_particles(self, origins, translations, rotations):
+        pids = []
+        places = []
+        for (o, t, r) in zip(origins, translations, rotations):
+            p = self.new_particle(o, t, r, update_selectors=False, add_to_collection=False, update_masks=False)
+            pids.append(p.id)
+            places.append(p.full_transform())
+
+        self.collection_model.add_places(pids, places)
+
+        from numpy import array, append, reshape, tile
+        if self.selected_particles is None:
+            self.selected_particles = array([True] * len(pids))
+        else:
+            self.selected_particles = append(self.selected_particles, array([True] * len(pids)))
+
+        if self.displayed_particles is None:
+            self.displayed_particles = array(array([True] * len(pids)))
+        else:
+            self.displayed_particles = append(self.displayed_particles, array([True] * len(pids)))
+
+        if self.particle_colors is None:
+            self.particle_colors = tile(self.color, (len(pids), 1))  # array(self.color)
+        else:
+            pc = self.particle_colors
+            cols = tile(reshape(pc[-1, :], (1, 4)), (len(pids), 1))
+            self.particle_colors = append(pc, cols, axis=0)
+
+        self.update_position_selectors()
+
+    def new_particle(self, origin, translation, rotation, update_selectors=True, add_to_collection=True, update_masks=True):
         particle = self._data.new_particle()
         particle.origin = origin
         particle.translation = translation
@@ -752,7 +807,8 @@ class ParticleList(Model):
         marker = self.markers.create_marker(particle.coord, self.color, self.radius, trigger=False)
 
         # Add to surface collection
-        self.collection_model.add_place(particle.id, particle.full_transform())
+        if add_to_collection:
+            self.collection_model.add_place(particle.id, particle.full_transform())
 
         # Set custom attributes
         self._attr_to_marker(marker, particle)
@@ -763,23 +819,27 @@ class ParticleList(Model):
         # Now reset selection and so on to keep things consistent
         from numpy import array, append, reshape
 
-        if self.selected_particles is None:
-            self.selected_particles = array([True])
-        else:
-            self.selected_particles = append(self.selected_particles, True)
+        if update_masks:
+            if self.selected_particles is None:
+                self.selected_particles = array([True])
+            else:
+                self.selected_particles = append(self.selected_particles, True)
 
-        if self.displayed_particles is None:
-            self.displayed_particles = array([True])
-        else:
-            self.displayed_particles = append(self.displayed_particles, True)
+            if self.displayed_particles is None:
+                self.displayed_particles = array([True])
+            else:
+                self.displayed_particles = append(self.displayed_particles, True)
 
-        if self.particle_colors is None:
-            self.particle_colors = array(self.color)
-        else:
-            pc = self.particle_colors
-            self.particle_colors = append(pc, reshape(pc[-1, :], (1, 4)), axis=0)
+            if self.particle_colors is None:
+                self.particle_colors = array(self.color)
+            else:
+                pc = self.particle_colors
+                self.particle_colors = append(pc, reshape(pc[-1, :], (1, 4)), axis=0)
 
-        self.update_position_selectors()
+        if update_selectors:
+            self.update_position_selectors()
+
+        return particle
 
     def _marker_created(self, name, data):
         """Create Particle instances and add position to SurfaceCollection when new Marker was placed.
@@ -996,14 +1056,77 @@ class ParticleList(Model):
 
     positions = property(Drawing.positions.fget, _particlelist_set_positions)
 
+    def take_snapshot(self, session, flags):
+
+        # Store data format
+        data_class = self.data.__class__.__name__
+        data_module = self.data.__class__.__module__
+
+        data = {
+            'model state': Model.take_snapshot(self, session, flags),
+            'id': self.id,
+            'name': self.name,
+            'data': self._data,
+            'selected': self._selected_particles,
+            'displayed': self._displayed_particles,
+            'colors': self._particle_colors,
+            'translation_locked': self.translation_locked,
+            'rotation_locked': self.rotation_locked,
+            'selection_settings': self.selection_settings,
+            'color_settings': self.color_settings,
+            'radius': self._radius,
+            'axes_size': self._axes_size,
+        }
+
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+
+        from numpy import copy
+        pl = cls(data['name'], session, data['data'], create_managers=False)
+        Model.set_state_from_snapshot(pl, session, data['model state'])
+
+        pl._selected_particles = data['selected']
+        pl.markers.selected_markers = copy(pl._selected_particles)
+        pl.collection_model.selected_child_positions = copy(pl._selected_particles)
+
+        pl._displayed_particles = data['displayed']
+        pl.markers.displayed_markers = copy(pl._displayed_particles)
+        pl.collection_model.displayed_child_positions = copy(pl._displayed_particles)
+
+        pl._particle_colors = data['colors']
+        pl.display_model.color = copy(pl._particle_colors[0, :])
+        pl.collection_model.colors = copy(pl._particle_colors)
+        pl.markers.marker_colors = copy(pl._particle_colors)
+
+        pl.translation_locked = data['translation_locked']
+        pl.rotation_locked = data['rotation_locked']
+        pl.selection_settings = data['selection_settings']
+        pl.color_settings = data['color_settings']
+        pl._radius = data['radius']
+        pl._axes_size = data['axes_size']
+
+        return pl
+
+    def delete(self):
+        self.markers.delete()
+        self.collection_model.delete()
+        self.display_model.delete()
+
+        self.session.triggers.remove_handler(self.restore_handler)
+
+        Model.delete(self)
+
+
 def get_axes_surface(session, size):
 
     # Axes from https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/bild.html
     from chimerax.bild.bild import _BildFile
     b = _BildFile(session, 'dummy')
-    print(size)
+    # print(size)
     b.color_command('.color 1 0 0'.split())
-    print('.arrow 0 0 0 {} 0 0 {} {}'.format(size, size/15, size/15*4).split())
+    # print('.arrow 0 0 0 {} 0 0 {} {}'.format(size, size/15, size/15*4).split())
     b.arrow_command('.arrow 0 0 0 {} 0 0 {} {}'.format(size, size/15, size/15*4).split())
     b.color_command('.color 1 1 0'.split())
     b.arrow_command('.arrow 0 0 0 0 {} 0 {} {}'.format(size, size/15, size/15*4).split())

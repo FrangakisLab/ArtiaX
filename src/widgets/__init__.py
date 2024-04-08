@@ -25,6 +25,14 @@ from .MethodButtons import MethodButtons
 from .BoundaryOptions import BoundaryOptions
 from .SphereOptions import SphereOptions
 from .TriangulateOptions import TriangulateOptions
+from .ThreeFieldsAndButton import ThreeFieldsAndButton
+from .RadioButtonsStringOptions import RadioButtonsStringOptions
+from .NLabelValue import NLabelValue
+from .FilterOptionsWidget import FilterOptionsWidget
+from .AutoManualWidget import AutoManualWidget
+from .GenerateInSurfaceOptions import GenerateInSurfaceOptions
+from .GenerateOnSurfaceOptions import GenerateOnSurfaceOptions
+from .ArbitraryModelOptions import ArbitraryModelOptions
 
 def qt_enum_equal(enum_value, comp_value):
     """Compare with Qt enums safely with Qt5 and Qt6."""

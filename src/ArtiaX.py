@@ -4,6 +4,7 @@
 from chimerax.core import errors
 from chimerax.core.commands import run
 from chimerax.core.models import Model, ADD_MODELS, REMOVE_MODELS, MODEL_DISPLAY_CHANGED
+from chimerax.core.state import State
 from chimerax.map import Volume, open_map
 
 # This package
@@ -37,32 +38,39 @@ TOMO_DISPLAY_CHANGED = 'tomo display changed'
 PARTLIST_DISPLAY_CHANGED = 'partlist display changed'
 GEOMODEL_DISPLAY_CHANGED = 'geomodel display changed'
 
-
 class ArtiaX(Model):
 
     DEBUG = False
+    SESSION_SAVE = True
 
-    def __init__(self, ui):
-        super().__init__('ArtiaX', ui.session)
+    def __init__(self, session,
+                 add: bool = True,
+                 create_managers: bool = True):
+        super().__init__('ArtiaX', session)
 
         # GUI
-        self.ui = ui
+        #self.ui = ui
 
         # Add self to session
-        self.session.models.add([self])
+        if add:
+            self.session.models.add([self])
 
         # Set color maps
         add_colors(self.session)
         self.standard_colors = ARTIAX_COLORS
 
         # Model Managers
-        self._tomograms = ManagerModel('Tomograms', self.session)
-        self._partlists = ManagerModel('Particle Lists', self.session)
-        self._geomodels = ManagerModel('Geometric Models', self.session)
+        self._tomograms = None
+        self._partlists = None
+        self._geomodels = None
+        if create_managers:
+            self._tomograms = ManagerModel('Tomograms', self.session)
+            self._partlists = ManagerModel('Particle Lists', self.session)
+            self._geomodels = ManagerModel('Geometric Models', self.session)
 
-        self.add([self.tomograms])
-        self.add([self.partlists])
-        self.add([self.geomodels])
+            self.add([self.tomograms])
+            self.add([self.partlists])
+            self.add([self.geomodels])
 
         # Triggers
         # Triggers when new tomo/partlist is added
@@ -116,7 +124,8 @@ class ArtiaX(Model):
                             DeletePickedParticleMode,
                             DeleteSelectedParticlesMode,
                             DeletePickedTriangleMode,
-                            DeletePickedTetraMode)
+                            DeletePickedTetraMode,
+                            MaskConnectedTrianglesMode)
 
         self.translate_selected = TranslateSelectedParticlesMode(self.session)
         self.translate_picked = TranslatePickedParticleMode(self.session)
@@ -126,6 +135,7 @@ class ArtiaX(Model):
         self.delete_picked = DeletePickedParticleMode(self.session)
         self.delete_picked_triangle = DeletePickedTriangleMode(self.session)
         self.delete_picked_tetra = DeletePickedTetraMode(self.session)
+        self.mask_connected_triangles = MaskConnectedTrianglesMode(self.session)
         self.session.ui.mouse_modes.add_mode(self.translate_selected)
         self.session.ui.mouse_modes.add_mode(self.rotate_selected)
         self.session.ui.mouse_modes.add_mode(self.translate_picked)
@@ -134,9 +144,17 @@ class ArtiaX(Model):
         self.session.ui.mouse_modes.add_mode(self.delete_picked)
         self.session.ui.mouse_modes.add_mode(self.delete_picked_triangle)
         self.session.ui.mouse_modes.add_mode(self.delete_picked_tetra)
+        self.session.ui.mouse_modes.add_mode(self.mask_connected_triangles)
+
 
     @property
     def tomograms(self):
+        if self._tomograms is None:
+            mod = [c for c in self.child_models() if c.name == 'Tomograms']
+            if len(mod) == 1:
+                self._tomograms = mod[0]
+            else:
+                return ManagerModel('Tomograms', self.session)
         # Deleted
         if self._tomograms.deleted:
             self._tomograms = ManagerModel('Tomograms', self.session)
@@ -146,6 +164,12 @@ class ArtiaX(Model):
 
     @property
     def partlists(self):
+        if self._partlists is None:
+            mod = [c for c in self.child_models() if c.name == 'Particle Lists']
+            if len(mod) == 1:
+                self._partlists = mod[0]
+            else:
+                return ManagerModel('Particle Lists', self.session)
         # Deleted
         if self._partlists.deleted:
             self._partlists = ManagerModel('Particle Lists', self.session)
@@ -155,6 +179,12 @@ class ArtiaX(Model):
 
     @property
     def geomodels(self):
+        if self._geomodels is None:
+            mod = [c for c in self.child_models() if c.name == 'Geometric Models']
+            if len(mod) == 1:
+                self._geomodels = mod[0]
+            else:
+                return ManagerModel('Geometric Models', self.session)
         # Deleted
         if self._geomodels.deleted:
             self._geomodels = ManagerModel('Geometric Models', self.session)
@@ -546,4 +576,31 @@ class ArtiaX(Model):
             self.triggers.activate_trigger(TOMO_DISPLAY_CHANGED, data)
         elif isinstance(data, GeoModel):
             self.triggers.activate_trigger(GEOMODEL_DISPLAY_CHANGED, data)
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# Save/Load
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    def take_snapshot(self, session, flags):
+        data = {}
+        data["model state"] = Model.take_snapshot(self, session, flags)
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+
+        # Create ArtiaX instance
+        from chimerax.core import tools
+        from .tool import ArtiaXUI
+
+        if hasattr(session, 'ArtiaX'):
+            artia = session.ArtiaX
+        else:
+            artia = cls(session, add=False, create_managers=False)
+
+        Model.set_state_from_snapshot(artia, session, data["model state"])
+        session.ArtiaX = artia
+        tools.get_singleton(session, ArtiaXUI, 'ArtiaX', create=True)
+
+        return session.ArtiaX
 

@@ -3,9 +3,11 @@ import numpy as np
 
 # ChimeraX imports
 from chimerax.geometry import z_align
+from chimerax.core.models import Model
 
 # ArtiaX imports
 from .GeoModel import GeoModel
+
 
 class Sphere(GeoModel):
     """
@@ -105,6 +107,22 @@ class Sphere(GeoModel):
             np.savez(file, model_type="Sphere", particle_pos=self.particle_pos,
                      center=self.center, r=self.r)
 
+    def take_snapshot(self, session, flags):
+        """Save the current state of the sphere."""
+        data = {
+            "particle_pos": self.particle_pos,
+            "center": self.center,
+            "r": self.r
+        }
+        data['model state'] = Model.take_snapshot(self, session, flags)
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        """Restore the sphere to the state saved in the snapshot."""
+        sphere = cls(data['model state']['name'], session, data['particle_pos'], center=data['center'], r=data['r'])
+        Model.set_state_from_snapshot(sphere, session, data['model state'])
+        return sphere
 
 def lstsq_sphere(pos):
     """

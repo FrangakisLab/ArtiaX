@@ -2,3 +2,4 @@
 
 from .VolumePlus import VolumePlus
 from .Tomogram import Tomogram
+from .ProcessableTomogram import ProcessableTomogram

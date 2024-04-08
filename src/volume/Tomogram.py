@@ -1,14 +1,21 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # General
+import math
+import time
+
 import numpy as np
 import math as ma
 
 # ChimeraX
+from chimerax.core.session import Session
+from chimerax.core.models import Model
 from chimerax.core.commands import run
 from chimerax.geometry import inner_product
 from chimerax.graphics import Drawing
+from chimerax.map_data import GridData
 from chimerax.map_data.tom_em.em_grid import EMGrid
+from chimerax.core import errors
 
 # This package
 from .VolumePlus import VolumePlus
@@ -16,7 +23,7 @@ from .VolumePlus import VolumePlus
 
 class Tomogram(VolumePlus):
 
-    def __init__(self, session, data, rendering_options=None):
+    def __init__(self, session: Session, data: GridData, rendering_options=None):
         VolumePlus.__init__(self, session, data, rendering_options=rendering_options)
 
         # Image Levels
@@ -29,6 +36,25 @@ class Tomogram(VolumePlus):
         self.data.set_origin((0, 0, 0))
         if isinstance(self.data, EMGrid):
             self.pixelsize = 1
+
+        # For creating averaged version
+        self.averaging_axis = self.normal
+        self.num_averaging_slabs = 10
+
+        # For creating filtered version
+        self.lp = 0
+        self.hp = 0
+        self.lpd = 0
+        self.hpd = 0
+        self.lp_method = 'gaussian'
+        self.hp_method = 'gaussian'
+        self.thresh = 0.001
+        self.unit = 'pixels'
+
+        self.use_low_pass = True
+        self.use_high_pass = True
+        self.auto_lpd = True
+        self.auto_hpd = True
 
         # Update display
         self.update_drawings()
@@ -107,6 +133,229 @@ class Tomogram(VolumePlus):
     def integer_slab_position(self, value):
         self._set_integer_slice(slice=value)
 
+    def create_filtered_tomogram(self, lp, hp, lpd=None, hpd=None, thresh=0.001, unit='pixels', lp_method='gaussian', hp_method='gaussian'):
+        import numpy.fft as fft
+        shape = self.size
+
+        use_lp = False if lp == 0 and (lpd is None or lpd == 0) else True
+        if lp != 0 and lpd is None:
+            lpd = lp / 4
+        use_hp = False if hp == 0 and (hpd is None or hpd == 0) else True
+        if hp != 0 and hpd is None:
+            hpd = hp / 4
+
+        if lp_method not in ['gaussian', 'cosine'] or hp_method not in ['gaussian', 'cosine']:
+            self.session.logger.warning(
+                "Only 'gaussian' and 'cosine' are available cutoff methods.")
+            return
+
+        px = self.pixelsize
+        if unit=='angstrom' and px == (1,1,1):
+            self.session.logger.warning("Are you sure you're pixelsize is {}?".format(px))
+
+        Nz, Ny, Nx = shape[2], shape[1], shape[0]
+        if unit == 'pixels':
+            zz, yy, xx = np.meshgrid(fft.fftfreq(Nz), fft.fftfreq(Ny), fft.rfftfreq(Nx), indexing='ij')
+            xx, yy, zz = xx*Nx, yy*Ny, zz*Nz  # centering
+        elif unit == 'angstrom':
+            zz, yy, xx = np.meshgrid(fft.fftfreq(Nz, px[2]), fft.fftfreq(Ny, px[1]), fft.rfftfreq(Nx, px[0]), indexing='ij')
+            if (use_lp and lp == 0) or (use_hp and hp == 0):
+                self.session.logger.warning('Cannot have a pass length of 0 angstrom. Use the checkboxes to disable the filter you do not want.')
+                return
+            if use_lp:
+                lp = 1/lp
+                lpd = lp/4
+            if use_hp:
+                hp = 1/hp
+                hpd = hp/4
+        else:
+            raise NotImplementedError('Only "pixels" and "angstrom" implemented as units.')
+        r = np.sqrt(np.square(xx) + np.square(yy) + np.square(zz))
+
+        from .ProcessableTomogram import create_filter
+        lp_filt = create_filter(True, r, lp, lpd, method=lp_method, thresh=thresh) if use_lp else np.ones(r.shape)
+        hp_filt = create_filter(False, r, hp, hpd, method=hp_method, thresh=thresh) if use_hp else np.ones(r.shape)
+        filter = np.multiply(lp_filt, hp_filt)
+        filtered_data = np.array(fft.irfftn(np.multiply(fft.rfftn(self.data.matrix()), filter)), dtype=np.float32)
+
+        name = "Filtered " + self.data.name + ' ' + unit
+        if use_lp:
+            name += ", lp={}".format(lp)
+        if use_hp:
+            name += ", hp={}".format(hp)
+
+        self.create_tomo_from_array(filtered_data, name)
+
+    def create_averaged_tomogram(self, axis=(0, 0, 1), num_slabs=10):
+        import scipy.ndimage as ndimage
+
+        conv_size = num_slabs * 2 + 1
+        conv_matrix = np.zeros((conv_size, conv_size, conv_size))
+
+        axis = np.array(axis)/max(axis)  # make sure the largest value is 1
+        resolution = conv_size*100
+        ts = np.linspace(-1, 1+0.999/num_slabs, resolution) #  the +0.999/num_slabs part is to make sure that the translated samples goes from 0 to a _little_ bit less than 2*num_slabs+1
+        samples = np.array([axis*t for t in ts])
+        samples = samples * num_slabs + num_slabs  # translate the points to matrix indices
+
+        # Go through samples and add 1 to the cell the sample is in
+        for point in samples:
+            conv_matrix[tuple(np.flip(np.floor(point).astype(int)))] += 1  #flip needed because coord (x,y,z) in conv_matrix is accessed as conv_matrix[z][y][x]
+        conv_matrix = conv_matrix/resolution
+
+        original_data = self.data.matrix().copy()
+        running_average_data = ndimage.convolve(original_data, conv_matrix)
+
+        self.create_tomo_from_array(running_average_data, "Averaged over " + str(num_slabs) + " slabs with axis " + str(axis) + " " + self.data.name)
+
+    def create_tomo_from_array(self, array, name):
+        from chimerax.map_data import ArrayGridData
+        new_tomogram = Tomogram(self.session, ArrayGridData(array, name=name, step=self.data.step))
+        self.session.ArtiaX.add_tomogram(new_tomogram)
+        self.show(show=False)
+
+        new_tomogram.set_parameters(cap_faces=False)
+        new_tomogram.normal = self.normal
+        new_tomogram.integer_slab_position = self.integer_slab_position
+
+    def create_processable_tomogram(self, num_averaging_slabs=0):
+        # NOT USED
+        from . import ProcessableTomogram
+        processable_tomogram = ProcessableTomogram(self.session, self, num_averaging_slabs=num_averaging_slabs)
+        self.session.ArtiaX.add_tomogram(processable_tomogram)
+        self.show(show=False)
+
+        processable_tomogram.set_parameters(cap_faces=False)
+        processable_tomogram.normal = self.normal
+        processable_tomogram.integer_slab_position = self.integer_slab_position
+
+    def calc_time_map(self, slice, order=1, num_slabs=10, axis=(0, 0, 1)):
+        # NOT USED
+        # THE WINNER!
+        import time
+        from scipy.ndimage import map_coordinates
+        original_data = self.data.matrix()
+        axis = np.array(axis)
+        max_size = np.array(original_data.shape) - [1, 1, 1]
+        t0 = time.time()
+        running_average_data = np.zeros(original_data.shape, dtype=np.float32)
+        for j in range(original_data.shape[1]):
+            for k in range(original_data.shape[2]):
+                pts = [(slice, j, k) + n * axis for n in range(-num_slabs, num_slabs + 1)]
+                pts = np.array(pts)
+                pts = [pts[:,0], pts[:,1], pts[:,2]]
+                running_average_data[slice][j][k] = np.mean(map_coordinates(original_data, pts, order=order), axis=0, dtype=np.float32)
+        t1 = time.time()
+        return t1 - t0
+
+    def calc_time_rgi(self, slice, method='nearest', num_slabs=10, axis=(0, 0, 1)):
+        # NOT USED
+        import time
+        from scipy.interpolate import RegularGridInterpolator
+        original_data = self.data.matrix()
+        points = (np.arange(original_data.shape[0]), np.arange(original_data.shape[1]), np.arange(original_data.shape[2]))
+        rgi = RegularGridInterpolator(points, original_data, method=method)
+        running_average_data = np.zeros(original_data.shape, dtype=np.float32)
+        max_size = np.array(original_data.shape) - [1, 1, 1]
+        axis = np.array(axis)
+
+        t0 = time.time()
+        for j in range(original_data.shape[1]):
+            for k in range(original_data.shape[2]):
+                # This following commented code is well written and easy to read and insanely slow
+                pts = [(slice, j, k) + n * axis for n in range(-num_slabs, num_slabs + 1)]
+                pts = [pt for pt in pts if (pt >= 0).all() and (pt <= max_size).all()]
+                #
+                # This code does the same thing but EVEN SLOWER (just a little though)
+                # for index, n in enumerate(range(-num_slabs, num_slabs + 1)):
+                #     pts[index] = np.array([i, j, k]) + n * axis
+                # pts = pts[np.where(np.all(pts >= 0, axis=1) & np.all(pts <= max_size, axis=1))]
+
+                running_average_data[slice][j][k] = np.mean(rgi(pts), axis=0, dtype=np.float32)
+        t1 = time.time()
+        return t1 - t0
+
+    def calc_time_rgi_grid(self, row, method="nearest", num_slabs=10, axis=(0, 0, 1)):
+        # NOT USED
+        import time
+        from scipy.interpolate import RegularGridInterpolator
+        original_data = self.data.matrix()
+        points = (np.arange(original_data.shape[0]), np.arange(original_data.shape[1]), np.arange(original_data.shape[2]))
+        rgi = RegularGridInterpolator(points, original_data, method=method)
+        running_average_data = np.zeros(original_data.shape, dtype=np.float32)
+
+        t0 = time.time()
+        pts = np.mgrid[row-num_slabs:row+num_slabs+1, 0:original_data.shape[1], 0:original_data.shape[2]].reshape(3,-1).T
+        interpolated_surrounding_rows = rgi(pts).reshape((num_slabs*2+1, original_data.shape[1], original_data.shape[2]))
+        running_average_data[row] = np.mean(interpolated_surrounding_rows, axis=0, dtype=np.float32)
+
+        t1 = time.time()
+        return t1 - t0
+
+    def calc_time_map_grid(self, row, order=1, num_slabs=10, axis=(0, 0, 1)):
+        # NOT USED
+        import time
+        from scipy.ndimage import map_coordinates
+        original_data = self.data.matrix()
+        running_average_data = np.zeros(original_data.shape, dtype=np.float32)
+
+        zs, ys, xs = np.meshgrid(np.arange(row-num_slabs, row+num_slabs+1), np.arange(original_data.shape[1]), np.arange(original_data.shape[2]), indexing='ij')
+        pts = (zs.ravel(), ys.ravel(), xs.ravel())
+        t0 = time.time()
+        interpolated_surrounding_rows = map_coordinates(original_data, pts, order=order).reshape((num_slabs*2+1, original_data.shape[1], original_data.shape[2]))
+        running_average_data[row] = np.mean(interpolated_surrounding_rows, axis=0, dtype=np.float32)
+
+        t1 = time.time()
+
+        return t1 - t0
+
+    def calc_time_convolution(self, num_slabs=10):
+        # NOT USED
+        import time
+        from scipy.ndimage import convolve
+        original_data = self.data.matrix()
+
+        conv_size = num_slabs*2+1
+        conv_matrix = np.zeros((conv_size, conv_size, conv_size))
+        conv_matrix[:, num_slabs, num_slabs] = np.ones(conv_size)
+
+        t0 = time.time()
+        running_average_data = convolve(original_data, conv_matrix)
+        t1 = time.time()
+        return t1-t0
+
+
+    def set_slab_running_average(self, num_slabs, axis=(0,0,1)):
+        # NOT USED
+        axis = np.array(axis)
+        from scipy.interpolate import RegularGridInterpolator
+        original_data = self.data.matrix()
+        points = (np.arange(original_data.shape[0]), np.arange(original_data.shape[1]), np.arange(original_data.shape[2]))
+        rgi = RegularGridInterpolator(points, original_data, method="nearest")
+        running_average_data = np.zeros(original_data.shape, dtype=np.float32)
+
+        shape = np.array(original_data.shape)
+        for i in range(shape[0]):
+            for j in range(shape[1]):
+                for k in range(shape[2]):
+                    pts = [(i,j,k)+n*axis for n in range(-num_slabs, num_slabs+1)]
+                    pts = [pt for pt in pts if (pt>=0).all() and (pt<=(shape-[1,1,1])).all()]
+                    running_average_data[i][j][k] = np.mean(rgi(pts), axis=0, dtype=np.float32)
+
+        # num_rows = len(original_data)
+        # for i in range(num_rows):
+        #     surrounding_rows = original_data[max(i-num_slabs, 0):min(i+num_slabs+1, num_rows)]
+        #     running_average_data[i] = np.mean(surrounding_rows, axis=0, dtype=np.float32)
+
+        from chimerax.map_data import ArrayGridData
+        running_average_tomogram = Tomogram(self.session, ArrayGridData(running_average_data, name="Running average " + str(num_slabs) + " " + self.data.name))
+        self.session.ArtiaX.add_tomogram(running_average_tomogram)
+        self.show(show=False)
+
+        running_average_tomogram.set_parameters(cap_faces=False)
+        running_average_tomogram.normal = self.normal
+        running_average_tomogram.integer_slab_position = self.integer_slab_position
+
     def _set_levels(self, center=None, width=None):
 
         if center is None:
@@ -146,8 +395,6 @@ class Tomogram(VolumePlus):
         if offset is None:
             offset = self.slab_position
 
-        id = self.id_string
-
         self.set_parameters(tilted_slab_axis=tuple(self.normal),
                             tilted_slab_offset=offset,
                             tilted_slab_plane_count=1,
@@ -156,11 +403,6 @@ class Tomogram(VolumePlus):
                             color_mode='auto8')
 
         self.set_display_style('image')
-
-        # run(self.session,
-        #     'volume #{} region {},{},{},{},{},{} step 1 style image imageMode "tilted slab" tiltedSlabAxis {},{},{} tiltedSlabPlaneCount 1 tiltedSlabOffset {} colorMode l16'.format(
-        #         id, 0, 0, 0, self.size[0], self.size[1], self.size[2], self.normal[0],
-        #         self.normal[1], self.normal[2], offset), log=False)
 
     def _get_min_offset(self):
         corners = self.corners()
@@ -211,6 +453,17 @@ class Tomogram(VolumePlus):
         return
 
     positions = property(Drawing.positions.fget, _tomogram_set_positions)
+
+    def take_snapshot(self, session, flags):
+        data = VolumePlus.take_snapshot(self, session, flags)
+        data['step'] = self.pixelsize
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        tomo = super().restore_snapshot(session, data)
+        tomo.pixelsize = data['step']
+        return tomo
 
 
 def orthoplane_cmd(tomogram, axes, offset=None):

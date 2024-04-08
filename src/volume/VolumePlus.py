@@ -1,9 +1,14 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+import chimerax.core.session
+
 # General
 import numpy as np
 
 # ChimeraX
+from chimerax.core.session import Session
+from chimerax.core.models import Model
+from chimerax.map_data import GridData
 from chimerax.map import Volume
 
 # Triggers
@@ -23,7 +28,7 @@ class VolumePlus(Volume):
     """Volume Class, but notifies on appearance changes using triggers instead of undocumented callback system."""
 
     @classmethod
-    def from_volume(cls, session, vol: Volume, delete_source=True):
+    def from_volume(cls, session: Session, vol: Volume, delete_source=True):
         # TODO: kind of an ugly hack. Is there a better way?
         volplus_obj = cls(session, vol.data)
         if delete_source:
@@ -34,7 +39,7 @@ class VolumePlus(Volume):
 
         return volplus_obj
 
-    def __init__(self, session, data, region=None, rendering_options=None):
+    def __init__(self, session: Session, data: GridData, region=None, rendering_options=None):
         super().__init__(session, data, region, rendering_options)
 
         # Stats
@@ -114,5 +119,28 @@ class VolumePlus(Volume):
         arr = self.data.matrix(ijk_size=self.data.size, ijk_step=(4, 4, 4))
         self.mean = np.mean(arr)
         self.std = np.std(arr)
+
+    def take_snapshot(self, session, flags):
+        data = Volume.take_snapshot(self, session, flags)
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        # Need to replicate because the parent restore function does not use cls, but explicite Volume instead.
+        grid_data = data['grid data state'].grid_data
+        if grid_data is None:
+            return None  # Map file not available.
+        v = cls(session, grid_data)
+        for child in v.child_models():
+            child.delete()
+        Model.set_state_from_snapshot(v, session, data['model state'])
+        v._style_when_shown = None  # Don't show surface style by default.
+        from chimerax.map.session import set_map_state
+        from chimerax.map.volume import show_volume_dialog
+        set_map_state(data['volume state'], v)
+        v._drawings_need_update()
+        show_volume_dialog(session)
+
+        return v
 
 

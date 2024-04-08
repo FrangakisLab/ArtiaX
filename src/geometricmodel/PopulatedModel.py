@@ -21,10 +21,15 @@ class PopulatedModel(GeoModel):
         self.has_particles = False
         """Whether the model should display how particles would look when created."""
         self.marker_axis_display_options = True
-        self.marker_size = 4
-        self.marker_size_edit_range = (1, 7)
-        self.axes_size = 15
-        self.axes_size_edit_range = (10, 20)
+        if session.ArtiaX.tomograms.count > 0:
+            pix = session.ArtiaX.tomograms.get(0).pixelsize[0]
+            self.marker_size = 4 * pix
+            self.axes_size = 15 * pix
+        else:
+            self.marker_size = 4
+            self.axes_size = 15
+        self.marker_size_edit_range = (0, self.marker_size*2)
+        self.axes_size_edit_range = (0, self.axes_size*2)
         """Options for the widget."""
 
         self.collection_model = SurfaceCollectionModel('Spheres', session)
@@ -85,5 +90,6 @@ class PopulatedModel(GeoModel):
         artia.create_partlist(name=self.name + " particles")
         partlist = artia.partlists.child_models()[-1]
         artia.ui.ow._show_tab("geomodel")
-        for i in range(0, len(self.spheres_places)):
-            partlist.new_particle(self.spheres_places[i], [0, 0, 0], self.spheres_places[i])
+
+
+        partlist.new_particles(self.spheres_places, np.zeros((len(self.spheres_places), 3)), self.spheres_places)

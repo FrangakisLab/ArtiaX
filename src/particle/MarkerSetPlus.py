@@ -22,6 +22,8 @@ class MarkerSetPlus(MarkerSet):
     Extension of the MarkerSet class.
     """
 
+    SESSION_ENDURING = False
+    SESSION_SAVE = False
     DEBUG = False
 
     def __init__(self, session, name):
@@ -131,9 +133,6 @@ class MarkerSetPlus(MarkerSet):
 
     def _handle_changes(self, name, data):
         """Life is hard. Learn to handle it."""
-        # if self.DEBUG:
-        #     print(data[0])
-        #     print(data[1])
 
         if not data[0] == self:
             return
@@ -190,7 +189,7 @@ class MarkerSetPlus(MarkerSet):
             if pick.atom.structure is self:
                 ui = self.session.ui
                 pu = ui.main_window.graphics_window.popup
-                model = '#{}, '.format(pick.atom.structure.parent.id_string) #Ooooof
+                model = '#{}, '.format(pick.atom.structure.parent.id_string)  #Ooooof
                 particle = 'particle {}/{}, '.format(self.atoms.instances().index(pick.atom)+1,
                                                      len(self.atoms))
                 position = 'x: {}, y: {}, z: {}'.format(round(pick.atom.coord[0], 2),
@@ -199,3 +198,10 @@ class MarkerSetPlus(MarkerSet):
 
                 pu.setText(model + particle + position)
                 pu.resize(pu.sizeHint())
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        # Markers newly created by parent particle list, so don't restore again
+        # TODO: Clean up restore sequence.
+        ret = data["model state"]["parent"].markers
+        return ret

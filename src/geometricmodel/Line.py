@@ -14,6 +14,7 @@ from chimerax.atomic import AtomicShapeDrawing
 from chimerax.geometry import z_align
 from chimerax.bild.bild import _BildFile
 
+
 class Line(GeoModel):
     """Line between two points"""
 
@@ -32,7 +33,7 @@ class Line(GeoModel):
         self.add([self.spheres])
 
         self.update()
-        print("Created line starting at: {} and edning at: {}".format(start, end))
+        print("Created line starting at: {} and ending at: {}".format(start, end))
 
     def define_line(self):
         from chimerax.bild.bild import _BildFile
@@ -144,9 +145,6 @@ class Line(GeoModel):
 
         curr_point = self.start
         reached_end = False
-        print("start: {}".format(self.start))
-        print("end: {}".format(self.end))
-        print("center: {}".format(center))
         i = 0
         while (not reached_end and i<10000):
             along_circle_vector = np.cross(curr_point - center, w)
@@ -161,7 +159,6 @@ class Line(GeoModel):
             curr_point = next_point
             i+=1
 
-        print("ended at {}".format(curr_point))
         if i == 10000:
             print("could not curve line")
         d.add_shapes(b.shapes)

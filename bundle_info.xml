@@ -6,7 +6,7 @@ will be displayed without the ChimeraX- prefix.
 -->
 
 <BundleInfo name="ChimeraX-ArtiaX"
-	    version="0.3" package="chimerax.artiax"
+	    version="0.4" package="chimerax.artiax"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -32,7 +32,7 @@ will be displayed without the ChimeraX- prefix.
   <Dependencies>
     <Dependency name="ChimeraX-Atomic" version=">=1.1"/>
     <Dependency name="ChimeraX-BILD" version="~=1.0"/>
-    <Dependency name="ChimeraX-Core" version=">=1.3"/>
+    <Dependency name="ChimeraX-Core" version=">=1.7"/>
     <Dependency name="ChimeraX-Geometry" version=">=1.1"/>
     <Dependency name="ChimeraX-Graphics" version="~=1.1"/>
     <Dependency name="ChimeraX-IMOD" version="~=1.0"/>
@@ -114,7 +114,7 @@ will be displayed without the ChimeraX- prefix.
   </Providers>
 
   <Providers manager="open command">
-    <Provider name="Artiatomi Motivelist" want_path="true"/>
+    <Provider name="Artiatomi Motivelist" want_path="true" is_default="false"/>
     <Provider name="Generic Particle List" want_path="true"/>
     <Provider name="Dynamo Table" want_path="true"/>
     <Provider name="RELION STAR file" want_path="true"/>
@@ -135,6 +135,7 @@ will be displayed without the ChimeraX- prefix.
 
    <Providers manager="presets">
     <Provider category="ArtiaX" name="artiax default" />
+    <Provider category="ArtiaX" name="artiax record" />
   </Providers>
 
   <Providers manager="toolbar">
@@ -297,21 +298,29 @@ will be displayed without the ChimeraX- prefix.
     <Provider tab="ArtiaX Models" section="Links"
       name="Remove Selected" icon="remove_links.png" description="Removes links from selected particles."/>
 
-    <!-- ArtiaX Model tab, Mask-->
-    <Provider tab="ArtiaX Models" section="Mask"
+    <!-- ArtiaX Model tab, Generate New Models-->
+    <Provider tab="ArtiaX Models" section="Generate New Models"
       name="Create Mask" icon="create_mesh.png" description="Creates a mask from the selected geometric model."/>
+    <Provider tab="ArtiaX Models" section="Generate New Models"
+      name="Volume to Geomodel" icon="vol2geo.png" description="Creates a geomodel from the shown triangles
+      of the selected volumes."/>
+    <Provider tab="ArtiaX Models" section="Generate New Models"
+      name="Geomodel to Volume" icon="geo2vol.png" description="Creates a new volume by merging all shown geomodels."/>
 
     <!-- ArtiaX Model tab, Delete Surface-->
 
-    <!--
+    <!-- Delete triangle, not used.
     <Provider tab="ArtiaX Models" section="Delete Surface" mouse_mode="delete picked triangle"
       name="Delete Picked Triangle" display_name="Delete Triangle" icon="delete.png"
       description="Delete picked triangle from a boundary or surface model."/>
     -->
 
-    <Provider tab="ArtiaX Models" section="Delete Surface" mouse_mode="delete tetra from boundary"
+    <Provider tab="ArtiaX Models" section="Change Models" mouse_mode="delete tetra from boundary"
       name="Delete Tetra From Boundary" display_name="Delete Tetra" icon="delete_tetra.png"
       description="Delete picked tetrahedron from a boundary model."/>
+    <Provider tab="ArtiaX Models" section="Change Models" mouse_mode="mask connected triangles"
+      name="Mask Connected Triangles" display_name="Mask Triangles" icon="mask_triangle.png"
+      description="Hides all triangles connected to the picked triangle."/>
 
   </Providers>
 
@@ -404,6 +413,30 @@ will be displayed without the ChimeraX- prefix.
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax geomodel color :: General ::
      Set geomodel color.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax moveCameraAlongLine :: General ::
+     Moves camera along a specified line.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax filter tomo :: General ::
+     Filter a tomogram using low, high, or band-pass filters.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax gen in surface :: General ::
+     Generates points inside a specified surface.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax gen on surface :: General ::
+     Generates points on a specified surface.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax geo2vol :: General ::
+     Add geomodels to volumes.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax vol2geo :: General ::
+     Create geomodels from volumes.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax mask triangle radius :: General ::
+     Mouse mode for  masking connected triangles.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax remove overlap :: General ::
+     Moves particles with attached surfaces so that no surfaces overlap.</ChimeraXClassifier>
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax info :: General ::
       Print information about tomograms or particle lists.</ChimeraXClassifier>

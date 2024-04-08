@@ -322,6 +322,450 @@ def artiax_geomodel_color(session, model, color):
 
     model.color = color.uint8x4()
 
+def artiax_move_camera_along_line(session, model, numFrames=None, backwards=False, distanceBehind=10000, topRotation=0,
+                                  facingRotation=0, cameraRotation=0, monoCamera=True, maxAngle=None):
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running.")
+        return
+    from ..geometricmodel.CurvedLine import CurvedLine
+    if not isinstance(model, CurvedLine):
+        errors.UserError("artiax moveCameraAlongLine: '{}' is not a valid argument. Input a 'line' geometric model.".format(model))
+    if numFrames is not None and numFrames >= len(model.points[0]):
+        session.logger.warning("artiax moveCameraAlongLine: the specified number of frames cannot be higher"
+                               " than the resolution of the line. Changing number of frames to {}.".format(len(model.points[0])))
+        numFrames = None
+    if monoCamera:
+        from chimerax.core.commands import run
+        run(session, "camera mono")
+
+    model.move_camera_along_line(False, numFrames, backwards, distanceBehind, topRotation, facingRotation, cameraRotation, max_angle=maxAngle)
+
+
+def artiax_remove_overlap(session, models=None, manifold=None, boundary=None, freeze=None, method='distance', iterations=None, thoroughness=None, precision=None, maxSearchDistance=None):
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running.")
+        return
+
+    from ..particle import ParticleList
+    particles = []
+    pls = []
+    scms = dict()
+    bounds = dict()
+    if models is not None:
+        for model in models:
+            if isinstance(model, ParticleList):
+                pl = model
+                if pl.has_display_model():
+                    pls.append(pl)
+                    scm = pl.collection_model.collections['surfaces']
+                    bound = pl.display_model.get(0).surfaces[0].geometry_bounds()
+                    ps = [pl.get_particle(cid) for cid in pl.particle_ids]
+                    particles.extend(ps)
+                    for p in ps:
+                        scms[p] = scm
+                        bounds[p] = bound
+                else:
+                    raise errors.UserError(
+                        'artiax remove overlap: Model #{} - "{}" does not have an attached surface.'.format(model.id_string,
+                                                                                                       model.name))
+            else:
+                raise errors.UserError(
+                    'artiax remove overlap: Model #{} - "{}" is not a particle list.'.format(model.id_string,
+                                                                                       model.name))
+    elif boundary is None and manifold is None:  # No particle list given, use selected particles instead
+        for pl in session.ArtiaX.partlists.child_models():
+            if not pl.has_display_model():
+                continue
+            scm = pl.collection_model.collections['surfaces']
+            bound = pl.display_model.get(0).surfaces[0].geometry_bounds()
+            particle_list_used = False
+            for curr_id in pl.particle_ids[pl.selected_particles]:
+                if curr_id:
+                    particle_list_used = True
+                    p = pl.get_particle(curr_id)
+                    particles.append(p)
+                    scms[p] = scm
+                    bounds[p] = bound
+            if particle_list_used:
+                pls.append(pl)
+
+    from chimerax.core.models import Drawing
+    on_surface_particles = None
+    if manifold is not None:
+        on_surface_particles = []
+        for pair in manifold:
+            if len(pair) != 2:
+                raise errors.UserError(
+                    'artiax remove overlap manifold: Please select exactly one particle list and one drawing per'
+                    ' manifold.')
+            elif not isinstance(pair[0], ParticleList):
+                raise errors.UserError(
+                    'artiax remove overlap manifold: Model #{} - "{}" is not a particle list.'.format(
+                        pair[0].id_string, pair[0].name))
+            elif not isinstance(pair[1], Drawing) or isinstance(pair[1], ParticleList):
+                raise errors.UserError(
+                    'artiax remove overlap manifold: Model #{} - "{}" is not a drawing.'.format(
+                        pair[1].id_string, pair[1].name))
+
+            pl = pair[0]
+            if not pl.has_display_model():
+                raise errors.UserError(
+                    'artiax remove overlap: Model #{} - "{}" does not have an attached surface.'.format(
+                        pl.id_string, pl.name))
+            pls.append(pl)
+            scm = pl.collection_model.collections['surfaces']
+            bound = pl.display_model.get(0).surfaces[0].geometry_bounds()
+            ps = [pl.get_particle(cid) for cid in pl.particle_ids]
+            for p in ps:
+                scms[p] = scm
+                bounds[p] = bound
+            particles.extend(ps)
+            on_surface_particles.append([ps, pair[1]])
+
+    in_surface_particles = None
+    if boundary is not None:
+        from chimerax.surface import vertex_areas
+        in_surface_particles = []
+        for pair in boundary:
+            if len(pair) != 2:
+                raise errors.UserError(
+                    'artiax remove overlap boundary: Please select exactly one particle list and one drawing per'
+                    ' boundary.')
+            elif not isinstance(pair[0], ParticleList):
+                raise errors.UserError(
+                    'artiax remove overlap boundary: Model #{} - "{}" is not a particle list.'.format(
+                        pair[0].id_string, pair[0].name))
+            elif not isinstance(pair[1], Drawing) or isinstance(pair[1], ParticleList):
+                raise errors.UserError(
+                    'artiax remove overlap boundary: Model #{} - "{}" is not a drawing.'.format(
+                        pair[1].id_string, pair[1].name))
+
+            pl = pair[0]
+            if not pl.has_display_model():
+                raise errors.UserError(
+                    'artiax remove overlap: Model #{} - "{}" does not have an attached surface.'.format(
+                        pl.id_string, pl.name))
+            pls.append(pl)
+            scm = pl.collection_model.collections['surfaces']
+            bound = pl.display_model.get(0).surfaces[0].geometry_bounds()
+            ps = [pl.get_particle(cid) for cid in pl.particle_ids]
+            for p in ps:
+                scms[p] = scm
+                bounds[p] = bound
+            particles.extend(ps)
+
+            surface = pair[1]
+
+            # Get an estimate of the distance between the surface vertices
+            max_search_distance = maxSearchDistance
+            if max_search_distance is None:
+                max_search_distance = 100
+            elif max_search_distance <= 0:
+                raise errors.UserError(
+                    'artiax remove overlap: Select a positive max search distance.'.format(
+                        pl.id_string, pl.name))
+
+            search_distance = np.sqrt(vertex_areas(surface.vertices, surface.triangles).mean())
+            if search_distance > max_search_distance:
+                search_distance = max_search_distance
+
+            in_surface_particles.append([ps, surface, search_distance])
+
+    if len(pls) != len(set(pls)):
+        raise errors.UserError(
+            "artiax remove overlap: Please don't select a particle list more than once.")
+
+    if not particles:
+        raise errors.UserError(
+            'artiax remove overlap: No particles with an attached surface selected')
+
+    if method == 'distance':
+        if thoroughness is not None or precision is not None:
+            raise errors.UserError(
+                'artiax remove overlap: Method "distance" does not accept keywords "thoroughness" or "precision".'
+                ' To use these settings, use "method volume".')
+    else:
+        if thoroughness is None:
+            thoroughness = 100
+        if precision is None:
+            precision = 0.33
+
+    if iterations is None:
+        max_iterations = 100
+    elif iterations < 1:
+        raise errors.UserError(
+            'artiax remove overlap: iterations must be set to at least 1.')
+    else:
+        max_iterations = iterations
+
+    if freeze is not None:
+        particles_to_keep_still = {p: False for p in particles}
+        for pl in freeze:
+            if not isinstance(pl, ParticleList) or not pl.has_display_model():
+                raise errors.UserError(
+                    'artiax remove overlap: model {} is not a particles list, or has no display model.'.format(pl))
+            if pl in pls:
+                raise errors.UserError(
+                    'artiax remove overlap: model {} is included both as a particle list to move and to keep still'.format(pl))
+            pls.append(pl)
+            scm = pl.collection_model.collections['surfaces']
+            bound = pl.display_model.get(0).surfaces[0].geometry_bounds()
+            ps = [pl.get_particle(cid) for cid in pl.particle_ids]
+            particles.extend(ps)
+            for p in ps:
+                scms[p] = scm
+                bounds[p] = bound
+                particles_to_keep_still[p] = True
+    else:
+        particles_to_keep_still = None
+
+
+    from ..util.remove_overlap import remove_overlap
+    remove_overlap(session, particles, pls, scms, bounds, method, on_surface_particles, in_surface_particles, particles_to_keep_still, max_iterations, thoroughness, precision)
+
+
+def artiax_gen_in_surface(session, model, method, num_pts=None, radius=None, exactNum=False):
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running.")
+        return
+
+    from chimerax.core.models import Surface
+    if not isinstance(model, Surface):
+        session.logger.warning("{} is not a Surface.".format(model))
+        return
+
+    if method not in ['poisson', 'regular grid', 'uniform']:
+        session.logger.warning(
+            "{} is not a valid method of generating points in a surface. Please use one of 'poisson'"
+            ", 'regular grid', or 'uniform'.".format(method))
+        return
+    elif method in ['uniform', 'regular grid'] and (num_pts is None or num_pts<0):
+        session.logger.warning("Please input a number of points larger than 0 using the 'num_points' keyword when"
+                               " generating points in a surface using uniform sampling or on a regular grid.")
+        return
+    elif method == 'poisson' and (radius is None or radius<0):
+        session.logger.warning("Please input a radius larger than 0 using the 'radius' keyword when"
+                               " generating points in a surface using poisson disk sampling.")
+        return
+    if method in ['poisson', 'regular grid'] and exactNum:
+        session.logger.warning("Cannot create an exact number of particles when using 'poisson' or 'regular grid' method.")
+        return
+
+    from ..util.generate_points import generate_points_in_surface
+    generate_points_in_surface(session, model, radius, num_pts, method, exact_num=exactNum)
+
+
+def artiax_gen_on_surface(session, model, method, num_pts, radius=None, exactNum=True):
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running.")
+        return
+
+    from chimerax.core.models import Surface
+    if not isinstance(model, Surface):
+        session.logger.warning("{} is not a Surface.".format(model))
+        return
+
+    if method not in ['poisson', 'uniform']:
+        session.logger.warning(
+            "{} is not a valid method of generating points on a surface. Please use one of 'poisson'"
+            " or 'uniform'.".format(method))
+        return
+    elif num_pts < 1:
+        session.logger.warning("Please input a number of points larger than 0 using the 'num_points' keyword when"
+                               " generating points on a surface.")
+        return
+    elif method == 'poisson' and (radius is None or radius < 0):
+        session.logger.warning("Please input a radius larger than 0 using the 'radius' keyword when"
+                               " generating points on a surface using poisson disk sampling.")
+        return
+
+    from ..util.generate_points import generate_points_on_surface
+    generate_points_on_surface(session, model, num_pts, radius, method, exact_num=exactNum)
+
+
+def artiax_geomodel_to_volume(session, model=None, geomodels=None, subdivide_length=None):
+    from ..volume.Tomogram import Tomogram
+    from chimerax.surface._surface import subdivide_mesh
+    from chimerax.map_data import ArrayGridData
+
+    new_model = False
+    if model is None:
+        new_model = True
+        ps = [1, 1, 1]
+        name = 'segmented surfaces'
+    elif not isinstance(model, Tomogram):
+        session.logger.warning("{} is not a tomogram loaded into ArtiaX".format(model))
+        return
+    else:
+        tomo = model
+        name = tomo.name
+        ps = tomo.pixelsize
+        mat = tomo.data.matrix().copy()
+
+    if geomodels is None:
+        geomodels = [g for g in session.ArtiaX.geomodels.child_models() if g.visible]
+
+    if new_model:
+        from chimerax.geometry.bounds import union_bounds
+        union = union_bounds([gm.geometry_bounds() for gm in geomodels])
+        xyz_max = union.xyz_max
+        xyz_min = union.xyz_min
+        matsize = np.flip(np.ceil(xyz_max - xyz_min).astype(int))
+        if (matsize > 400).any():
+            ps = [max(matsize)/400] * 3
+            matsize = np.ceil(matsize/ps[0]).astype(int)
+        mat = np.zeros(matsize, dtype=np.float32)
+
+    if subdivide_length is None:
+        subdivide_length = min(ps)
+
+    # For each geomodel
+    for geomodel in geomodels:  # Get verts and subdiv
+        if geomodel.triangle_mask is None:
+            vs, ts, ns = geomodel.vertices, geomodel.triangles, geomodel.normals
+        else:
+            vs, ts, ns = geomodel.vertices, geomodel.triangles[geomodel.triangle_mask,:], geomodel.normals
+
+        vs, ts, ns = subdivide_mesh(vs, ts, ns, subdivide_length)
+
+        vs_index = np.unique(ts[:])
+        vs = vs[vs_index, :]
+
+        # Set voxels
+        for i, v in enumerate(vs):
+
+            if new_model:
+                index = (v - xyz_min)/ps[0]
+            else:
+                index = tomo.data.xyz_to_ijk(v)
+            index = np.flip(np.array(np.floor(index), dtype=int))  # flipped to make it [zi, yi, xi]
+            if (index<[0,0,0]).any() or (index >= mat.shape).any():
+                session.logger.warning("Model {} is outside of volume.".format(geomodel))
+                break
+            mat[index[0], index[1], index[2]] = 1
+
+    agd = ArrayGridData(mat, step=ps, name=name)
+
+    if new_model:
+        new_tomo = Tomogram(session, agd)
+        new_tomo.set_parameters(surface_levels=[0.999])
+        session.ArtiaX.add_tomogram(new_tomo)
+    else:
+        tomo.replace_data(agd)
+
+        from chimerax.map.volume import VolumeImage
+        for drawing in tomo._child_drawings:
+            if isinstance(drawing, VolumeImage):
+                drawing.close_model()
+                tomo.integer_slab_position = tomo.integer_slab_position
+
+
+def artiax_masked_triangles_to_geomodel(session, models=None, name='arbitrary model'):
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running.")
+        return
+
+    from chimerax.map.volume import VolumeSurface
+    surfaces = []
+
+    if models is not None:
+        for model in models:
+            if not isinstance(model, Volume):
+                session.logger.warning("{} is not a volume".format(model))
+                return
+            if model.empty_drawing():
+                surface = None
+                for d in model.child_drawings():
+                    if not d.empty_drawing():
+                        surface = d
+                        break
+                if surface is None:
+                    session.logger.warning("{} does not contain a drawing with a surface".format(model))
+                    return
+            else:
+                surface = model
+            surfaces.append(surface)
+    else:
+        for model in session.selection.models():
+            if isinstance(model, Volume):
+                childs = [x for x in model.child_drawings() if isinstance(x, VolumeSurface)]
+                if not len(childs):
+                    break
+                else:
+                    surfaces.extend(childs)
+        if not len(surfaces):
+            session.logger.warning("No drawing with a surface is currently selected")
+            return
+
+    surfaces = np.unique(surfaces)
+
+    verts, normals, tris = [], [], []
+    for surface in surfaces:
+        t = surface.triangles if surface.triangle_mask is None else surface.triangles[surface.triangle_mask]
+        t = t + len(verts)
+        tris.extend(t)
+        verts.extend(surface.vertices)
+        normals.extend(surface.normals)
+    verts, normals, tris = np.array(verts), np.array(normals), np.array(tris)
+
+    from ..geometricmodel.ArbitraryModel import ArbitraryModel
+    a = ArbitraryModel(name, session, verts, normals, tris)
+
+    session.ArtiaX.add_geomodel(a)
+
+def artiax_mask_triangles_radius(session, radius=None):
+    if radius is not None and radius<=0:
+        session.logger.warning("Select a positive radius.")
+        return
+    from ..mouse import MaskConnectedTrianglesMode
+    mct = session.ArtiaX.mask_connected_triangles
+    session.ui.mouse_modes.remove_mode(mct)
+    mct = session.ArtiaX.mask_connected_triangles = MaskConnectedTrianglesMode(session, radius)
+    session.ui.mouse_modes.add_mode(mct)
+    run(session, 'ui mousemode right "mask connected triangles"')
+
+def artiax_filter_tomo(session, tomo, lp, hp, lpd=None, hpd=None, unit='pixels', lp_cutoff='gaussian', hp_cutoff='gaussian', threshold=0.001):
+    if not hasattr(session, 'ArtiaX'):
+        session.logger.warning("ArtiaX is not currently running.")
+        return
+
+    from ..volume import Tomogram
+    if not isinstance(tomo, Tomogram):
+        session.logger.warning("Model {} is not a tomogram.".format(tomo))
+        return
+
+    if lp < 0 or hp < 0:
+        session.logger.warning("Select non-negative pass-frequencies.")
+        return
+
+    if (lpd is not None and lpd<0) or (hpd is not None and hpd<0):
+        session.logger.warning("Select non-negative decay-frequencies.")
+        return
+
+    if threshold<0:
+        session.logger.warning("Select a non-negative threshold.")
+        return
+
+    unit = unit.lower()
+    if unit not in ['pixels', 'angstrom']:
+        session.logger.warning("'{}' is not an implemented unit. 'pixels' and 'angstrom' are available.".format(unit))
+        return
+    if unit == 'angstrom':
+        if not (lpd is None or lpd == 0) or not (hpd is None or hpd == 0):
+            session.logger.warning('Cannot set low-pass or high-pass decay when using "angstrom" as a unit. Decay is'
+                                   'always set to 0.25*pass-lenght.')
+            return
+
+    lp_cutoff = lp_cutoff.lower()
+    hp_cutoff = hp_cutoff.lower()
+    available = ['gaussian', 'cosine']
+    if lp_cutoff not in available or hp_cutoff not in available:
+        session.logger.warning(
+            "Only 'gaussian' and 'cosine' are available as cutoff methods.".format(lp_cutoff))
+        return
+
+    tomo.create_filtered_tomogram(lp, hp, lpd, hpd, threshold, unit, lp_cutoff, hp_cutoff)
+
 
 def artiax_lock(session, models=None, type=None):
     # No ArtiaX
@@ -504,6 +948,8 @@ def artiax_tomo(session,
                 contrastCenter=None,
                 contrastWidth=None,
                 slice=None,
+                endSlice=None,
+                slicePerFrame=None,
                 sliceDirection=None,
                 pixelSize=None):
     # No ArtiaX
@@ -542,6 +988,19 @@ def artiax_tomo(session,
         slice = min(slice, model.slab_count - 1)
         slice = max(slice, 0)
         model.integer_slab_position = round(slice)
+
+        spf = 1
+        if slicePerFrame is not None:
+            spf = slicePerFrame
+
+        if endSlice is not None:
+            endSlice = min(endSlice, model.slab_count - 1)
+            endSlice = max(endSlice, 0)
+            endSlice = round(endSlice)
+
+            for i in range(slice, endSlice+1, spf):
+                model.integer_slab_position = round(i)
+                session.update_loop.draw_new_frame()
 
     if pixelSize is not None:
         if pixelSize <= 0:
@@ -735,7 +1194,11 @@ def register_artiax(logger):
         ColorArg,
         Float3Arg,
         BoolArg,
-        AxisArg
+        AxisArg,
+        RepeatOf,
+        EnumOf,
+        ListOf,
+        NoneArg
     )
 
     def register_artiax_start():
@@ -904,6 +1367,116 @@ def register_artiax(logger):
         )
         register('artiax geomodel color', desc, artiax_geomodel_color)
 
+    def register_artiax_move_camera_along_line():
+        desc = CmdDesc(
+            required=[("model", ModelArg)],
+            keyword=[("numFrames", IntArg),
+                     ("backwards", BoolArg),
+                     ("distanceBehind", FloatArg),
+                     ("topRotation", FloatArg),
+                     ("facingRotation", FloatArg),
+                     ('cameraRotation', FloatArg),
+                     ('monoCamera', BoolArg),
+                     ('maxAngle', Or(FloatArg, NoneArg))],
+            synopsis='Moves the camera along the specified line.',
+            url='help:user/commands/artiax_move_camera_along_line.html'
+        )
+        register('artiax moveCameraAlongLine', desc, artiax_move_camera_along_line)
+
+    def register_artiax_remove_overlap():
+        desc = CmdDesc(
+            optional=[("models", ListOf(ModelArg))],
+            keyword=[("manifold", RepeatOf(ListOf(ModelArg, 2, 2))),
+                     ("boundary", RepeatOf(ListOf(ModelArg, 2, 2))),
+                     ("freeze", ListOf(ModelArg)),
+                     ("method", EnumOf(("volume", "distance"))),
+                     ("iterations", IntArg),
+                     ("thoroughness", IntArg),
+                     ("precision", FloatArg),
+                     ("maxSearchDistance", FloatArg)],
+            synopsis='Moves selected particles to remove overlap. Can be made to move particles along surface or inside a surface',
+            url='help:user/commands/artiax_remove_overlap.html'
+        )
+        register('artiax remove overlap', desc, artiax_remove_overlap)
+
+    def register_artiax_gen_in_surface():
+        desc = CmdDesc(
+            required=[("model", ModelArg),
+                      ("method", EnumOf(("poisson", "uniform", "regular grid")))],
+            keyword=[("num_pts", IntArg),
+                     ("radius", FloatArg),
+                     ('exactNum', BoolArg)],
+            synopsis='Generates points in the specified surface. Can generate points using uniform sampling, '
+                     'a poisson disk sampling method, or on a regular grid.',
+            url='help:user/commands/artiax_generate_points_in_surface.html'
+        )
+        register('artiax gen in surface', desc, artiax_gen_in_surface)
+
+    def register_artiax_gen_on_surface():
+        desc = CmdDesc(
+            required=[("model", ModelArg),
+                      ("method", EnumOf(("poisson", "uniform"))),
+                      ("num_pts", IntArg)],
+            keyword=[("radius", FloatArg),
+                     ('exactNum', BoolArg)],
+            synopsis='Generates points on the specified surface. Can generate points using uniform sampling, '
+                     'a poisson disk sampling method.',
+            url='help:user/commands/artiax_generate_points_on_surface.html'
+        )
+        register('artiax gen on surface', desc, artiax_gen_on_surface)
+
+    def register_artiax_geomodel_to_volume():
+        desc = CmdDesc(
+            optional=[("model", ModelArg)],
+            keyword=[("geomodels", ListOf(ModelArg)),
+                     ("subdivide_length", FloatArg)],
+            synopsis='Adds the specified geomodels to the specified volume. If no model is specified, a new one is'
+                     ' created. If no geomodels are specified, all shown are used. The subdivide_length keyword sets'
+                     ' the largest allowed triangle length, and defaults to the tomograms smallest pixelsize.',
+            url='help:user/commands/artiax_geo2vol.html'
+        )
+        register('artiax geo2vol', desc, artiax_geomodel_to_volume)
+
+    def register_artiax_masked_triangles_to_geomodel():
+        desc = CmdDesc(
+            optional=[("models", ListOf(ModelArg))],
+            keyword=[("name", StringArg)],
+            synopsis='Creates a new geomodel from the specified models. Only uses the masked triangles. If no model is'
+                     'specified, the currently selected models are used.',
+            url='help:user/commands/artiax_vol2geo.html'
+        )
+        register('artiax vol2geo', desc, artiax_masked_triangles_to_geomodel)
+
+    def register_artiax_mask_triangles_radius():
+        desc = CmdDesc(
+            optional=[("radius", FloatArg)],
+            synopsis='Enables the "mask connected triangles" mouse mode with a specified radius, such that pressing a '
+                     'triangle only masks connected triangles within the radius of the pressed one.',
+            url='help:user/commands/artiax_mask_triangle_radius.html'
+        )
+        register('artiax mask triangle radius', desc, artiax_mask_triangles_radius)
+
+    def register_artiax_filter_tomo():
+        desc = CmdDesc(
+            required=[("tomo", ModelArg),
+                      ('lp', FloatArg),
+                      ('hp', FloatArg)],
+            keyword=[("lpd", Or(FloatArg, NoneArg)),
+                     ('hpd', Or(FloatArg, NoneArg)),
+                     ('unit', StringArg),
+                     ('lp_cutoff', EnumOf(('gaussian', 'cosine'))),
+                     ('hp_cutoff', EnumOf(('gaussian', 'cosine'))),
+                     ('threshold', FloatArg)],
+            synopsis='Creates a filtered tomogram using lp and hp as lowpass and highpass frequencies, respectively.'
+                     'Input 0 as pass-frequency for no low/high-pass.'
+                     'lpd and hpd represents the decays, which default to a a fourth of the respective pass-frequencies'
+                     'if left empty. Input 0 for a box filter. '
+                     'Available units are "angstrom" and "pixels". The threshold keywords selects how far the '
+                     'gaussian curve extends in the filter.',
+            url='help:user/commands/artiax_filter.html'
+        )
+        register('artiax filter', desc, artiax_filter_tomo)
+
     def register_artiax_lock():
         desc = CmdDesc(
             optional=[("models", Or(ModelsArg, EmptyArg)),
@@ -942,6 +1515,8 @@ def register_artiax(logger):
             keyword=[("contrastCenter", FloatArg),
                      ("contrastWidth", FloatArg),
                      ("slice", IntArg),
+                     ("endSlice", IntArg),
+                     ("slicePerFrame", IntArg),
                      ('sliceDirection', Float3Arg),
                      ('pixelSize', FloatArg)],
             synopsis='Set tomogram properties.',
@@ -1005,10 +1580,19 @@ def register_artiax(logger):
     register_artiax_triangles_from_links()
     register_artiax_flip()
     register_artiax_geomodel_color()
+    register_artiax_move_camera_along_line()
+    register_artiax_remove_overlap()
+    register_artiax_gen_in_surface()
+    register_artiax_gen_on_surface()
+    register_artiax_geomodel_to_volume()
+    register_artiax_masked_triangles_to_geomodel()
+    register_artiax_mask_triangles_radius()
+    register_artiax_filter_tomo()
     register_artiax_tomo()
     register_artiax_colormap()
     register_artiax_label()
     register_artiax_info()
+
 
 # Possible styles
 # for pl in models:

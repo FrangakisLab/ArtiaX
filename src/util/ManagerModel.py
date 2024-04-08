@@ -21,6 +21,11 @@ class ManagerModel(Model):
         The chimerax session object.
 
     """
+
+    SESSION_SAVE = True
+    SESSION_SAVE_DRAWING = False
+    SESSION_ENDURING = False
+
     def __init__(self, name, session):
         super().__init__(name, session)
 
@@ -85,7 +90,7 @@ class ManagerModel(Model):
         Returns
         -------
         success : bool
-            Whether or not any child model has the model id.
+            Whether any child model has the model id.
         """
         models = [model for model in self.child_models() if model.id == id]
         if len(models) > 0:
@@ -221,3 +226,20 @@ class ManagerModel(Model):
             model.delete()
 
         Model.delete(self)
+
+    def take_snapshot(self, session, flags):
+        data = Model.take_snapshot(self, session, flags)
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        if data['id'] in session.models._models:
+            m = session.models._models.get(data['id'])
+            print("restoring model from session route 1")
+        else:
+            m = cls(data['name'], session)
+            print("restoring model from session route 2")
+            print(m.id_string)
+        Model.set_state_from_snapshot(m, session, data)
+        print(m.id_string)
+        return m

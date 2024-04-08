@@ -36,7 +36,7 @@ from Qt.QtWidgets import (
 # This package
 from .volume.Tomogram import orthoplane_cmd
 from .widgets import LabelEditSlider, SelectionTableWidget, ColorRangeWidget, ColorGeomodelWidget, PlaneOptions,\
-    CurvedLineOptions, BoundaryOptions, SphereOptions, TriangulateOptions
+    CurvedLineOptions, BoundaryOptions, SphereOptions, TriangulateOptions, ArbitraryModelOptions
 from .ArtiaX import (
     OPTIONS_TOMO_CHANGED,
     OPTIONS_GEOMODEL_CHANGED,
@@ -366,6 +366,72 @@ class OptionsWindow(ToolInstance):
         # Add grid to group
         group_fourier_transform.setLayout(group_fourier_transform_layout)
 
+        #### Process Tomogram ####
+        group_process = QGroupBox("Processing")
+        group_process.setFont(self.font)
+        group_process.setCheckable(True)
+        group_process_layout = QVBoxLayout()
+
+        process_average_group = QGroupBox("Averaging")
+        process_average_group.setToolTip("Create a copy of the tomogram averaged in the set direction, using the number"
+                                         " of slab nearest slabs for the averaging")
+        process_average_layout = QVBoxLayout()
+        from .widgets import ThreeFieldsAndButton
+        self.process_average_axis_widget = ThreeFieldsAndButton(maintext='Averaging Direction:',
+                                                             label_1='X:',
+                                                             label_2='Y:',
+                                                             label_3='Z:',
+                                                             button='Copy Slice Direction',
+                                                             value=(0, 0, 1))
+        self.process_average_num_slabs_widget = LabelEditSlider([1, 100], "Number of slabs to average:", step_size=1)
+        self.process_average_create_button = QPushButton("Create Averaged Tomogram")
+        process_average_layout.addWidget(self.process_average_axis_widget)
+        process_average_layout.addWidget(self.process_average_num_slabs_widget)
+        process_average_layout.addWidget(self.process_average_create_button)
+        process_average_group.setLayout(process_average_layout)
+
+        group_process_layout.addWidget(process_average_group)
+
+        process_filter_group = QGroupBox("Filtering")
+        process_filter_group.setToolTip("Create a copy of the tomogram that is filtered using a LP, BP, or HP filter.")
+        process_filter_layout = QVBoxLayout()
+
+        from .widgets import RadioButtonsStringOptions
+        self.filtering_unit_buttons = RadioButtonsStringOptions('Unit', ['angstrom', 'pixels'])
+
+        self.lp_box = QGroupBox('Low pass')
+        self.lp_box.setCheckable(True)
+        tooltip = 'Low pass filter the current tomogram. Use Gaussian or Cosine decay. If the unit is set to pixels and the ' \
+                  'pass frequency is set to zero the center of decay will be at zero. If decay size is set to zero a box ' \
+                  'filter is used. If the unit is set to "angstrom", the decay size is always set to 1/pass*0.25.'
+        self.lp_box.setToolTip(tooltip)
+        lp_box_layout = QVBoxLayout()
+        from .widgets import FilterOptionsWidget
+        self.lp_filter_options = FilterOptionsWidget()
+        lp_box_layout.addWidget(self.lp_filter_options)
+        self.lp_box.setLayout(lp_box_layout)
+
+        self.hp_box = QGroupBox('High pass')
+        self.hp_box.setCheckable(True)
+        self.hp_box.setToolTip(tooltip)
+        hp_box_layout = QVBoxLayout()
+        from .widgets import FilterOptionsWidget
+        self.hp_filter_options = FilterOptionsWidget()
+        hp_box_layout.addWidget(self.hp_filter_options)
+        self.hp_box.setLayout(hp_box_layout)
+
+        self.filter_tomo_button = QPushButton("Create Filtered Tomogram")
+
+        process_filter_layout.addWidget(self.filtering_unit_buttons)
+        process_filter_layout.addWidget(self.lp_box)
+        process_filter_layout.addWidget(self.hp_box)
+        process_filter_layout.addWidget(self.filter_tomo_button)
+        process_filter_group.setLayout(process_filter_layout)
+
+        group_process_layout.addWidget(process_filter_group)
+        group_process.setLayout(group_process_layout)
+
+
         #### Slice Box ####
         group_slices = QGroupBox("Navigation")
         group_slices.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
@@ -427,6 +493,7 @@ class OptionsWindow(ToolInstance):
         tomo_layout.addWidget(group_contrast)
         tomo_layout.addWidget(group_slices)
         tomo_layout.addWidget(group_orthoplanes)
+        tomo_layout.addWidget(group_process)
         #tomo_layout.addWidget(group_fourier_transform)
 
         # And finally set the layout of the widget
@@ -483,6 +550,19 @@ class OptionsWindow(ToolInstance):
         ow.group_slices_previous_1.clicked.connect(partial(ow._skip_planes, -1))
         ow.group_slices_next_1.clicked.connect(partial(ow._skip_planes, 1))
         ow.group_slices_next_10.clicked.connect(partial(ow._skip_planes, 10))
+
+        # Processing
+        ow.process_average_axis_widget.valueChanged.connect(ow._average_axis_changed)
+        ow.process_average_axis_widget.buttonPressed.connect(ow._average_axis_copy_slice_direction)
+        ow.process_average_num_slabs_widget.valueChanged.connect(ow._average_num_slabs_changed)
+        ow.process_average_create_button.clicked.connect(ow._create_averaged_tomogram)
+
+        ow.lp_box.toggled.connect(ow._lp_box_clicked)
+        ow.hp_box.toggled.connect(ow._hp_box_clicked)
+        ow.filtering_unit_buttons.valueChanged.connect(ow._filtering_unit_changed)
+        ow.lp_filter_options.valueChanged.connect(ow._lp_filter_changed)
+        ow.hp_filter_options.valueChanged.connect(ow._hp_filter_changed)
+        ow.filter_tomo_button.clicked.connect(ow._create_filtered_tomogram)
 
         # Orthoplanes
         ow.group_orthoplanes_buttonxy.clicked.connect(partial(ow._set_xy_orthoplanes))
@@ -547,6 +627,12 @@ class OptionsWindow(ToolInstance):
         ow.geomodel_color_selection.colorChanged.connect(ow._color_geomodel)
         ow.geomodel_color_selection.colorChangeFinished.connect(partial(ow._color_geomodel, log=True))
 
+        # Generate particles options
+        ow.generate_in_surface_widget.buttonPressed.connect(ow._generate_in_surface)
+        ow.generate_in_surface_widget.valueChanged.connect(ow._generate_in_surface_options_changed)
+        ow.generate_on_surface_widget.buttonPressed.connect(ow._generate_on_surface)
+        ow.generate_on_surface_widget.valueChanged.connect(ow._generate_on_surface_options_changed)
+
     def _update_tomo_ui(self):
         self._update_tomo_sliders()
         self._update_pixelsize_edit()
@@ -569,7 +655,7 @@ class OptionsWindow(ToolInstance):
         self.contrast_center_widget.blockSignals(prev)
 
         prev = self.contrast_width_widget.blockSignals(True)
-        self.contrast_width_widget.set_range(range=[0.00000001, tomo.range], value=tomo.contrast_width)
+        self.contrast_width_widget.set_range(range=[0.000001, tomo.range], value=tomo.contrast_width)
         self.contrast_width_widget.blockSignals(prev)
 
         prev = self.slice_widget.blockSignals(True)
@@ -577,6 +663,22 @@ class OptionsWindow(ToolInstance):
         self.slice_widget.blockSignals(prev)
 
         self.normal_vector_widget.set_value(tomo.normal)
+
+        self.process_average_axis_widget.set_value(tomo.averaging_axis)
+        self.process_average_num_slabs_widget.set_range([1,tomo.slab_count], value=tomo.num_averaging_slabs)
+
+        self.filtering_unit_buttons.set_value_checked(tomo.unit)
+        self.lp_box.setChecked(tomo.use_low_pass)
+        self.hp_box.setChecked(tomo.use_high_pass)
+        self.lp_filter_options.cutoff = tomo.lp_method
+        self.lp_filter_options.pass_freq = tomo.lp
+        self.lp_filter_options.decay_freq = tomo.lpd
+        self.lp_filter_options.auto_decay = tomo.auto_lpd
+        self.hp_filter_options.cutoff = tomo.hp_method
+        self.hp_filter_options.pass_freq = tomo.hp
+        self.hp_filter_options.decay_freq = tomo.hpd
+        self.hp_filter_options.auto_decay = tomo.auto_hpd
+
 
     def _update_pixelsize_edit(self):
         artia = self.session.ArtiaX
@@ -651,6 +753,108 @@ class OptionsWindow(ToolInstance):
                                                                                               value[0],
                                                                                               value[1],
                                                                                               value[2]))
+
+    def _create_averaged_tomogram(self):
+        artia = self.session.ArtiaX
+        tomo = artia.tomograms.get(artia.options_tomogram)
+        from functools import reduce
+        num_voxels = reduce(lambda x, y: x * y, tomo.size)
+        if num_voxels > 100000000:
+            self.session.logger.warning("Large Tomogram, might take time.")
+
+        tomo.create_averaged_tomogram(num_slabs=tomo.num_averaging_slabs, axis=tomo.averaging_axis)
+
+    def _lp_box_clicked(self, on):
+        artia = self.session.ArtiaX
+        tomo = artia.tomograms.get(artia.options_tomogram)
+        tomo.use_low_pass = on
+
+    def _hp_box_clicked(self, on):
+        artia = self.session.ArtiaX
+        tomo = artia.tomograms.get(artia.options_tomogram)
+        tomo.use_high_pass = on
+
+    def _filtering_unit_changed(self, value):
+        artia = self.session.ArtiaX
+        tomo = artia.tomograms.get(artia.options_tomogram)
+        tomo.unit = value.lower()
+
+        self.lp_filter_options.blockSignals(True)
+        self.hp_filter_options.blockSignals(True)
+        if value == 'angstrom':
+            self.lp_filter_options.enable_decay_setter(False)
+            self.hp_filter_options.enable_decay_setter(False)
+        else:
+            self.lp_filter_options.enable_decay_setter(True)
+            self.hp_filter_options.enable_decay_setter(True)
+        self.lp_filter_options.blockSignals(False)
+        self.hp_filter_options.blockSignals(False)
+
+    def _lp_filter_changed(self):
+        artia = self.session.ArtiaX
+        tomo = artia.tomograms.get(artia.options_tomogram)
+        tomo.lp_method = self.lp_filter_options.cutoff
+        tomo.lp = self.lp_filter_options.pass_freq
+        tomo.lpd = self.lp_filter_options.decay_freq
+        tomo.auto_lpd = self.lp_filter_options.auto_decay
+
+    def _hp_filter_changed(self):
+        artia = self.session.ArtiaX
+        tomo = artia.tomograms.get(artia.options_tomogram)
+        tomo.hp_method = self.hp_filter_options.cutoff
+        tomo.hp = self.hp_filter_options.pass_freq
+        tomo.hpd = self.hp_filter_options.decay_freq
+        tomo.auto_hpd = self.hp_filter_options.auto_decay
+
+    def _create_filtered_tomogram(self):
+        artia = self.session.ArtiaX
+        tomo = artia.tomograms.get(artia.options_tomogram)
+        from functools import reduce
+        num_voxels = reduce(lambda x, y: x * y, tomo.size)
+        if num_voxels > 100000000:
+            self.session.logger.warning("Large Tomogram, might take time.")
+
+        if tomo.use_low_pass:
+            lp = tomo.lp
+            lpd = None if tomo.auto_lpd else tomo.lpd
+        else:
+            lp, lpd = 0, 0
+        if tomo.use_high_pass:
+            hp = tomo.hp
+            hpd = None if tomo.auto_hpd else tomo.hpd
+        else:
+            hp, hpd = 0, 0
+
+        lp_method = 'cosine' if tomo.lp_method.lower() == 'raised cosine' else tomo.lp_method.lower()
+        hp_method = 'cosine' if tomo.hp_method.lower() == 'raised cosine' else tomo.hp_method.lower()
+
+
+        tomo.create_filtered_tomogram(lp, hp, lpd, hpd, tomo.thresh, tomo.unit, lp_method, hp_method)
+
+        from chimerax.core.commands import log_equivalent_command
+        if lp_method == 'gaussian' or hp_method == 'gaussian':
+            log_equivalent_command(self.session, "artiax filter #{} {} {} lpd {} hpd {} unit {} lp_cutoff {} hp_cutoff {} threshold {}".format(
+                                              tomo.id_string, lp, hp, lpd, hpd, tomo.unit, lp_method, hp_method, tomo.thresh))
+        else:
+            log_equivalent_command(self.session,
+                                   "artiax filter #{} {} {} lpd {} hpd {} unit {} lp_cutoff {} hp_cutoff {}".format(
+                                       tomo.id_string, lp, hp, lpd, hpd, tomo.unit, lp_method, hp_method))
+
+    def _average_axis_changed(self, axis):
+        artia = self.session.ArtiaX
+        tomo = artia.tomograms.get(artia.options_tomogram)
+        tomo.averaging_axis = axis
+
+    def _average_axis_copy_slice_direction(self):
+        artia = self.session.ArtiaX
+        tomo = artia.tomograms.get(artia.options_tomogram)
+        tomo.averaging_axis = tomo.normal
+        self.process_average_axis_widget.set_value(tomo.averaging_axis)
+
+    def _average_num_slabs_changed(self, num_slabs):
+        artia = self.session.ArtiaX
+        tomo = artia.tomograms.get(artia.options_tomogram)
+        tomo.num_averaging_slabs = int(num_slabs)
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -986,9 +1190,9 @@ class OptionsWindow(ToolInstance):
         #### Reorient buttons ####
         reorient_label = QLabel("Reorient particles:")
         self.reorient_from_order_button = QPushButton("From Particle List Order")
-        self.reorient_from_order_button.setToolTip("Use the reorder buttons to order the particle list if necessary."
+        self.reorient_from_order_button.setToolTip("Use the reorder buttons to order the particle list if necessary. "
                                                    "Then use this button to reorient the particles to point to the next"
-                                                   "one in the particle list.")
+                                                   " one in the particle list.")
         reorient_layout.addWidget(reorient_label)
         reorient_layout.addWidget(self.reorient_from_order_button)
         #### Reorient buttons ####
@@ -998,10 +1202,10 @@ class OptionsWindow(ToolInstance):
         self.reorder_from_links_button = QPushButton("From Selected Links")
         self.reorder_to_closest_button = QPushButton("To Closest")
         self.reorder_to_closest_button.setToolTip("Creates a new list with particles identical to this one, except they"
-                                                  "are reaordered according to proximity. Select one particle as the"
-                                                  "starting point, which will be the first particle in the new list,"
-                                                  "with the closest particle to the selected one being the second"
-                                                  "particle in the list, etc.")
+                                                  " are reordered according to proximity. Select one particle as the"
+                                                  " starting point, which will be the first particle in the new list,"
+                                                  " with the closest particle to the selected one being the second"
+                                                  " particle in the list, etc.")
         reorient_layout.addWidget(reorder_label)
         reorient_layout.addWidget(self.reorder_from_links_button)
         reorient_layout.addWidget(self.reorder_to_closest_button)
@@ -1035,11 +1239,9 @@ class OptionsWindow(ToolInstance):
 
         # Set sliders
         self.radius_widget.value = pl.radius
-        #print('pre set')
         prev = self.axes_size_widget.blockSignals(True)
         self.axes_size_widget.value = pl.axes_size
         self.axes_size_widget.blockSignals(prev)
-        #print('post set')
 
         if pl.has_display_model() and pl.display_is_volume():
             self.surface_level_widget.setEnabled(True)
@@ -1267,6 +1469,54 @@ class OptionsWindow(ToolInstance):
     def _color_geomodel(self, *args, **kwargs):
         self.session.ArtiaX.color_geomodel(*args, **kwargs)
 
+    def _generate_in_surface(self):
+        artia = self.session.ArtiaX
+        gm = artia.geomodels.get(artia.options_geomodel)
+
+        from .util.generate_points import generate_points_in_surface
+        generate_points_in_surface(self.session, gm, gm.generate_in_surface_radius, gm.generate_in_surface_num_pts, gm.generate_in_surface_method)
+
+        from chimerax.core.commands import log_equivalent_command
+        if gm.generate_in_surface_method.lower() == 'poisson':
+            log_equivalent_command(self.session, "artiax gen in surface #{} poisson radius {}".format(gm.id_string, gm.generate_in_surface_radius))
+        elif gm.generate_in_surface_method.lower() == 'uniform':
+            log_equivalent_command(self.session, "artiax gen in surface #{} uniform numPts {} exactNum False".format(gm.id_string,
+                                                                                                     gm.generate_in_surface_num_pts))
+        else:
+            log_equivalent_command(self.session, "artiax gen in surface #{} regular numPts {}".format(gm.id_string,
+                                                                                                     gm.generate_in_surface_num_pts))
+
+    def _generate_in_surface_options_changed(self):
+        artia = self.session.ArtiaX
+        gm = artia.geomodels.get(artia.options_geomodel)
+
+        gm.generate_in_surface_radius = self.generate_in_surface_widget.radius
+        gm.generate_in_surface_method = self.generate_in_surface_widget.method
+        gm.generate_in_surface_num_pts = self.generate_in_surface_widget.num_pts
+
+    def _generate_on_surface(self):
+        artia = self.session.ArtiaX
+        gm = artia.geomodels.get(artia.options_geomodel)
+
+        from .util.generate_points import generate_points_on_surface
+        generate_points_on_surface(self.session, gm, gm.generate_on_surface_num_pts, gm.generate_on_surface_radius, gm.generate_on_surface_method, exact_num=True)
+
+        from chimerax.core.commands import log_equivalent_command
+        if gm.generate_on_surface_method.lower() == 'poisson':
+            log_equivalent_command(self.session, "artiax gen on surface #{} poisson {} radius {} exactNum true".format(gm.id_string, gm.generate_on_surface_num_pts,
+                                                                                                     gm.generate_on_surface_radius))
+        else:
+            log_equivalent_command(self.session, "artiax gen on surface #{} uniform {}".format(gm.id_string,
+                                                                                                gm.generate_on_surface_num_pts))
+
+    def _generate_on_surface_options_changed(self):
+        artia = self.session.ArtiaX
+        gm = artia.geomodels.get(artia.options_geomodel)
+
+        gm.generate_on_surface_radius = self.generate_on_surface_widget.radius
+        gm.generate_on_surface_method = self.generate_on_surface_widget.method
+        gm.generate_on_surface_num_pts = self.generate_on_surface_widget.num_pts
+
     def take_snapshot(self, session, flags):
         return
         {
@@ -1416,8 +1666,25 @@ class OptionsWindow(ToolInstance):
 
         color_select.setLayout(group_color_layout)
 
+        # Generating points options
+        from .widgets import GenerateInSurfaceOptions, GenerateOnSurfaceOptions
+        generate_points = QGroupBox("Generate Points:")
+        generate_points.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,
+                                               QSizePolicy.Maximum))
+        generate_points.setFont(self.font)
+        generate_points.setCheckable(True)
+        generate_points_layout = QVBoxLayout()
+        self.generate_in_surface_widget = GenerateInSurfaceOptions()
+        self.generate_on_surface_widget = GenerateOnSurfaceOptions()
+
+        generate_points_layout.addWidget(self.generate_in_surface_widget)
+        generate_points_layout.addWidget(self.generate_on_surface_widget)
+        generate_points.setLayout(generate_points_layout)
+
+
         # Define the model specific options
-        self.models = {"Sphere": 0, "CurvedLine": 1, "Surface": 2, "TriangulationSurface": 3, "Boundary": 4}
+        self.models = {"Sphere": 0, "CurvedLine": 1, "Surface": 2, "TriangulationSurface": 3, "Boundary": 4,
+                       "ArbitraryModel": 5}
         self.model_options = QStackedWidget()
 
         self.sphere_options = SphereOptions(self.session)
@@ -1425,15 +1692,18 @@ class OptionsWindow(ToolInstance):
         self.plane_options = PlaneOptions(self.session)
         self.tri_surface_options = TriangulateOptions(self.session)
         self.boundary_options = BoundaryOptions(self.session)
+        self.arbitrary_model_options = ArbitraryModelOptions(self.session)
 
         self.model_options.addWidget(self.sphere_options)
         self.model_options.addWidget(self.curved_options)
         self.model_options.addWidget(self.plane_options)
         self.model_options.addWidget(self.tri_surface_options)
         self.model_options.addWidget(self.boundary_options)
+        self.model_options.addWidget(self.arbitrary_model_options)
 
         geomodel_layout.addWidget(group_current_geomodel)
         geomodel_layout.addWidget(color_select)
+        geomodel_layout.addWidget(generate_points)
         geomodel_layout.addWidget(self.model_options)
 
         # And finally set the layout of the widget
@@ -1448,6 +1718,16 @@ class OptionsWindow(ToolInstance):
 
         # Set new model
         self.geomodel_color_selection.set_geomodel(geomodel)
+        self.generate_in_surface_widget.blockSignals(True)
+        self.generate_in_surface_widget.method = geomodel.generate_in_surface_method
+        self.generate_in_surface_widget.num_pts = geomodel.generate_in_surface_num_pts
+        self.generate_in_surface_widget.radius = geomodel.generate_in_surface_radius
+        self.generate_in_surface_widget.blockSignals(False)
+        self.generate_on_surface_widget.blockSignals(True)
+        self.generate_on_surface_widget.method = geomodel.generate_on_surface_method
+        self.generate_on_surface_widget.num_pts = geomodel.generate_on_surface_num_pts
+        self.generate_on_surface_widget.radius = geomodel.generate_on_surface_radius
+        self.generate_on_surface_widget.blockSignals(False)
         if type(geomodel).__name__ == "Sphere":
             self.sphere_options.set_sphere(geomodel)
         elif type(geomodel).__name__ == "CurvedLine":
@@ -1458,6 +1738,8 @@ class OptionsWindow(ToolInstance):
             self.tri_surface_options.set_tri_surface(geomodel)
         elif type(geomodel).__name__ == "Boundary":
             self.boundary_options.set_boundary(geomodel)
+        elif type(geomodel).__name__ == "ArbitraryModel":
+            self.arbitrary_model_options.set_arbitrary_model(geomodel)
 
         self.model_options.setCurrentIndex(self.models[self.curr_model])
 
@@ -1467,3 +1749,9 @@ class OptionsWindow(ToolInstance):
 
         if model is opgm:
             self._update_geomodel_ui()
+
+    def delete(self):
+        self.session.triggers.remove_handler(self.add_from_session.handler_add)
+        self.session.triggers.remove_handler(self.add_from_session.handler_del)
+
+        ToolInstance.delete(self)

@@ -47,6 +47,8 @@ _providers = {
     "Triangulate": "artiax triangulate",
     "Boundary": "artiax boundary",
     "Create Mask": "artiax mask",
+    "Volume to Geomodel": "artiax vol2geo",
+    "Geomodel to Volume": "artiax geo2vol",
     "Remove Selected": 'artiax remove links',
     "Triangles From Links": "artiax triangles from links",
     "Flip X": "artiax flip x",
@@ -54,6 +56,7 @@ _providers = {
     "Flip Z": "artiax flip z",
     "Delete Picked Triangle": 'ui mousemode right "delete picked triangle"',
     "Delete Tetra From Boundary": 'ui mousemode right "delete tetra from boundary"',
+    "Mask Connected Triangles": 'ui mousemode right "mask connected triangles"'
 }
 
 

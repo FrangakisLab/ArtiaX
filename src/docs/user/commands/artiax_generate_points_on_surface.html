@@ -1,0 +1,56 @@
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=windows-1252">
+    <link rel="stylesheet" type="text/css" href="../userdocs.css">
+    <title>Command:artiax gen on surface</title>
+  </head>
+  <body> <a name="top"></a> <a href="../artiax_index.html"> <img src="../ArtiaX-docs-icon.svg"
+        alt="ArtiaX docs icon" class="clRight" title="User Guide Index" width="60px"></a>
+    <h3><a href="../artiax_index.html#commands">Command</a>: artiax gen on surface</h3>
+    <h3 class="usage"><a href="usageconventions.html">Usage</a>: <br>
+      <b>artiax gen on surface</b> <a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+       <i>method</i> <i>numPts</i> [<strong>radius</strong> <i>value</i>] </h3>
+    <p> The <b>artiax gene on surface</b> command generates points on the chosen surface. Two different
+      methods of generating points are available. Similar to the
+      <a href="artiax_generate_points_in_surface.html"><i>artiax gen in surface</i></a> command.</p>
+    <table style="width: 1006px; height: 380px;" border="1">
+      <tbody>
+        <tr>
+          <td style="text-align: center; width: 70px;"><em><strong>property</strong></em></td>
+          <td style="text-align: center; width: 400px;"><em><strong>meaning</strong></em></td>
+          <td style="text-align: center; width: 80px;"><em><strong>expected
+                value type</strong></em></td>
+        </tr>
+        <tr>
+          <td style="height: 19px; text-align: center;"><strong>method</strong></td>
+          <td>Method for generating points. Available methods are: <strong>uniform</strong> and <strong>poisson</strong>.
+            The <strong>uniform</strong> method generates the specified number of points uniformly sampled on the surface,
+            and the <strong>poisson</strong> method generates points using a
+            poisson disk sampling scheme (meaning points are generated randomly but never within a certain radius of each other)
+            using the specified number of points and radius. Ten times the specified number of points are generated uniformly
+            on the surface, and points are then removed until no points are within the specified radius of each other, meaning
+            that the number of points in the end will approximately be the specified number of points, depending
+            on the size and shape of the surface.</td>
+          <td style="text-align: center;"><em>string</em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>numPts</strong></td>
+          <td>The number of points to generate on the surface when using the <strong>uniform</strong>, and a tenth
+            of the number of originally generated points for the <strong>poisson</strong> method.</td>
+          <td style="text-align: center;"><em>int</em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>radius</strong></td>
+          <td>The poisson disk radius used for the <strong>poisson</strong> method.</td>
+          <td style="text-align: center;"><em>float</em></td>
+        </tr>
+      </tbody>
+    </table>
+    <p> Examples: </p>
+    <blockquote> <b>artiax gen on surface #1.3.1 uniform 100 <br>
+        artiax gen on surface #1.3.1 poisson 50 radius 10 </b> </blockquote>
+    <p></p>
+    <hr>
+    <address>BMLS Frangakis Group / August 2023</address>
+  </body>
+</html>

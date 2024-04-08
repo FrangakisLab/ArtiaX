@@ -1,0 +1,143 @@
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=windows-1252">
+    <link rel="stylesheet" type="text/css" href="../userdocs.css">
+    <title>Command: artiax remove overlap</title>
+  </head>
+  <body> <a name="top"></a> <a href="../artiax_index.html"> <img src="../ArtiaX-docs-icon.svg"
+        alt="ArtiaX docs icon" class="clRight" title="User Guide Index" width="60px"></a>
+    <h3><a href="../artiax_index.html#commands">Command</a>: artiax remove overlap</h3>
+    <h3 class="usage"><a href="usageconventions.html">Usage</a>: <br>
+      <b>artiax remove overlap</b> [<em><a href="atomspec.html#hierarchy"><i>model-spec</i></a>-list</em>]
+      [<strong>freeze</strong> <i>value</i>] [<strong>manifold</strong> <i>value</i>] [<strong>boundary</strong> <i>value</i>]
+      [<strong>method</strong> <i>value</i>] [<strong>iterations</strong> <i>value</i>] [<strong>thoroughness</strong> <i>value</i>]
+      [<strong>precision</strong> <i>value</i>] [<strong>maxSearchDistance</strong> <i>value</i>]</h3>
+    <p> The <b>artiax remove overlap</b> command moves particles with attached surfaces in an iterative manner until
+     the surfaces of the particles no longer overlap. If no particle lists are specified, all selected particles with
+     attached surfaces are moved. Particle lists specified with the 'freeze' keyword will be included in the overlap
+     calculations, but will not be moved. The 'manifold' keyword can be used when particles are attached to a geometric
+      model, in which case the particles will be moved along the while remaining oriented away from the surface.
+      Useful in combination with the <a href="artiax_generate_points_on_surface.html"> <i>artiax gen on surface</i></a>
+        command. Similarly, the 'boundary' keyword can be used when particles are placed inside a geometric model,
+      in which case the particles will be moved without being moved outside the specified geometric model. Useful
+    in combination with the <a href="artiax_generate_points_in_surface.html"><i>artiax gen in surface</i></a> command.
+    Two methods are available for calculating the overlap between the surfaces, chosen by the 'method' keyword. The
+    default, 'distance', estimates the distance two surfaces overlap, and is generally the quicker and better option.
+    But for some geometries, or in cases where very high or low precision is needed, the 'volume' method can be used,
+    which estimates the volume of the overlap and moves the particles away from each other's centers. Using this method,
+    the keywords 'thoroughness', 'precision', and 'iterations' can be used to get a specified precision.</p>
+    <table style="width: 1006px; height: 380px;" border="1">
+      <tbody>
+        <tr>
+          <td style="text-align: center; width: 100px;"><em><strong>property</strong></em></td>
+          <td style="text-align: center; width: 400px;"><em><strong>meaning</strong></em></td>
+          <td style="text-align: center; width: 50px;"><em><strong>default</strong></em></td>
+          <td style="text-align: center; width: 130px;"><em><strong>expected value type</strong></em></td>
+        </tr>
+        <tr>
+          <td style="height: 19px; text-align: center;"><strong>freeze</strong></td>
+          <td>All particle lists specified will be included when calculating the overlap between surfaces, but these ones
+          will no move. Can be useful if, for example, the position of a surface is known, but not the position of the
+            surrounding surfaces, which can then move freely around the known surface.</td>
+          <td style="text-align: center;">-</td>
+          <td style="text-align: center;"><em><a href="atomspec.html#hierarchy"><i>model-spec</i></a>-list</em></td>
+        </tr>
+        <tr>
+          <td style="height: 19px; text-align: center;"><strong>manifold</strong></td>
+          <td>Multiple lists can be specified, where the first element of each list is a particle list, and the
+          second item is a geometric model. The specified particle lists will be included in the overlap calculations
+          and moved away from each other, but they will be projected back onto the accompanying geometric model. The
+          particles have to start on the geometric model. If the curvature of the geometric model is very large, the particles might
+          move away from it. The particles are automatically oriented such that the z-axis points away from the geometric
+          model.</td>
+          <td style="text-align: center;">-</td>
+          <td style="text-align: center;"><em>repeat of <a href="atomspec.html#hierarchy"><i>model-spec</i></a>-lists</em></td>
+        </tr>
+        <tr>
+          <td style="height: 19px; text-align: center;"><strong>manifold</strong></td>
+          <td>Multiple lists can be specified, where the first element of each list is a particle list, and the
+          second item is a geometric model. The specified particle lists will be included in the overlap calculations
+          and moved away from each other, but will not be allowed to move into the accompanying geometric model. The
+          particles are kept away from the geometric model with the help of the 'maxSearchDistance' parameter, which
+          can be set. A higher value gives a lower risk that the particles move into the geometric model, but also
+          increases computation time.</td>
+          <td style="text-align: center;">-</td>
+          <td style="text-align: center;"><em>repeat of <a href="atomspec.html#hierarchy"><i>model-spec</i></a>-lists</em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>method</strong></td>
+          <td>The method used for measuring the overlap between surfaces. Can be set to 'distance' or 'volume'. 'distance'
+            is generally the better and faster choice, but for very concave geometries 'volume' can be more useful.
+            When using the 'volume' method, the precision can also be specified using the 'thoroughness' and 'precision' keywords.</td>
+          <td style="text-align: center;">distance</td>
+          <td style="text-align: center;"><em>string</em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>iterations</strong></td>
+          <td>The maximum number of iterations.</td>
+          <td style="text-align: center;">100</td>
+          <td style="text-align: center;"><em>int</em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>thoroughness</strong></td>
+          <td>Can only be used in combination with the 'volume' method. Decides the exactness with which the overlap
+            volume between two surfaces is calculated. A higher number gives a better estimate, but takes longer.</td>
+          <td style="text-align: center;">100</td>
+          <td style="text-align: center;"><em>int</em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>precision</strong></td>
+          <td>Can only be used in combination with the 'volume' method. A factor dictating how far to move two overlapping
+          surfaces away from each other. A lower number moves the particles less, meaning that it will take more iterations
+          for the algorithm to finish, but the particles will end up closer together.</td>
+          <td style="text-align: center;">0.33</td>
+          <td style="text-align: center;"><em>float</em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>maxSearchDistance</strong></td>
+          <td>When using the 'boundary' keyword, a search distance is calculated for each geometric model depending
+          on its geometry. However, this search distance is capped by the maxSearchDistance value to avoid large slowdown.</td>
+          <td style="text-align: center;">100</td>
+          <td style="text-align: center;"><em>float</em></td>
+        </tr>
+      </tbody>
+    </table>
+    <p> Examples: </p>
+    <table style="width: 1006px; height: 300px;" border="1">
+      <tbody>
+        <tr>
+          <td style="height: 19px; width: 400px; text-align: center;"><em><strong>command</strong></em></td>
+          <td style="height: 19px; text-align: center;"><em><strong>effect</strong></em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;">artiax remove overlap</td>
+          <td>Moves all selected particles with an attached surface.</td>
+        </tr>
+        <tr>
+          <td style="text-align: center;">artiax remove overlap #1.2.1,#1.2.2 freeze #1.2.3</td>
+          <td>Moves particle lists #1.2.1 and #1.2.2 so that no particles overlap with each other, or any particle in
+          particle list #1.2.3, although these particles are not moved.</td>
+        </tr>
+        <tr>
+          <td style="text-align: center;">artiax remove overlap freeze #1.2.1,#1.2.2 manifold #1.2.3,#1.3.1 manifold #1.2.4,#1.3.1</td>
+          <td>Moves particle lists #1.2.3 and #1.2.4 on the surface of geometric model #1.3.1 so that they do not
+            overlap with each other or the particles in particle lists #1.2.1 and #1.2.2.</td>
+        </tr>
+        <tr>
+          <td style="text-align: center;">artiax remove overlap #1.2.2 boundary #1.2.1,#1.3.2 maxSearchDistance 200</td>
+          <td>Moves the particles in list #1.2.2 freely, and the particles in list #1.2.1 without moving them through
+          geometric model #1.3.2, so that no particles in the particle lists overlap. The maxSearchDistance is increased
+          to 200, decreasing the risk that a particle from particle list #1.2.1 is accidentally moved into the geometric model</td>
+        </tr>
+        <tr>
+          <td style="text-align: center;">artiax remove overlap method volume thoroughness 500 precision 0.2 iterations 200</td>
+          <td>Moves all selected particles with an attached surface using the volume method with very high accuracy and
+          allowing 200 iterations.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p></p>
+    <hr>
+    <address>BMLS Frangakis Group / August 2023</address>
+  </body>
+</html>

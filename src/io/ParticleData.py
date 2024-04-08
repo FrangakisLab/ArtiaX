@@ -4,15 +4,17 @@
 from __future__ import annotations
 from uuid import uuid4
 from collections import OrderedDict
+from importlib import import_module
 
 # ChimeraX
 from chimerax.core.errors import UserError
+from chimerax.core.state import State
 from chimerax.geometry import translation, rotation, Place, Places
 from chimerax.atomic import Atom
 from chimerax.core.attributes import type_attrs
 
 
-class EulerRotation:
+class EulerRotation(State):
     """
     EulerRotation specifies the axes and order of rotation for a transform parametrized by three rotations, and provides
     methods for computing the rotation angles from a rotation matrix.
@@ -25,6 +27,7 @@ class EulerRotation:
     invert_dir == True:
     M_full = M(axis_3, -ang_3) * M(axis_2, -ang_2) * M(axis_1, -ang_1)
     """
+
     def __init__(self, axis_1, axis_2, axis_3, invert_dir=False):
         self.axis_1 = axis_1
         """Axis for 1st rotation, 3-tuple of float."""
@@ -85,7 +88,7 @@ class EulerRotation:
         return rot3 * rot2 * rot1
 
 
-class Particle:
+class Particle(State):
     """
     A Particle contains information about the position and orientation of an object of interest (usually protein)
     within a tomogram, as well as particle format specific metadata.
@@ -392,8 +395,40 @@ class Particle:
 
         return l
 
+    def take_snapshot(self, session, flags):
+        data = {
+            'id': self.id,
+            'pixelsize_ori': self.pixelsize_ori,
+            'pixelsize_tra': self.pixelsize_tra,
+            'data_keys': self._data_keys,
+            'default_params': self._default_params,
+            'data': self._data,
+            'euler_module': self.rot.__class__.__module__,
+            'euler_class': self.rot.__class__.__name__
+        }
 
-class ParticleData:
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+
+        # Get the class with some magic
+        euler = getattr(import_module(data['euler_module']), data['euler_class'])
+
+        p = cls(data['id'],
+                data['data_keys'],
+                data['default_params'],
+                euler,
+                pixelsize_ori=data['pixelsize_ori'],
+                pixelsize_tra=data['pixelsize_tra'])
+
+        p._data = data['data']  # lol
+
+        return p
+
+
+
+class ParticleData(State):
     """
     ParticleData handles creation, storage and deletion of Particle objects, as well as registering attribute names as
     attributes of the Atom class.
@@ -671,16 +706,17 @@ class ParticleData:
 
     def _register_keys(self):
         # Make sure all keys are added as custom attributes for the Atom class
-        for key, value in self._data_keys.items():
-            if key not in type_attrs(Atom):
-                Atom.register_attr(self.session, key, 'artiax', attr_type=float)
-            for v in value:
-                if v not in type_attrs(Atom):
-                    Atom.register_attr(self.session, v, 'artiax', attr_type=float)
-
-        for key in self._default_params.keys():
-            if key not in type_attrs(Atom):
-                Atom.register_attr(self.session, key, 'artiax', attr_type=float)
+        pass
+        # for key, value in self._data_keys.items():
+        #     if key not in type_attrs(Atom):
+        #         Atom.register_attr(self.session, key, 'artiax', attr_type=float)
+        #     for v in value:
+        #         if v not in type_attrs(Atom):
+        #             Atom.register_attr(self.session, v, 'artiax', attr_type=float)
+        #
+        # for key in self._default_params.keys():
+        #     if key not in type_attrs(Atom):
+        #         Atom.register_attr(self.session, key, 'artiax', attr_type=float)
 
 
     def get_all_transforms(self):
@@ -702,6 +738,54 @@ class ParticleData:
                 d[k].append(p[k])
 
         return d
+
+    def take_snapshot(self, session, flags):
+
+        parts = []
+        for _id, p in self:
+            parts.append(p)
+
+        orig_parts = []
+        for _id, p in self._orig_particles.items():
+            orig_parts.append(p)
+
+        data = {
+            'file_name': self.file_name,
+            'additional_files': self.additional_files,
+            'data_keys': self._data_keys,
+            'default_params': self._default_params,
+            'pixelsize_ori': self.pixelsize_ori,
+            'pixelsize_tra': self.pixelsize_tra,
+            'parts': parts,
+            'orig_parts': orig_parts
+        }
+
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        pd = cls(session,
+                 None,
+                 oripix=data['pixelsize_ori'],
+                 trapix=data['pixelsize_tra'],
+                 additional_files=data['additional_files'])
+
+        pd._data_keys = data['data_keys']
+        pd._default_params = data['default_params']
+
+        pd._register_keys()
+
+        for p in data['parts']:
+            #part = Particle.restore_snapshot(p)
+            pd._particles[p.id] = p
+
+        for op in data['orig_parts']:
+            #part = Particle.restore_snapshot(op)
+            pd._orig_particles[op.id] = op
+
+        return pd
+
+
 
 
 

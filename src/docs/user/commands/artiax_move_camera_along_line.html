@@ -1,0 +1,89 @@
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=windows-1252">
+    <link rel="stylesheet" type="text/css" href="../userdocs.css">
+    <title>Command:artiax moveCameraAlongLine</title>
+  </head>
+  <body> <a name="top"></a> <a href="../artiax_index.html"> <img src="../ArtiaX-docs-icon.svg"
+        alt="ArtiaX docs icon" class="clRight" title="User Guide Index" width="60px"></a>
+    <h3><a href="../artiax_index.html#commands">Command</a>: artiax moveCameraAlongLine</h3>
+    <h3 class="usage"><a href="usageconventions.html">Usage</a>: <br>
+      <b>artiax moveCameraAlongLine</b> <a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+      [<strong>numFrames</strong> <i>value</i>] [<strong>backwards</strong> <i>value</i>]
+      [<strong>distanceBehind</strong> <i>value</i>] [<strong>topRotation</strong> <i>value</i>]
+      [<strong>facingRotation</strong> <i>value</i>] [<strong>cameraRotation</strong> <i>value</i>]
+      [<strong>monoCamera</strong> <i>value</i>] [<strong>maxAngle</strong> <i>value</i>]</h3>
+    <p> The <b>artiax filter</b> command moves the camera along a specified line model. Can be used to record movies
+    where the camera moves along a desired path. The number of frames, as well as the facing of the camera can be
+    specified, along with an optional smoothing option. It is recommended to use to the curved line options UI to find
+      an appropriate rotation. </p>
+    <table style="width: 1006px; height: 380px;" border="1">
+      <tbody>
+        <tr>
+          <td style="text-align: center; width: 100px;"><em><strong>property</strong></em></td>
+          <td style="text-align: center; width: 400px;"><em><strong>meaning</strong></em></td>
+          <td style="text-align: center; width: 100px;"><em><strong>default</strong></em></td>
+          <td style="text-align: center; width: 100px;"><em><strong>expected value type</strong></em></td>
+        </tr>
+        <tr>
+          <td style="height: 19px; text-align: center;"><strong>numFrames</strong></td>
+          <td>Sets over how many frames the camera will move along the line. Cannot be larger than the resolution of the line.
+          The number of frames can end up being more than the specified value if smoothing is turned on with the 'maxAngle' keyword.</td>
+          <td style="text-align: center;">resolution of the line</td>
+          <td style="text-align: center;"><em>int</em></td>
+        </tr>
+        <tr>
+          <td style="height: 19px; text-align: center;"><strong>backwards</strong></td>
+          <td>If the camera moves forwards or backwards along the line.</td>
+          <td style="text-align: center;">false</td>
+          <td style="text-align: center;"><em>bool</em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>distanceBehind</strong></td>
+          <td>The camera is put the specified distance behind the line.</td>
+          <td style="text-align: center;">500</td>
+          <td style="text-align: center;"><em>float</em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>topRotation</strong></td>
+          <td>Rotates the top of the camera.</td>
+          <td style="text-align: center;">0</td>
+          <td style="text-align: center;"><em>float</em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>facingRotation</strong></td>
+          <td>Rotates the facing of the camera.</td>
+          <td style="text-align: center;">0</td>
+          <td style="text-align: center;"><em>float</em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>cameraRotation</strong></td>
+          <td>Rotates the camera.</td>
+          <td style="text-align: center;">0</td>
+          <td style="text-align: center;"><em>float</em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>monoCamera</strong></td>
+          <td>If true, changes the camera mode to 'mono'.</td>
+          <td style="text-align: center;">true</td>
+          <td style="text-align: center;"><em>bool</em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>maxAngle</strong></td>
+          <td>The maximum allowed angle for each frame of the camera. Linearly interpolates between frames if the angle
+            is too large. If None, a suitable angle is estimated to avoid 'bumps'. Set to 0 to avoid smoothing.</td>
+          <td style="text-align: center;">None</td>
+          <td style="text-align: center;"><em>None or float</em></td>
+        </tr>
+      </tbody>
+    </table>
+    <p> Examples: </p>
+    <blockquote> <b>
+      artiax moveCameraAlongLine #1.3.1 numFrames 300 distanceBehind 0 maxAngle 0 <br>
+      artiax moveCameraAlongLine #1.3.2 numFrames 500 topRotation 30 facingRotation 42 cameraRotation 15 maxAngle 0.1
+    </b></blockquote>
+    <p></p>
+    <hr>
+    <address>BMLS Frangakis Group / August 2023</address>
+  </body>
+</html>

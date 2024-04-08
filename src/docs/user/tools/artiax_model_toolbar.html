@@ -73,7 +73,8 @@ or derivations thereof.=== UCSF ChimeraX Copyright ===-->
         </tr>
       </tbody>
     </table>
-    <p> The <b>Mask</b> section is used to create a mask from a selected geometric model.
+    <p> The <b>Mask</b> section is used to create a mask from a selected geometric model, converting volumes to geomodels,
+      and adding geomodels to volumes. Useful for "on the fly" segmentation of surfaces.
     <table cellspacing="0" cellpadding="4" border="">
       <tbody>
         <tr>
@@ -86,9 +87,19 @@ or derivations thereof.=== UCSF ChimeraX Copyright ===-->
           <td align="center">creates a mask from the currently selected geometric model.</td>
           <td align="center"> <b><a href="../commands/artiax_mask.html">artiax mask</a></b></td>
         </tr>
+        <tr>
+          <td align="center"><img src="../../../icons/vol2geo.png" width="35px"></td>
+          <td align="center">converts the shown triangles of the selected volumes to a new geomodel.</td>
+          <td align="center"> <b><a href="../commands/artiax_vol2geo.html">artiax vol2geo</a></b></td>
+        </tr>
+        <tr>
+          <td align="center"><img src="../../../icons/geo2vol.png" width="35px"></td>
+          <td align="center">creates a new volume using all currently shown geomodels .</td>
+          <td align="center"> <b><a href="../commands/artiax_geo2vol.html">artiax geo2vol</a></b></td>
+        </tr>
       </tbody>
     </table>
-    <p> The <b>Delete Surface</b> section sets the users mouse mode to allow for deleting parts of models.
+    <p> The <b>Delete Surface</b> section sets the users mouse mode to allow for deleting or masking parts of models.
     <table cellspacing="0" cellpadding="4" border="">
       <tbody>
         <tr>
@@ -97,7 +108,12 @@ or derivations thereof.=== UCSF ChimeraX Copyright ===-->
         </tr>
         <tr>
           <td align="center"><img src="../../../icons/delete_tetra.png" width="35px"></td>
-          <td align="center">Deletes the picked tetrahedron from a boundary model.</td>
+          <td align="center">deletes the picked tetrahedron from a boundary model.</td>
+        </tr>
+        <tr>
+          <td align="center"><img src="../../../icons/mask_triangle.png" width="35px"></td>
+          <td align="center">masks the triangles connected to the pressed triangle. A radius can be set so as to not
+            mask all connected triangles with the <a href="../commands/artiax_mask_triangle_radius.html">artiax mask triangle radius</a> command.</td>
         </tr>
       </tbody>
     </table>

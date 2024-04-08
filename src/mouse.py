@@ -1,13 +1,18 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+import numpy as np
 
 # ChimeraX
 from chimerax.mouse_modes.mousemodes import MouseMode
 from chimerax.mouse_modes.std_modes import MoveMouseMode
 from chimerax.atomic.structure import PickedAtom
 from chimerax.graphics.drawing import PickedTriangle
+from chimerax.core.models import PickedModel
+from chimerax.map import PickedMap
+from chimerax.graphics import Drawing
+from chimerax.surface import connected_triangles
 
 # This package
-from .particle import PickedInstanceTriangle
+from .particle import PickedInstanceTriangle, SurfaceCollectionModel
 
 
 class MoveParticlesMode(MoveMouseMode):
@@ -168,7 +173,8 @@ class MovePickedParticleMode(MoveParticlesMode):
             else:
                 self._collections = []
                 self._masks = []
-        elif isinstance(pick, PickedInstanceTriangle):
+        elif isinstance(pick, PickedModel) and isinstance(pick.picked_triangle, PickedInstanceTriangle):
+            pick = pick.picked_triangle
             self._collections = [pick.drawing().parent]
             self._masks = [pick.position_mask()]
         else:
@@ -219,7 +225,8 @@ class DeletePickedParticleMode(MouseMode):
                 return pick.atom.particle_id, par.parent
             else:
                 return None, None
-        elif isinstance(pick, PickedInstanceTriangle):
+        elif isinstance(pick, PickedModel) and isinstance(pick.picked_triangle, PickedInstanceTriangle):
+            pick = pick.picked_triangle
             return pick.particle_id(), pick.drawing().parent.parent
         else:
             return None, None
@@ -266,7 +273,8 @@ class DeletePickedTriangleMode(MouseMode):
     def remove_from_pick(self, pick):
         from .geometricmodel.Boundary import Boundary
         from .geometricmodel.Surface import Surface
-        if isinstance(pick, PickedTriangle) and isinstance(pick.drawing(), (Boundary, Surface)):
+        if isinstance(pick, PickedModel) and isinstance(pick.drawing(), (Surface, Boundary)):
+            pick = pick.picked_triangle
             geomodel = pick.drawing()
             from .geometricmodel.GeoModel import remove_triangle
             remove_triangle(geomodel, pick.triangle_number)
@@ -289,7 +297,8 @@ class DeletePickedTetraMode(MouseMode):
 
     def remove_from_pick(self, pick):
         from .geometricmodel.Boundary import Boundary
-        if isinstance(pick, PickedTriangle) and isinstance(pick.drawing(), Boundary):
+        if isinstance(pick, PickedModel) and isinstance(pick.drawing(), Boundary):
+            pick = pick.picked_triangle
             boundary = pick.drawing()
             boundary.remove_tetra(pick.triangle_number)
 
@@ -301,3 +310,57 @@ class DeletePickedTetraMode(MouseMode):
     def vr_press(self, event):
         pick = event.picked_object(self.view)
         self.remove_from_pick(pick)
+
+
+class MaskConnectedTrianglesMode(MouseMode):
+    name = 'mask connected triangles'
+    #Todo: change image icon
+    icon_file = './icons/delete.png'
+
+    def __init__(self, session, radius=None):
+        MouseMode.__init__(self, session)
+        self.radius = radius
+
+    def mask_connected_triangles(self, pick):
+        if hasattr(pick, "drawing") and isinstance(pick.drawing(), Drawing):
+            if isinstance(pick, PickedModel):
+                t_number = pick.picked_triangle.triangle_number
+                surface = pick.drawing()
+            elif isinstance(pick, PickedMap) and hasattr(pick, "triangle_pick"):
+                t_number = pick.triangle_pick.triangle_number
+                surface = None
+                for d in pick.drawing().child_drawings():
+                    if not d.empty_drawing():
+                        surface = d
+                        break
+                if surface is None:
+                    return
+            else:
+                return
+
+            if isinstance(surface, SurfaceCollectionModel):
+                return
+
+
+            connected_tris = connected_triangles(surface.triangles, t_number)
+            if self.radius is not None:
+                def tri_coord(surface, tri):
+                    return surface.vertices[surface.triangles[tri]].mean(axis=0)
+                center = tri_coord(surface, t_number)
+                connected_tris = [tri for tri in connected_tris if np.linalg.norm(tri_coord(surface, tri) - center) < self.radius]
+            if surface.triangle_mask is None:
+                triangles_to_show = np.ones((surface.triangles.shape[0],), dtype=bool)
+                triangles_to_show[connected_tris] = False
+            else:
+                triangles_to_show = surface.triangle_mask
+                triangles_to_show[connected_tris] = False
+            surface.triangle_mask = triangles_to_show
+
+    def mouse_down(self, event):
+        x, y = event.position()
+        pick = self.view.picked_object(x, y)
+        self.mask_connected_triangles(pick)
+
+    def vr_press(self, event):
+        pick = event.picked_object(self.view)
+        self.mask_connected_triangles(pick)

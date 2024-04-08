@@ -30,11 +30,68 @@ class _MyAPI(BundleAPI):
 
     @staticmethod
     def get_class(class_name):
-        # class_name will be a string
-        if class_name == "Rotate_Euler":
-            from . import start_rotate_euler
-            return start_rotate_euler.Rotate_Euler
-        raise ValueError("Unknown class name '%s'" % class_name)
+
+        from .tool import ArtiaXUI
+        from .options_window import OptionsWindow
+        from .ArtiaX import ArtiaX
+        from .util import ManagerModel
+        from .particle import ParticleList, MarkerSetPlus, SurfaceCollectionModel, SurfaceCollectionDrawing
+        from .io.ParticleData import Particle, ParticleData
+        from .io.Artiatomi.ArtiatomiParticleData import ArtiatomiParticleData
+        from .io.Dynamo.DynamoParticleData import DynamoParticleData
+        from .io.Generic.GenericParticleData import GenericParticleData
+        from .io.PEET.PEETParticleData import PEETParticleData
+        from .io.RELION.RELIONParticleData import RELIONParticleData
+        from .volume import VolumePlus, Tomogram, ProcessableTomogram
+        from .geometricmodel.GeoModel import GeoModel
+        from .geometricmodel.ArbitraryModel import ArbitraryModel
+        from .geometricmodel.Boundary import Boundary
+        from .geometricmodel.CurvedLine import CurvedLine
+        from .geometricmodel.Line import Line
+        from .geometricmodel.PopulatedModel import PopulatedModel
+        from .geometricmodel.Sphere import Sphere
+        from .geometricmodel.Surface import Surface
+        from .geometricmodel.TriangulationSurface import TriangulationSurface
+
+        from chimerax.core.state import State
+
+        classes = {
+            # UI and tool
+            'ArtiaXUI': ArtiaXUI,
+            'OptionsWindow': OptionsWindow,
+            'ArtiaX': ArtiaX,
+
+            # Manager models
+            'ManagerModel': ManagerModel,
+
+            # Particle models
+            'ParticleList': ParticleList,
+            'MarkerSetPlus': MarkerSetPlus,
+            'SurfaceCollectionModel': SurfaceCollectionModel,
+            'SurfaceCollectionDrawing': SurfaceCollectionDrawing,
+            'Tomogram': Tomogram,
+            'VolumePlus': VolumePlus,
+            'Particle': Particle,
+            'ParticleData': ParticleData,
+            'ArtiatomiParticleData': ArtiatomiParticleData,
+            'DynamoParticleData': DynamoParticleData,
+            'GenericParticleData': GenericParticleData,
+            'PEETParticleData': PEETParticleData,
+            'RELIONParticleData': State,
+
+            # Geomodels
+            'GeoModel': GeoModel,
+            'ArbitraryModel': ArbitraryModel,
+            'Boundary': Boundary,
+            'CurvedLine': CurvedLine,
+            'Line': Line,
+            'PopulatedModel': PopulatedModel,
+            'Sphere': Sphere,
+            'Surface': Surface,
+            'TriangulationSurface': TriangulationSurface,
+        }
+
+        return classes.get(class_name)
 
     # ==========================================================================
     # Open and save a new file format ==========================================

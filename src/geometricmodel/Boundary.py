@@ -9,6 +9,7 @@ from collections import defaultdict
 from chimerax.bild.bild import _BildFile
 from chimerax.atomic import AtomicShapeDrawing
 from chimerax.geometry import z_align
+from chimerax.core.models import Model
 
 # ArtiaX imports
 from .GeoModel import GeoModel
@@ -85,10 +86,10 @@ class Boundary(GeoModel):
     def reorient_particles_to_surface(self, particles, max_dist=None):
         """Reorients particles so that they point away from the surface. The particles that are in vertices
         get pointed towards the vertex average normal, and particles not in vertices point along the normal
-        of the closest triangle. Ill be honest, this function is shit... its very hard to follow. Had to kinda throw it
+        of the closest triangle. Ill be honest, this function is shit... it's very hard to follow. Had to kinda throw it
         together in the end... Anyways it works by using the verts list, which is a list of all vertices, and
         vertex normals is a list with all normals for all the verts, with the index matching the verts.
-        Tge vertex_normal_indices[i] contains how many normals are associated with vert[i]. """
+        The vertex_normal_indices[i] contains how many normals are associated with vert[i]. """
         self.tri, verts, vertex_normals, vertex_normal_indices = get_triangles(self.particle_pos, self.alpha,
                                                                             calc_normals=True,
                                                                             delete_tri_list=self.delete_tri_list)
@@ -202,6 +203,26 @@ class Boundary(GeoModel):
         with open(file_name, 'wb') as file:
             np.savez(file, model_type="Boundary", particle_pos=self.particle_pos, alpha=self.alpha, triangles=self.tri,
                      delete_tri_list=self.delete_tri_list)
+
+    def take_snapshot(self, session, flags):
+        data = {
+            "particle_pos": self.particle_pos,
+            "alpha": self.alpha,
+            "triangles": self.tri,
+            "delete_tri_list": self.delete_tri_list
+        }
+        data['model state'] = Model.take_snapshot(self, session, flags)
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        particle_pos = data["particle_pos"]
+        alpha = data["alpha"]
+        triangles = data["triangles"]
+        delete_tri_list = data["delete_tri_list"]
+        model = Boundary("Boundary", session, particle_pos, alpha, triangles=triangles, delete_tri_list=delete_tri_list)
+        Model.set_state_from_snapshot(model, session, data['model state'])
+        return model
 
 
 def get_triangles(particle_pos, alpha=0.7, calc_normals=False, delete_tri_list=None):
