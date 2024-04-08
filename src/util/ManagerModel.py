@@ -22,7 +22,7 @@ class ManagerModel(Model):
 
     """
 
-    SESSION_SAVE = False
+    SESSION_SAVE = True
     SESSION_SAVE_DRAWING = False
     SESSION_ENDURING = False
 
@@ -230,6 +230,7 @@ class ManagerModel(Model):
     def take_snapshot(self, session, flags):
         print(f'Snapshot Manager {self.name}')
         data = Model.take_snapshot(self, session, flags)
+        #data['models'] = [model.take_snapshot(session, flags) for model in self.child_models()]
         print(data)
         return data
 
@@ -243,8 +244,10 @@ class ManagerModel(Model):
         # But for particle list models we want to restore the manager from the snapshot
         if data['id'] in session.models._models:
             m = session.models._models.get(data['id'])
-            Model.set_state_from_snapshot(m, session, data)
+            #Model.set_state_from_snapshot(m, session, data)
         else:
             m = cls(data['name'], session)
+        #m = cls(data['name'], session)
+        Model.set_state_from_snapshot(m, session, data)
         #m = session.models._models.get(data['id'], cls(data['name'], session))
         return m

@@ -43,6 +43,15 @@ class _MyAPI(BundleAPI):
         from .io.PEET.PEETParticleData import PEETParticleData
         from .io.RELION.RELIONParticleData import RELIONParticleData
         from .volume import VolumePlus, Tomogram, ProcessableTomogram
+        from .geometricmodel.GeoModel import GeoModel
+        from .geometricmodel.ArbitraryModel import ArbitraryModel
+        from .geometricmodel.Boundary import Boundary
+        from .geometricmodel.CurvedLine import CurvedLine
+        from .geometricmodel.Line import Line
+        from .geometricmodel.PopulatedModel import PopulatedModel
+        from .geometricmodel.Sphere import Sphere
+        from .geometricmodel.Surface import Surface
+        from .geometricmodel.TriangulationSurface import TriangulationSurface
 
         from chimerax.core.state import State
 
@@ -69,6 +78,17 @@ class _MyAPI(BundleAPI):
             'GenericParticleData': GenericParticleData,
             'PEETParticleData': PEETParticleData,
             'RELIONParticleData': State,
+
+            # Geomodels
+            'GeoModel': GeoModel,
+            'ArbitraryModel': ArbitraryModel,
+            'Boundary': Boundary,
+            'CurvedLine': CurvedLine,
+            'Line': Line,
+            'PopulatedModel': PopulatedModel,
+            'Sphere': Sphere,
+            'Surface': Surface,
+            'TriangulationSurface': TriangulationSurface,
         }
 
         return classes.get(class_name)

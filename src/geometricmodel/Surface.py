@@ -5,6 +5,7 @@ from scipy import interpolate
 
 # ChimeraX imports
 from chimerax.geometry import z_align, rotation, translation
+from chimerax.core.models import Model
 
 # ArtiaX imports
 from .GeoModel import GEOMODEL_CHANGED
@@ -186,6 +187,28 @@ class Surface(PopulatedModel):
         with open(file_name, 'wb') as file:
             np.savez(file, model_type="Surface", particle_pos=self.particle_pos, resolution=self.resolution,
                      method=self.method, normal=self.normal, points=self.points)
+
+    def take_snapshot(self, session, flags):
+        data = {
+            "particle_pos": self.particle_pos,
+            "resolution": self.resolution,
+            "method": self.method,
+            "normal": self.normal,
+            "points": self.points
+        }
+        data['model state'] = Model.take_snapshot(self, session, flags)
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        particle_pos = data["particle_pos"]
+        resolution = data["resolution"]
+        method = data["method"]
+        normal = data["normal"]
+        points = data["points"]
+        model = cls("Surface", session, particle_pos, resolution, method, normal=normal, points=points)
+        Model.set_state_from_snapshot(model, session, data['model state'])
+        return model
 
     def reorient_to_surface(self):
         from chimerax.geometry._geometry import find_closest_points

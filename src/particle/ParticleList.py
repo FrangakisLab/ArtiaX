@@ -33,17 +33,19 @@ from .MarkerSetPlus import (
 PARTLIST_CHANGED = 'partlist changed'  # Data is the modified particle list.
 PARTLIST_DISPLAY_CHANGED = 'partlist '
 
+END_SESSION_RESTORE = 'end restore session'
+
 class ParticleList(Model):
     '''A ParticleList displays ParticleData using a MarkerSetPlus and a SurfaceCollectionModel.'''
 
     DEBUG = False
-    SESSION_SAVE = False
+    SESSION_SAVE = True
 
     def __init__(self,
                  name,
                  session,
                  data: ParticleData,
-                 display_model: ManagerModel = None,):
+                 create_managers=True,):
 
         super().__init__(name, session)
 
@@ -62,13 +64,17 @@ class ParticleList(Model):
         # Child models that display data
         self.markers = MarkerSetPlus(session, 'Markers')
         """MarkerSetPlus object for displaying and manipulating particles."""
-        self._display_model = ManagerModel('DisplayModel', session) if display_model is None else display_model
+        self._display_model = None
         """The model from which to extract the surface displayed in the SurfaceCollectionModel."""
+
+        if create_managers:
+            self._display_model = ManagerModel('DisplayModel', session)
+            self.add([self._display_model])
+
         self._collection_model = SurfaceCollectionModel('Particles', session)
         """SurfaceCollectionModel for displaying and manipulating particles."""
 
         # Add the child models
-        self.add([self._display_model])
         self.add([self._collection_model])
         self.add([self.markers])
 
@@ -123,6 +129,8 @@ class ParticleList(Model):
 
         # Change trigger for UI
         self.triggers.add_trigger(PARTLIST_CHANGED)
+
+        self.session.triggers.add_handler(END_SESSION_RESTORE, self._display_set_after_restore)
 
     @classmethod
     def from_particle_list(cls, particle_list: ParticleList, datatype=None):
@@ -419,6 +427,12 @@ class ParticleList(Model):
 
         self._add_display_set()
         self.triggers.activate_trigger(PARTLIST_CHANGED, self)
+
+    def _display_set_after_restore(self, name: str = None, value=None):
+        if self.has_display_model():
+            self.display_model.get(0).update_drawings()
+            self._add_display_set()
+            self.triggers.activate_trigger(PARTLIST_CHANGED, self)
 
     def store_marker_information(self):
         self.session._marker_settings = {
@@ -1051,6 +1065,7 @@ class ParticleList(Model):
         print('data_module {}'.format(data_module))
 
         data = {
+            'model state': Model.take_snapshot(self, session, flags),
             'id': self.id,
             'name': self.name,
             'data': self._data,
@@ -1063,7 +1078,6 @@ class ParticleList(Model):
             'color_settings': self.color_settings,
             'radius': self._radius,
             'axes_size': self._axes_size,
-            'DisplayModel': self._display_model.take_snapshot(session, flags),
         }
 
         return data
@@ -1072,7 +1086,8 @@ class ParticleList(Model):
     def restore_snapshot(cls, session, data):
 
         from numpy import copy
-        pl = cls(data['name'], session, data['data'], ManagerModel.restore_snapshot(session, data['DisplayModel']))
+        pl = cls(data['name'], session, data['data'], create_managers=True)
+        Model.set_state_from_snapshot(pl, session, data['model state'])
 
         pl._selected_particles = data['selected']
         pl.markers.selected_markers = copy(pl._selected_particles)

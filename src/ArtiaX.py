@@ -38,7 +38,6 @@ TOMO_DISPLAY_CHANGED = 'tomo display changed'
 PARTLIST_DISPLAY_CHANGED = 'partlist display changed'
 GEOMODEL_DISPLAY_CHANGED = 'geomodel display changed'
 
-
 class ArtiaX(Model):
 
     DEBUG = False
@@ -46,9 +45,7 @@ class ArtiaX(Model):
 
     def __init__(self, session,
                  add: bool = True,
-                 tomograms: ManagerModel = None,
-                 partlists: ManagerModel = None,
-                 geomodels: ManagerModel = None):
+                 create_managers: bool = True):
         super().__init__('ArtiaX', session)
 
         # GUI
@@ -63,13 +60,14 @@ class ArtiaX(Model):
         self.standard_colors = ARTIAX_COLORS
 
         # Model Managers
-        self._tomograms = ManagerModel('Tomograms', self.session) if tomograms is None else tomograms
-        self._partlists = ManagerModel('Particle Lists', self.session) if partlists is None else partlists
-        self._geomodels = ManagerModel('Geometric Models', self.session) if geomodels is None else geomodels
+        if create_managers:
+            self._tomograms = ManagerModel('Tomograms', self.session)
+            self._partlists = ManagerModel('Particle Lists', self.session)
+            self._geomodels = ManagerModel('Geometric Models', self.session)
 
-        self.add([self.tomograms])
-        self.add([self.partlists])
-        self.add([self.geomodels])
+            self.add([self.tomograms])
+            self.add([self.partlists])
+            self.add([self.geomodels])
 
         # Triggers
         # Triggers when new tomo/partlist is added
@@ -144,7 +142,6 @@ class ArtiaX(Model):
         self.session.ui.mouse_modes.add_mode(self.delete_picked_triangle)
         self.session.ui.mouse_modes.add_mode(self.delete_picked_tetra)
         self.session.ui.mouse_modes.add_mode(self.mask_connected_triangles)
-
 
 
     @property
@@ -568,12 +565,12 @@ class ArtiaX(Model):
         #data = Model.take_snapshot(self, session, flags)
         data = {}
         data["model state"] = Model.take_snapshot(self, session, flags)
-        data["tomograms"] = self.tomograms.take_snapshot(session, flags)
-        data["tomograms"]["parent"] = None
-        data["partlists"] = self.partlists.take_snapshot(session, flags)
-        data["partlists"]["parent"] = None
-        data["geomodels"] = self.geomodels.take_snapshot(session, flags)
-        data["geomodels"]["parent"] = None
+        # data["tomograms"] = self.tomograms.take_snapshot(session, flags)
+        # data["tomograms"]["parent"] = None
+        # data["partlists"] = self.partlists.take_snapshot(session, flags)
+        # data["partlists"]["parent"] = None
+        # data["geomodels"] = self.geomodels.take_snapshot(session, flags)
+        # data["geomodels"]["parent"] = None
         return data
 
     @classmethod
@@ -581,17 +578,30 @@ class ArtiaX(Model):
         print('Restore ArtiaX')
 
         # Create ArtiaX instance
-        tomograms = ManagerModel.restore_snapshot(session, data["tomograms"])
-        partlists = ManagerModel.restore_snapshot(session, data["partlists"])
-        geomodels = ManagerModel.restore_snapshot(session, data["geomodels"])
+        from chimerax.core import tools
+        from .tool import ArtiaXUI
 
-        artia = cls(session, add=False, tomograms=tomograms, partlists=partlists, geomodels=geomodels)
+        t = tools.get_singleton(session, ArtiaXUI, 'ArtiaX', create=True)
+
+        if hasattr(session, 'ArtiaX'):
+            artia = session.ArtiaX
+        else:
+            artia = cls(session, add=False, create_managers=False)
+
+        # tomograms = ManagerModel.restore_snapshot(session, data["tomograms"])
+        # partlists = ManagerModel.restore_snapshot(session, data["partlists"])
+        # geomodels = ManagerModel.restore_snapshot(session, data["geomodels"])
+        #
+        #artia = cls(session, add=False, create_managers=False)
         Model.set_state_from_snapshot(artia, session, data["model state"])
-        session.models.add([artia])
+        #session.models.add([artia])
 
         # First make sure UI is running. This also creates the model.
-        from .cmd import get_singleton
-        get_singleton(session)
+        #from .cmd import get_singleton
+        #get_singleton(session)
+
+
+        t.get_root()
 
         return session.ArtiaX
 

@@ -9,6 +9,7 @@ from scipy import interpolate
 from chimerax.geometry import z_align, rotation, translation, Place
 from chimerax.bild.bild import _BildFile
 from chimerax.atomic import AtomicShapeDrawing
+from chimerax.core.models import Model
 
 # ArtiaX imports
 from .GeoModel import GEOMODEL_CHANGED
@@ -402,6 +403,32 @@ class CurvedLine(PopulatedModel):
         with open(file_name, 'wb') as file:
             np.savez(file, model_type="CurvedLine", particle_pos=self.particle_pos, degree=self.degree,
                      smooth=self.smooth, resolution=self.resolution, points=self.points, der_points=self.der_points)
+
+    def take_snapshot(self, session, flags):
+        data = {
+            'particle_pos': self.particle_pos,
+            'degree': self.degree,
+            'smooth': self.smooth,
+            'resolution': self.resolution,
+            'points': self.points,
+            'der_points': self.der_points,
+        }
+        data['model state'] = Model.take_snapshot(self, session, flags)
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        particle_pos = data['particle_pos']
+        degree = data['degree']
+        smooth = data['smooth']
+        resolution = data['resolution']
+        points = data['points']
+        der_points = data['der_points']
+        model = cls(data['model state']['name'], session, particle_pos, degree, smooth, resolution, points=points,
+                    der_points=der_points)
+        Model.set_state_from_snapshot(model, session, data['model state'])
+        return model
+
 
 
 def get_points(pos, smooth, degree, resolution):

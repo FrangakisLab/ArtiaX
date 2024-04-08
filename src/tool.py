@@ -47,6 +47,8 @@ from .ArtiaX import (
 from .options_window import OptionsWindow
 from .io import get_partlist_formats
 
+END_SESSION_RESTORE = 'end restore session'
+
 class ArtiaXUI(ToolInstance):
     # Does this instance persist when session closes
     SESSION_ENDURING = False
@@ -90,13 +92,16 @@ class ArtiaXUI(ToolInstance):
 # Shortcut Functions ===========================================================
 # ==============================================================================
 
-    def get_root(self, update_ui=True, ):
+    def get_root(self, update_ui=True):
         # Make if not there
         if not hasattr(self.session, 'ArtiaX'):
             self.session.ArtiaX = ArtiaX(self.session)
 
             # Update UI if UI exists already, but model was deleted by user.
             if update_ui:
+
+                print("UPDATING UI")
+
                 # Update the table models
                 self.update_managers()
 
@@ -135,6 +140,24 @@ class ArtiaXUI(ToolInstance):
         artia.triggers.add_handler(PARTLIST_DISPLAY_CHANGED, self._update_partlist_shown)
         artia.triggers.add_handler(TOMO_DISPLAY_CHANGED, self._update_tomo_shown)
         artia.triggers.add_handler(GEOMODEL_DISPLAY_CHANGED, self._update_geomodel_shown)
+
+        self.session.triggers.add_handler(END_SESSION_RESTORE, self._update_ui)
+
+    def _update_ui(self, name: str = '', data: any = None):
+        # Update the table models
+        self.update_managers()
+        self._update_tomo_table()
+        self._update_partlist_table()
+        self._update_geomodel_table()
+
+        # Update the model chooser widget
+        self.tomo_from_session.exclude = self.session.ArtiaX
+
+        # Connect triggers
+        self._connect_triggers()
+
+        # Update options window
+        self.ow.update_root()
 
     def delete(self):
         # This is not nice, but I can't figure out the destructor for the widget.
@@ -387,6 +410,7 @@ class ArtiaXUI(ToolInstance):
         ui.group_geomodel_open_button.clicked.connect(self._open_geomodel)
         ui.group_geomodel_save_button.clicked.connect(self._save_geomodel)
         ui.group_geomodel_close_button.clicked.connect(self._close_geomodel)
+
 
     # ==============================================================================
     # Menu Bar Functions ===========================================================

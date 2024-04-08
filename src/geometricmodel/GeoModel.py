@@ -256,7 +256,7 @@ def surface_from_links(session):
     particle_pairs = np.asarray(selected_markers(session).bonds.unique().atoms)
     particles = get_curr_selected_particles(session, return_particles=True, return_pos=False)
 
-    from .TrangulationSurface import triangles_from_pairs, TriangulationSurface
+    from .TriangulationSurface import triangles_from_pairs, TriangulationSurface
     triangles = triangles_from_pairs(particle_pairs)
     if len(triangles) < 1:
         session.logger.warning("Select at least three particles that are linked in a triangle")
@@ -287,7 +287,7 @@ def triangulate_selected(session, furthest_site):
         return
 
     connections = Delaunay(particle_pos, furthest_site=furthest_site).simplices
-    from .TrangulationSurface import make_links
+    from .TriangulationSurface import make_links
     make_links(markers, connections)
 
 
@@ -347,7 +347,7 @@ def open_model(session, modelname, model_type, data):
         model = Surface(modelname, session, data['particle_pos'], float(data['resolution']), str(data['method']),
                         normal=data['normal'], points=data['points'])
     elif model_type == "TriangulationSurface":
-        from .TrangulationSurface import TriangulationSurface
+        from .TriangulationSurface import TriangulationSurface
         model = TriangulationSurface(modelname, session, triangles=data['triangles'])
     elif model_type == "Boundary":
         from .Boundary import Boundary

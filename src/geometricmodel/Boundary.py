@@ -9,6 +9,7 @@ from collections import defaultdict
 from chimerax.bild.bild import _BildFile
 from chimerax.atomic import AtomicShapeDrawing
 from chimerax.geometry import z_align
+from chimerax.core.models import Model
 
 # ArtiaX imports
 from .GeoModel import GeoModel
@@ -202,6 +203,26 @@ class Boundary(GeoModel):
         with open(file_name, 'wb') as file:
             np.savez(file, model_type="Boundary", particle_pos=self.particle_pos, alpha=self.alpha, triangles=self.tri,
                      delete_tri_list=self.delete_tri_list)
+
+    def take_snapshot(self, session, flags):
+        data = {
+            "particle_pos": self.particle_pos,
+            "alpha": self.alpha,
+            "triangles": self.tri,
+            "delete_tri_list": self.delete_tri_list
+        }
+        data['model state'] = Model.take_snapshot(self, session, flags)
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        particle_pos = data["particle_pos"]
+        alpha = data["alpha"]
+        triangles = data["triangles"]
+        delete_tri_list = data["delete_tri_list"]
+        model = Boundary("Boundary", session, particle_pos, alpha, triangles=triangles, delete_tri_list=delete_tri_list)
+        Model.set_state_from_snapshot(model, session, data['model state'])
+        return model
 
 
 def get_triangles(particle_pos, alpha=0.7, calc_normals=False, delete_tri_list=None):
