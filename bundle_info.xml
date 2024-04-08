@@ -114,7 +114,7 @@ will be displayed without the ChimeraX- prefix.
   </Providers>
 
   <Providers manager="open command">
-    <Provider name="Artiatomi Motivelist" want_path="true"/>
+    <Provider name="Artiatomi Motivelist" want_path="true" is_default="false"/>
     <Provider name="Generic Particle List" want_path="true"/>
     <Provider name="Dynamo Table" want_path="true"/>
     <Provider name="RELION STAR file" want_path="true"/>
