@@ -6,7 +6,7 @@ will be displayed without the ChimeraX- prefix.
 -->
 
 <BundleInfo name="ChimeraX-ArtiaX"
-	    version="0.3" package="chimerax.artiax"
+	    version="0.4" package="chimerax.artiax"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -32,7 +32,7 @@ will be displayed without the ChimeraX- prefix.
   <Dependencies>
     <Dependency name="ChimeraX-Atomic" version=">=1.1"/>
     <Dependency name="ChimeraX-BILD" version="~=1.0"/>
-    <Dependency name="ChimeraX-Core" version=">=1.3"/>
+    <Dependency name="ChimeraX-Core" version=">=1.7"/>
     <Dependency name="ChimeraX-Geometry" version=">=1.1"/>
     <Dependency name="ChimeraX-Graphics" version="~=1.1"/>
     <Dependency name="ChimeraX-IMOD" version="~=1.0"/>
