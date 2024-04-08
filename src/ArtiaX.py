@@ -150,8 +150,11 @@ class ArtiaX(Model):
     @property
     def tomograms(self):
         if self._tomograms is None:
-            self._tomograms = ManagerModel('Tomograms', self.session)
-            self.add([self._tomograms])
+            mod = [c for c in self.child_models() if c.name == 'Tomograms']
+            if len(mod) == 1:
+                self._tomograms = mod[0]
+            else:
+                return ManagerModel('Tomograms', self.session)
         # Deleted
         if self._tomograms.deleted:
             self._tomograms = ManagerModel('Tomograms', self.session)
@@ -162,8 +165,11 @@ class ArtiaX(Model):
     @property
     def partlists(self):
         if self._partlists is None:
-            self._partlists = ManagerModel('Particle Lists', self.session)
-            self.add([self._partlists])
+            mod = [c for c in self.child_models() if c.name == 'Particle Lists']
+            if len(mod) == 1:
+                self._partlists = mod[0]
+            else:
+                return ManagerModel('Particle Lists', self.session)
         # Deleted
         if self._partlists.deleted:
             self._partlists = ManagerModel('Particle Lists', self.session)
@@ -174,8 +180,11 @@ class ArtiaX(Model):
     @property
     def geomodels(self):
         if self._geomodels is None:
-            self._geomodels = ManagerModel('Geometric Models', self.session)
-            self.add([self._geomodels])
+            mod = [c for c in self.child_models() if c.name == 'Geometric Models']
+            if len(mod) == 1:
+                self._geomodels = mod[0]
+            else:
+                return ManagerModel('Geometric Models', self.session)
         # Deleted
         if self._geomodels.deleted:
             self._geomodels = ManagerModel('Geometric Models', self.session)
