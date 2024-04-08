@@ -60,6 +60,9 @@ class ArtiaX(Model):
         self.standard_colors = ARTIAX_COLORS
 
         # Model Managers
+        self._tomograms = None
+        self._partlists = None
+        self._geomodels = None
         if create_managers:
             self._tomograms = ManagerModel('Tomograms', self.session)
             self._partlists = ManagerModel('Particle Lists', self.session)
@@ -146,6 +149,9 @@ class ArtiaX(Model):
 
     @property
     def tomograms(self):
+        if self._tomograms is None:
+            self._tomograms = ManagerModel('Tomograms', self.session)
+            self.add([self._tomograms])
         # Deleted
         if self._tomograms.deleted:
             self._tomograms = ManagerModel('Tomograms', self.session)
@@ -155,6 +161,9 @@ class ArtiaX(Model):
 
     @property
     def partlists(self):
+        if self._partlists is None:
+            self._partlists = ManagerModel('Particle Lists', self.session)
+            self.add([self._partlists])
         # Deleted
         if self._partlists.deleted:
             self._partlists = ManagerModel('Particle Lists', self.session)
@@ -164,6 +173,9 @@ class ArtiaX(Model):
 
     @property
     def geomodels(self):
+        if self._geomodels is None:
+            self._geomodels = ManagerModel('Geometric Models', self.session)
+            self.add([self._geomodels])
         # Deleted
         if self._geomodels.deleted:
             self._geomodels = ManagerModel('Geometric Models', self.session)
@@ -567,11 +579,10 @@ class ArtiaX(Model):
 
     @classmethod
     def restore_snapshot(cls, session, data):
+
         # Create ArtiaX instance
         from chimerax.core import tools
         from .tool import ArtiaXUI
-
-        t = tools.get_singleton(session, ArtiaXUI, 'ArtiaX', create=True)
 
         if hasattr(session, 'ArtiaX'):
             artia = session.ArtiaX
@@ -579,7 +590,8 @@ class ArtiaX(Model):
             artia = cls(session, add=False, create_managers=False)
 
         Model.set_state_from_snapshot(artia, session, data["model state"])
-        t.get_root()
+        session.ArtiaX = artia
+        tools.get_singleton(session, ArtiaXUI, 'ArtiaX', create=True)
 
         return session.ArtiaX
 

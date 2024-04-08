@@ -233,11 +233,13 @@ class ManagerModel(Model):
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        # The ArtiaX model is always initiated first, so it should alread exist
-        # But for particle list models we want to restore the manager from the snapshot
         if data['id'] in session.models._models:
             m = session.models._models.get(data['id'])
+            print("restoring model from session route 1")
         else:
             m = cls(data['name'], session)
+            print("restoring model from session route 2")
+            print(m.id_string)
         Model.set_state_from_snapshot(m, session, data)
+        print(m.id_string)
         return m
