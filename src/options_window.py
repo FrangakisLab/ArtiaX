@@ -1239,11 +1239,9 @@ class OptionsWindow(ToolInstance):
 
         # Set sliders
         self.radius_widget.value = pl.radius
-        #print('pre set')
         prev = self.axes_size_widget.blockSignals(True)
         self.axes_size_widget.value = pl.axes_size
         self.axes_size_widget.blockSignals(prev)
-        #print('post set')
 
         if pl.has_display_model() and pl.display_is_volume():
             self.surface_level_widget.setEnabled(True)

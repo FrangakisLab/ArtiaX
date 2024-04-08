@@ -64,7 +64,6 @@ class ArtiaXUI(ToolInstance):
     def __init__(self, session, tool_name):
         # 'session'     - chimerax.core.session.Session instance
         # 'tool_name'   - string
-        print('INITIALIZED')
         # Initialize base class
         super().__init__(session, tool_name)
 
@@ -99,9 +98,6 @@ class ArtiaXUI(ToolInstance):
 
             # Update UI if UI exists already, but model was deleted by user.
             if update_ui:
-
-                print("UPDATING UI")
-
                 # Update the table models
                 self.update_managers()
 
@@ -706,25 +702,6 @@ class ArtiaXUI(ToolInstance):
 
         if item is not None:
             artia.selected_geomodel = artia.geomodels.get_id(item.row())
-    # ==============================================================================
-    # Shortcut Functions ===========================================================
-    # ==============================================================================
-
-    # The following 4 jump functions only work if a tomogram is selected
-    def jump_1_forwards_pressed(self, session):
-        print("Yes, the shortcut worked.")
-
-
-    def jump_10_forwards_pressed(self, session):
-        print("Yes, the shortcut worked.")
-
-
-    def jump_1_backwards_pressed(self, session):
-        print("Yes, the shortcut worked.")
-
-
-    def jump_10_backwards_pressed(self, session):
-        print("Yes, the shortcut worked.")
 
     # ==============================================================================
     # Options Window ===============================================================
@@ -735,7 +712,6 @@ class ArtiaXUI(ToolInstance):
         self.ow = OptionsWindow(self.session, tool_name)
 
     def take_snapshot(self, session, flags):
-        print('Snapshot ArtiaXUI')
         data = {}
         return data
 
@@ -745,8 +721,6 @@ class ArtiaXUI(ToolInstance):
         # we could have save the tool name during take_snapshot()
         # (from self.tool_name, inherited from ToolInstance) and used that saved
         # tool name. There are pros and cons to both approaches.
-        print('Restore ArtiaXUI')
-
         # The tool should already exist
         from .cmd import get_singleton
         tool = get_singleton(session)

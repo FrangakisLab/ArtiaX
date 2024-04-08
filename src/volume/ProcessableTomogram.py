@@ -142,7 +142,6 @@ class ProcessableTomogram(Tomogram):
     @classmethod
     def restore_snapshot(cls, session, data):
         tomo = super().restore_snapshot(session, data)
-        print(f"Restored Tomogram {type(tomo)}")
         return tomo
 
 

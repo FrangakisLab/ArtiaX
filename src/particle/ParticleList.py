@@ -252,7 +252,6 @@ class ParticleList(Model):
         if value < 0.1:
             raise UserError("Axes size needs to be > 0.1.")
 
-        # print('set axis size {}'.format(value))
         self._axes_size = value
         scm = self.collection_model
         v, n, t, vc = get_axes_surface(self.session, self._axes_size)
@@ -673,7 +672,6 @@ class ParticleList(Model):
         # this trigger after being deleted below. The parent model is deleted if surface was deleted.
         # if data.id is None:
         #     return
-        #print('called delete model {}'.format(data))
         if data.id in self._map.keys():
             particle_id = data.id
         else:
@@ -687,7 +685,6 @@ class ParticleList(Model):
 
         triggered by MARKER_DELETED
         """
-        #print('called delete marker {}'.format(data))
         # Data should be list of deleted markers
         self.delete_data([m.particle_id for m in data if m not in self._marker_cache])
         # for m in data:
@@ -702,7 +699,6 @@ class ParticleList(Model):
         # if not isinstance(particle_ids, list):
         #     particle_ids = [particle_ids]
 
-        #print('called delete data {}'.format(particle_ids))
 
         if len(particle_ids) == 0:
             return
@@ -764,7 +760,6 @@ class ParticleList(Model):
         self.displayed_particles = self.displayed_particles[mask]
 
         self.particle_colors = self.particle_colors[mask, :]
-        #print('fine')
         self.triggers.activate_trigger(PARTLIST_CHANGED, self)
 
     def new_particles(self, origins, translations, rotations):
@@ -1061,9 +1056,6 @@ class ParticleList(Model):
         data_class = self.data.__class__.__name__
         data_module = self.data.__class__.__module__
 
-        print('data_class {}'.format(data_class))
-        print('data_module {}'.format(data_module))
-
         data = {
             'model state': Model.take_snapshot(self, session, flags),
             'id': self.id,
@@ -1108,16 +1100,6 @@ class ParticleList(Model):
         pl.color_settings = data['color_settings']
         pl._radius = data['radius']
         pl._axes_size = data['axes_size']
-
-        print(f"PARTICLE LIST DATA: {data}")
-
-        # Attach to session
-        # from ..cmd import get_singleton
-        # get_singleton(session)
-        # artia = session.ArtiaX
-        # print('PARTICLELIST {}'.format(pl.id))
-        #artia.add_particlelist(pl)
-        #session.models.assign_id(pl, data['id'])
 
         return pl
 

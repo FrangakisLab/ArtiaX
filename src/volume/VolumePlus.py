@@ -121,16 +121,11 @@ class VolumePlus(Volume):
         self.std = np.std(arr)
 
     def take_snapshot(self, session, flags):
-        print(f'Snapshot VolumePlus {self.name}')
         data = Volume.take_snapshot(self, session, flags)
-        print(data)
         return data
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        #vol = super().restore_snapshot(session, data)
-        #print(f"VOLUMEPLUS RESTORE SNAPSHOT {type(vol)}")
-
         # Need to replicate because the parent restore function does not use cls, but explicite Volume instead.
         grid_data = data['grid data state'].grid_data
         if grid_data is None:
@@ -146,7 +141,6 @@ class VolumePlus(Volume):
         v._drawings_need_update()
         show_volume_dialog(session)
 
-        print(f"VOLUMEPLUS RESTORE SNAPSHOT {v.name} {v.child_models()}")
         return v
 
 

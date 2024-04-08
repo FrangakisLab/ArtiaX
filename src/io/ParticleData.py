@@ -741,8 +741,6 @@ class ParticleData(State):
 
     def take_snapshot(self, session, flags):
 
-        print("Snapshot ParticleData")
-
         parts = []
         for _id, p in self:
             parts.append(p)

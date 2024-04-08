@@ -228,26 +228,16 @@ class ManagerModel(Model):
         Model.delete(self)
 
     def take_snapshot(self, session, flags):
-        print(f'Snapshot Manager {self.name}')
         data = Model.take_snapshot(self, session, flags)
-        #data['models'] = [model.take_snapshot(session, flags) for model in self.child_models()]
-        print(data)
         return data
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        print(f"Restore Manager {data}")
-        print(f"Restore Manager {data['name']} {data}")
-        #m = cls(data['name'], session)
-        print(session.models._models)
         # The ArtiaX model is always initiated first, so it should alread exist
         # But for particle list models we want to restore the manager from the snapshot
         if data['id'] in session.models._models:
             m = session.models._models.get(data['id'])
-            #Model.set_state_from_snapshot(m, session, data)
         else:
             m = cls(data['name'], session)
-        #m = cls(data['name'], session)
         Model.set_state_from_snapshot(m, session, data)
-        #m = session.models._models.get(data['id'], cls(data['name'], session))
         return m

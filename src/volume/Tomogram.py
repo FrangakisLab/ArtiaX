@@ -455,17 +455,14 @@ class Tomogram(VolumePlus):
     positions = property(Drawing.positions.fget, _tomogram_set_positions)
 
     def take_snapshot(self, session, flags):
-        print(f'Snapshot Tomogram {self.name}')
         data = VolumePlus.take_snapshot(self, session, flags)
         data['step'] = self.pixelsize
-        print(data)
         return data
 
     @classmethod
     def restore_snapshot(cls, session, data):
         tomo = super().restore_snapshot(session, data)
         tomo.pixelsize = data['step']
-        print(f"Restored Tomogram {type(tomo)}")
         return tomo
 
 

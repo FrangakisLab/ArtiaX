@@ -97,7 +97,6 @@ class LineOptions(QWidget):
             self.line.spacing_edit_range = self.spacing_slider.get_range()
 
     def _range_changed(self):
-        print("range changed")
         if self.spacing_checkbox.isChecked():
             self.line.spacing_edit_range = self.spacing_slider.get_range()
 

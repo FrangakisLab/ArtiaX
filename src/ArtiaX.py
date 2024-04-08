@@ -561,22 +561,12 @@ class ArtiaX(Model):
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     def take_snapshot(self, session, flags):
-        print('Snapshot ArtiaX')
-        #data = Model.take_snapshot(self, session, flags)
         data = {}
         data["model state"] = Model.take_snapshot(self, session, flags)
-        # data["tomograms"] = self.tomograms.take_snapshot(session, flags)
-        # data["tomograms"]["parent"] = None
-        # data["partlists"] = self.partlists.take_snapshot(session, flags)
-        # data["partlists"]["parent"] = None
-        # data["geomodels"] = self.geomodels.take_snapshot(session, flags)
-        # data["geomodels"]["parent"] = None
         return data
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        print('Restore ArtiaX')
-
         # Create ArtiaX instance
         from chimerax.core import tools
         from .tool import ArtiaXUI
@@ -588,19 +578,7 @@ class ArtiaX(Model):
         else:
             artia = cls(session, add=False, create_managers=False)
 
-        # tomograms = ManagerModel.restore_snapshot(session, data["tomograms"])
-        # partlists = ManagerModel.restore_snapshot(session, data["partlists"])
-        # geomodels = ManagerModel.restore_snapshot(session, data["geomodels"])
-        #
-        #artia = cls(session, add=False, create_managers=False)
         Model.set_state_from_snapshot(artia, session, data["model state"])
-        #session.models.add([artia])
-
-        # First make sure UI is running. This also creates the model.
-        #from .cmd import get_singleton
-        #get_singleton(session)
-
-
         t.get_root()
 
         return session.ArtiaX

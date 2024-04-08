@@ -133,9 +133,6 @@ class MarkerSetPlus(MarkerSet):
 
     def _handle_changes(self, name, data):
         """Life is hard. Learn to handle it."""
-        # if self.DEBUG:
-        #     print(data[0])
-        #     print(data[1])
 
         if not data[0] == self:
             return
