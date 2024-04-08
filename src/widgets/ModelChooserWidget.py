@@ -80,5 +80,10 @@ class ModelChooserWidget(QWidget):
     def _clicked(self):
         self.clicked.emit(self._models[self._model_idx])
 
+    def deleteLater(self):
+        self.session.triggers.remove_handler(self.handler_add)
+        self.session.triggers.remove_handler(self.handler_del)
+        QWidget.deleteLater(self)
+
 
 

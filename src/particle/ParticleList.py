@@ -130,7 +130,7 @@ class ParticleList(Model):
         # Change trigger for UI
         self.triggers.add_trigger(PARTLIST_CHANGED)
 
-        self.session.triggers.add_handler(END_SESSION_RESTORE, self._display_set_after_restore)
+        self.restore_handler = self.session.triggers.add_handler(END_SESSION_RESTORE, self._display_set_after_restore)
 
     @classmethod
     def from_particle_list(cls, particle_list: ParticleList, datatype=None):
@@ -1102,6 +1102,16 @@ class ParticleList(Model):
         pl._axes_size = data['axes_size']
 
         return pl
+
+    def delete(self):
+        self.markers.delete()
+        self.collection_model.delete()
+        self.display_model.delete()
+
+        self.session.triggers.remove_handler(self.restore_handler)
+
+        Model.delete(self)
+
 
 def get_axes_surface(session, size):
 

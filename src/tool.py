@@ -8,6 +8,7 @@ from sys import platform
 from chimerax.core.tools import ToolInstance
 from chimerax.core.commands import run
 from chimerax.ui import MainToolWindow
+from chimerax.core import triggerset
 
 # Qt
 from Qt.QtCore import Qt
@@ -48,6 +49,7 @@ from .options_window import OptionsWindow
 from .io import get_partlist_formats
 
 END_SESSION_RESTORE = 'end restore session'
+START_SESSION_RESTORE = 'start restore session'
 
 class ArtiaXUI(ToolInstance):
     # Does this instance persist when session closes
@@ -137,7 +139,8 @@ class ArtiaXUI(ToolInstance):
         artia.triggers.add_handler(TOMO_DISPLAY_CHANGED, self._update_tomo_shown)
         artia.triggers.add_handler(GEOMODEL_DISPLAY_CHANGED, self._update_geomodel_shown)
 
-        self.session.triggers.add_handler(END_SESSION_RESTORE, self._update_ui)
+        self.end_restore_handler = self.session.triggers.add_handler(END_SESSION_RESTORE, self._update_ui)
+
 
     def _update_ui(self, name: str = '', data: any = None):
         # Update the table models
@@ -155,11 +158,15 @@ class ArtiaXUI(ToolInstance):
         # Update options window
         self.ow.update_root()
 
+        return triggerset.DEREGISTER
+
+
     def delete(self):
         # This is not nice, but I can't figure out the destructor for the widget.
         # TODO: do this in a nicer way.
         self.session.triggers.remove_handler(self.tomo_from_session.handler_add)
         self.session.triggers.remove_handler(self.tomo_from_session.handler_del)
+        self.session.triggers.remove_handler(self.end_restore_handler)
 
         ToolInstance.delete(self)
 

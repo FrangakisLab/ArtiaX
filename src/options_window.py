@@ -1749,3 +1749,9 @@ class OptionsWindow(ToolInstance):
 
         if model is opgm:
             self._update_geomodel_ui()
+
+    def delete(self):
+        self.session.triggers.remove_handler(self.add_from_session.handler_add)
+        self.session.triggers.remove_handler(self.add_from_session.handler_del)
+
+        ToolInstance.delete(self)
