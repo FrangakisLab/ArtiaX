@@ -147,6 +147,12 @@ class ParticleList(Model):
 
     @property
     def display_model(self):
+        if self._display_model is None:
+            mod = [c for c in self.child_models() if c.name == 'DisplayModel']
+            if len(mod) == 1:
+                self._display_model = mod[0]
+            else:
+                return ManagerModel('DisplayModel', self.session)
         if self._display_model.deleted:
             self._display_model = ManagerModel('DisplayModel', self.session)
             self.add([self._display_model])
@@ -1078,7 +1084,7 @@ class ParticleList(Model):
     def restore_snapshot(cls, session, data):
 
         from numpy import copy
-        pl = cls(data['name'], session, data['data'], create_managers=True)
+        pl = cls(data['name'], session, data['data'], create_managers=False)
         Model.set_state_from_snapshot(pl, session, data['model state'])
 
         pl._selected_particles = data['selected']
