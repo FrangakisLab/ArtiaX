@@ -29,18 +29,19 @@ class MoveParticlesMode(MoveMouseMode):
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
         self._vr = False
-        if self.action(event) == 'rotate':
-            self._set_z_rotation(event)
+        a = self.action(event)
+        self._set_z_rotation(event)
 
         from .particle.ParticleList import selected_collections
         self._collections, self._masks = selected_collections(self.session)
 
     def mouse_drag(self, event):
-        if self.action(event) == 'rotate':
-            axis, angle = self._rotation_axis_angle(event)
+        a = self.action(event)
+        if a == 'rotate' or a == 'rotate z':
+            axis, angle = self._rotation_axis_angle(event, z_rotate = (a == 'rotate z'))
             self._rotate(axis, angle)
-        else:
-            shift = self._translation(event)
+        elif a == 'translate' or a == 'translate z':
+            shift = self._translation(event, z_translate = (a == 'translate z'))
             self._translate(shift)
         self._moved = True
 
@@ -62,7 +63,15 @@ class MoveParticlesMode(MoveMouseMode):
         a = self.mouse_action
         if event.shift_down():
             # Holding shift key switches between rotation and translation
-            a = 'translate' if a == 'rotate' else 'rotate'
+            if a == 'rotate':
+                a = 'translate'
+            elif a == 'translate':
+                a = 'rotate'
+        if event.ctrl_down():
+            # Holding control restricts to z-axis rotation or translation
+            a = a + ' z'
+        if self._z_rotate and a == 'rotate':
+            a = 'rotate z'
         return a
 
     def instances(self):
@@ -139,9 +148,10 @@ class RotateSelectedParticlesMode(MoveParticlesMode):
     # Workaround for particle lists with locked rotation
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
+        a = self.action(event)
+        self._set_z_rotation(event)
+
         self._vr = False
-        if self.action(event) == 'rotate':
-            self._set_z_rotation(event)
 
         from .particle.ParticleList import selected_collections
         self._collections, self._masks = selected_collections(self.session, exclude_rot_lock=True)
@@ -156,8 +166,8 @@ class MovePickedParticleMode(MoveParticlesMode):
 
     def mouse_down(self, event):
         self._vr = False
-        if self.action(event) == 'rotate':
-            self._set_z_rotation(event)
+        a = self.action(event)
+        self._set_z_rotation(event)
 
         x, y = event.position()
         pick = self.view.picked_object(x, y)
