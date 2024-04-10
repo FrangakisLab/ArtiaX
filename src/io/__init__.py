@@ -4,6 +4,7 @@ from .io import *
 
 from .Artiatomi import ArtiatomiParticleData
 from .Coords import CoordsParticleData
+from .Copick import CopickParticleData
 from .Dynamo import DynamoParticleData
 from .Generic import GenericParticleData
 from .PEET import PEETParticleData
@@ -14,6 +15,7 @@ from .Generic import GENERIC_PARTICLE_FORMAT
 from .Dynamo import DYNAMO_FORMAT
 from .RELION import RELION_FORMAT
 from .Coords import COORDS_FORMAT
+from .Copick import COPICK_FORMAT
 from .PEET import PEET_FORMAT
 from .GeoModel import GEOMODEL_FORMAT
 
@@ -24,5 +26,6 @@ ARTIAX_FORMATS = [
     RELION_FORMAT,
     COORDS_FORMAT,
     PEET_FORMAT,
-    GEOMODEL_FORMAT
+    GEOMODEL_FORMAT,
+    COPICK_FORMAT,
 ]
