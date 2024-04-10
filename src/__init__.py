@@ -42,6 +42,7 @@ class _MyAPI(BundleAPI):
         from .io.Generic.GenericParticleData import GenericParticleData
         from .io.PEET.PEETParticleData import PEETParticleData
         from .io.RELION.RELIONParticleData import RELIONParticleData
+        from .io.Copick.CopickParticleData import CopickParticleData
         from .volume import VolumePlus, Tomogram, ProcessableTomogram
         from .geometricmodel.GeoModel import GeoModel
         from .geometricmodel.ArbitraryModel import ArbitraryModel
@@ -77,7 +78,8 @@ class _MyAPI(BundleAPI):
             'DynamoParticleData': DynamoParticleData,
             'GenericParticleData': GenericParticleData,
             'PEETParticleData': PEETParticleData,
-            'RELIONParticleData': State,
+            'RELIONParticleData': RELIONParticleData,
+            'CopickParticleData': CopickParticleData,
 
             # Geomodels
             'GeoModel': GeoModel,

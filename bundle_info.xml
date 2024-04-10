@@ -48,6 +48,7 @@ will be displayed without the ChimeraX- prefix.
     <Dependency name="superqt"/>
     <Dependency name="starfile"/>
     <Dependency name="geomdl"/>
+    <Dependency name="pydantic"/>
   </Dependencies>
 
   <!-- Non-Python files that are part of package -->
@@ -97,6 +98,13 @@ will be displayed without the ChimeraX- prefix.
               reference_url="https://bio3d.colorado.edu/imod/doc/man/model2point.html"
               synopsis="IMOD model2point output"/>
 
+    <Provider name="Copick Picks file"
+              suffixes=".json"
+              category="particle list"
+              nicknames="copick"
+              reference_url="https://github.com/uermel/copick"
+              synopsis="Copick picks files"/>
+
     <Provider name="PEET mod/csv"
               suffixes=".mod"
               category="particle list"
@@ -110,7 +118,6 @@ will be displayed without the ChimeraX- prefix.
               nicknames="geomodel"
               reference_url="https://numpy.org/doc/stable/reference/generated/numpy.lib.format.html#module-numpy.lib.format"
               synopsis="ArtiaX geometric model"/>
-
   </Providers>
 
   <Providers manager="open command">
@@ -119,6 +126,7 @@ will be displayed without the ChimeraX- prefix.
     <Provider name="Dynamo Table" want_path="true"/>
     <Provider name="RELION STAR file" want_path="true"/>
     <Provider name="Coords file" want_path="true"/>
+    <Provider name="Copick Picks file" want_path="true" is_default="false"/>
     <Provider name="PEET mod/csv" want_path="true"/>
     <Provider name="ArtiaX geometric model" want_path="true"/>
   </Providers>
@@ -129,6 +137,7 @@ will be displayed without the ChimeraX- prefix.
     <Provider name="Dynamo Table" />
     <Provider name="RELION STAR file" />
     <Provider name="Coords file"/>
+    <Provider name="Copick Picks file"/>
     <Provider name="PEET mod/csv"/>
     <Provider name="ArtiaX geometric model"/>
   </Providers>

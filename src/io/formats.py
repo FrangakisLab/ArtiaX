@@ -48,7 +48,6 @@ class ArtiaXSaverInfo(SaverInfo):
         self.widget = widget
 
     def save(self, session, path, **kw):
-
         model = kw[self.model_arg[self.category]]
 
         if self.category == 'particle list':
