@@ -5,13 +5,13 @@ from . import Tomogram
 
 
 class ProcessableTomogram(Tomogram):
-    def __init__(self, session, tomogram, rendering_options=None, average_when_slab_change=False,
+    def __init__(self, session, tomogram, region=None, rendering_options=None, average_when_slab_change=False,
                  filter_when_slab_change=False, num_averaging_slabs=0):
         self.original_data = tomogram.data
         from chimerax.map_data import ArrayGridData
         array_data = ArrayGridData(tomogram.matrix().copy(), name='Processable ' + tomogram.data.name)
 
-        Tomogram.__init__(self, session, array_data, rendering_options)
+        Tomogram.__init__(self, session, array_data, region=region, rendering_options=rendering_options)
 
         self._filter_when_slab_change = filter_when_slab_change
         self.lp = 0

@@ -82,6 +82,8 @@ class ParticleList(Model):
         """Whether to prevent translation when moving particles."""
         self.rotation_locked = False
         """Whether to prevent rotation when moving particles. """
+        self.editing_locked = False
+        """Whether to prevent addition/deletion of particles."""
 
         # Initial selection settings (for selection table)
         self.selection_settings = {'mode': 'show',
@@ -704,7 +706,8 @@ class ParticleList(Model):
 
         # if not isinstance(particle_ids, list):
         #     particle_ids = [particle_ids]
-
+        if self.editing_locked:
+            return
 
         if len(particle_ids) == 0:
             return
@@ -769,6 +772,9 @@ class ParticleList(Model):
         self.triggers.activate_trigger(PARTLIST_CHANGED, self)
 
     def new_particles(self, origins, translations, rotations):
+        if self.editing_locked:
+            return
+
         pids = []
         places = []
         for (o, t, r) in zip(origins, translations, rotations):
@@ -799,6 +805,9 @@ class ParticleList(Model):
         self.update_position_selectors()
 
     def new_particle(self, origin, translation, rotation, update_selectors=True, add_to_collection=True, update_masks=True):
+        if self.editing_locked:
+            return
+
         particle = self._data.new_particle()
         particle.origin = origin
         particle.translation = translation
@@ -1184,13 +1193,17 @@ def get_unused_color(session):
 
 def lock_particlelist(models, lock_state, what, do_print=True):
     """Set translation or rotation locked in one or more particle list models."""
+    lock_edit = False
     lock_trans = False
     lock_rot = False
 
-    if what in ['translation', 'movement']:
+    if what in ['editing', 'all']:
+        lock_edit = True
+
+    if what in ['translation', 'movement', 'all']:
         lock_trans = True
 
-    if what in ['rotation', 'movement']:
+    if what in ['rotation', 'movement', 'all']:
         lock_rot = True
 
     action = 'Locked' if lock_state else 'Unlocked'
@@ -1198,6 +1211,9 @@ def lock_particlelist(models, lock_state, what, do_print=True):
 
     for m in models:
         if isinstance(m, ParticleList):
+            if lock_edit:
+                m.editing_locked = lock_state
+
             if lock_trans:
                 m.translation_locked = lock_state
 

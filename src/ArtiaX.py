@@ -401,6 +401,8 @@ class ArtiaX(Model):
         run(self.session, 'artiax tomo #{} sliceDirection 0,0,1'.format(tomo.id_string))
         run(self.session, 'artiax view xy')
 
+        return tomo
+
     def close_tomogram(self, identifier):
         """Close a tomogram by ArtiaX identifier."""
         id = self.tomograms.get(identifier).id

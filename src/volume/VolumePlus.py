@@ -30,7 +30,11 @@ class VolumePlus(Volume):
     @classmethod
     def from_volume(cls, session: Session, vol: Volume, delete_source=True):
         # TODO: kind of an ugly hack. Is there a better way?
-        volplus_obj = cls(session, vol.data)
+
+        # When viewing planes (default for some volumes), the region is not the full volume.
+        region = ((0, 0, 0), vol.data.size, vol.region[2])
+
+        volplus_obj = cls(session, vol.data, region=region)
         if delete_source:
             vol.data = None
             vol.delete()

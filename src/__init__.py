@@ -54,8 +54,6 @@ class _MyAPI(BundleAPI):
         from .geometricmodel.Surface import Surface
         from .geometricmodel.TriangulationSurface import TriangulationSurface
 
-        from chimerax.core.state import State
-
         classes = {
             # UI and tool
             'ArtiaXUI': ArtiaXUI,
