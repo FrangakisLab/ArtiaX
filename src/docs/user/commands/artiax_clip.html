@@ -1,0 +1,24 @@
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=windows-1252">
+    <link rel="stylesheet" type="text/css" href="../userdocs.css">
+    <title>Command: artiax info</title>
+  </head>
+  <body> <a name="top"></a> <a href="../artiax_index.html"> <img src="../ArtiaX-docs-icon.svg"
+        alt="ChimeraX docs icon" class="clRight" title="User Guide Index" width="60px"></a>
+    <h3><a href="../artiax_index.html#commands">Command</a>: artiax clip</h3>
+    <h3 class="usage"><a href="usageconventions.html">Usage</a>: <br><b>artiax
+      clip</b> ( <i>thickness</i> | off ) [ <b>model</b> <a href="atomspec.html#hierarchy"><i>model-spec</i></a>  ]</h3>
+    <p> The <b>artiax clip</b> command allows turning on clipping planes with <i>thickness</i> Angstrom distance above and below the tilted slab position of a tomogram imported in <b>ArtiaX</b>. The <b>model</b> parameter allows specifying the tomogram that the clipping is applied to. If no model parameter is set, the first displayed tomogram is used. <br> </p>
+
+	<p>By default, clipped surface models are not capped to ensure performance on any machine. If your machine has a performant CPU, turn on capping using <b><a href="help:user/commands/artiax_cap.html"> surface cap</a> true</b>. </p>
+    <p> Examples: </p>
+    <blockquote> <b>artiax clip 200 #1.1.1<br>
+      artiax clip 100<br>
+	  artiax clip off<br>
+      </b> </blockquote>
+    <p></p>
+    <hr>
+    <address>BMLS Frangakis Group / April 2024</address>
+  </body>
+</html>

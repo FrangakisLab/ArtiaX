@@ -478,6 +478,7 @@ class SurfaceCollectionDrawing(Drawing):
         self.session = session
         self.color_locked = False
         self.active = True
+        self.clip_cap = False
 
     def has_surface(self):
         if self.vertices is None:
