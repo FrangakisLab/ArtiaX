@@ -23,14 +23,14 @@ from .VolumePlus import VolumePlus
 
 class Tomogram(VolumePlus):
 
-    def __init__(self, session: Session, data: GridData, rendering_options=None):
-        VolumePlus.__init__(self, session, data, rendering_options=rendering_options)
+    def __init__(self, session: Session, data: GridData, region=None, rendering_options=None):
+        VolumePlus.__init__(self, session, data, region=region, rendering_options=rendering_options)
 
         # Image Levels
         self.default_levels = None
         self._compute_default_levels()
         # Colormap on GPU for adjusting contrast quickly, even in tilted slab mode.
-        self.set_parameters(image_levels=self.default_levels, backing_color=(0, 0, 0, 255), color_mode='auto8', colormap_on_gpu=True)
+        self.set_parameters(image_levels=self.default_levels, color_mode='l8', colormap_on_gpu=True) #backing_color=(0, 0, 0, 255)
 
         # Origin
         self.data.set_origin((0, 0, 0))
@@ -97,7 +97,7 @@ class Tomogram(VolumePlus):
     def normal(self, value):
         from chimerax.geometry import normalize_vector
         value = normalize_vector(value)
-        self.set_parameters(backing_color=(0, 0, 0, 255), tilted_slab_axis=tuple(value), color_mode='auto8')
+        self.set_parameters(tilted_slab_axis=tuple(value), color_mode='l8') #backing_color=(0, 0, 0, 255),
 
     @property
     def min_offset(self):
@@ -398,9 +398,9 @@ class Tomogram(VolumePlus):
         self.set_parameters(tilted_slab_axis=tuple(self.normal),
                             tilted_slab_offset=offset,
                             tilted_slab_plane_count=1,
-                            backing_color=(0, 0, 0, 255),
+                            #backing_color=(0, 0, 0, 255),
                             image_mode='tilted slab',
-                            color_mode='auto8')
+                            color_mode='l8')
 
         self.set_display_style('image')
 
@@ -470,7 +470,7 @@ def orthoplane_cmd(tomogram, axes, offset=None):
 
     size = tomogram.size
     spacing = tomogram.pixelsize[0]
-    cmd = 'volume #{} region {},{},{},{},{},{} step 1 style image imageMode "tilted slab" tiltedSlabAxis {},{},{} tiltedSlabPlaneCount 1 tiltedSlabOffset {} tilted_slab_spacing {} colorMode auto8 backingColor black'
+    cmd = 'volume #{} region {},{},{},{},{},{} step 1 style image imageMode "tilted slab" tiltedSlabAxis {},{},{} tiltedSlabPlaneCount 1 tiltedSlabOffset {} tilted_slab_spacing {} colorMode l8' # backingColor black'
 
     if offset is None:
         offset = tomogram.center_offset

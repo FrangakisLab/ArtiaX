@@ -184,7 +184,7 @@ class CopickParticleData(ParticleData):
 
         self.picks.points = []
         for _id, p in self:
-            rotmat = np.ndarray((4, 4))
+            rotmat = np.eye(4)
             rotmat[0:3, :] = p.rotation.matrix
             point = CopickPoint(
                 location=CopickLocation(x=p['location_x'],
