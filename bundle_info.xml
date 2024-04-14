@@ -184,6 +184,8 @@ will be displayed without the ChimeraX- prefix.
       name="XZ" icon="view_xz.png" description="Set viewing direction to XZ planes."/>
     <Provider tab="ArtiaX" section="View"
       name="YZ" icon="view_yz.png" description="Set viewing direction to YZ planes."/>
+    <Provider tab="ArtiaX" section="View"
+      name="Clip" icon="clip.png" description="Turn slab-clipping on or off for all tomograms."/>
 
     <!-- ArtiaX tab, Standard Mouse Modes -->
     <Provider tab="ArtiaX" section="Movement" mouse_mode="select"

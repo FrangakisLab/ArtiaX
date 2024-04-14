@@ -9,17 +9,18 @@ _providers = {
     "XY": "artiax view xy",
     "XZ": "artiax view xz",
     "YZ": "artiax view yz",
+    "Clip": "artiax clip toggle",
     "XY Models Tab": "artiax view xy",
     "XZ Models Tab": "artiax view xz",
     "YZ Models Tab": "artiax view yz",
-    "Select": 'ui mousemode right select',
-    "Rotate": 'ui mousemode right rotate',
-    "Translate": 'ui mousemode right translate',
-    "Pivot": 'ui mousemode right pivot',
-    "Select Models Tab": 'ui mousemode right select',
-    "Rotate Models Tab": 'ui mousemode right rotate',
-    "Translate Models Tab": 'ui mousemode right translate',
-    "Pivot Models Tab": 'ui mousemode right pivot',
+    "Select": "ui mousemode right select",
+    "Rotate": "ui mousemode right rotate",
+    "Translate": "ui mousemode right translate",
+    "Pivot": "ui mousemode right pivot",
+    "Select Models Tab": "ui mousemode right select",
+    "Rotate Models Tab": "ui mousemode right rotate",
+    "Translate Models Tab": "ui mousemode right translate",
+    "Pivot Models Tab": "ui mousemode right pivot",
     "Translate Selected Particles": 'ui mousemode right "translate selected particles"',
     "Rotate Selected Particles": 'ui mousemode right "rotate selected particles"',
     "Translate Picked Particle": 'ui mousemode right "translate picked particle"',
@@ -40,7 +41,6 @@ _providers = {
     "Hide Axes Models Tab": "artiax hide axes",
     "Show Surfaces Models Tab": "artiax show surfaces",
     "Hide Surfaces Models Tab": "artiax hide surfaces",
-
     "Sphere": "artiax fit sphere",
     "Line": "artiax fit line",
     "Surface": "artiax fit surface",
@@ -49,14 +49,14 @@ _providers = {
     "Create Mask": "artiax mask",
     "Volume to Geomodel": "artiax vol2geo",
     "Geomodel to Volume": "artiax geo2vol",
-    "Remove Selected": 'artiax remove links',
+    "Remove Selected": "artiax remove links",
     "Triangles From Links": "artiax triangles from links",
     "Flip X": "artiax flip x",
     "Flip Y": "artiax flip y",
     "Flip Z": "artiax flip z",
     "Delete Picked Triangle": 'ui mousemode right "delete picked triangle"',
     "Delete Tetra From Boundary": 'ui mousemode right "delete tetra from boundary"',
-    "Mask Connected Triangles": 'ui mousemode right "mask connected triangles"'
+    "Mask Connected Triangles": 'ui mousemode right "mask connected triangles"',
 }
 
 
@@ -67,4 +67,5 @@ def run_provider(session, name):
         what(session)
     else:
         from chimerax.core.commands import run
+
         run(session, what)

@@ -21,7 +21,7 @@ def clip(session: Session, thickness: Union[float, str], model: Model = None, lo
     session : chimerax.core.session.Session
         ChimeraX session.
     thickness : Union[float, str]
-        Thickness of the visible slab in Angstrom. 'off' to turn off clipping.
+        Thickness of the visible slab in Angstrom. 'off' to turn off clipping. 'toggle' to toggle the clipping on/off.
     model : Optional[chimerax.core.models.Model]
         Tomogram model to clip. If None, the currently displayed tomogram will be used.
     log : bool
@@ -31,6 +31,8 @@ def clip(session: Session, thickness: Union[float, str], model: Model = None, lo
     # Get the ArtiaX session
     artia = session.ArtiaX
 
+    _toggle = False
+
     # Turn off clipping
     if isinstance(thickness, str):
         if thickness == 'off':
@@ -38,8 +40,11 @@ def clip(session: Session, thickness: Union[float, str], model: Model = None, lo
                 t.is_clipped = False
             run(session, 'clip off', log=False)
             return
+        elif thickness == 'toggle':
+            thickness = artia.clip_thickness
+            _toggle = True
         else:
-            session.logger.warning("Thickness must be a number or 'off'.")
+            session.logger.warning("Thickness must be a number, 'off' or 'toggle'.")
             return
 
     # Get the model
@@ -60,12 +65,24 @@ def clip(session: Session, thickness: Union[float, str], model: Model = None, lo
         return
 
     # Turn off clipping for all tomograms
+    prev_state = model.is_clipped
+
     for t in artia.tomograms.child_models():
         t.is_clipped = False
 
     # Set the thickness
+    if _toggle:
+        state = not prev_state
+    else:
+        state = True
+
     artia.clip_thickness = thickness
-    model.is_clipped = True
+
+    if state:
+        model.is_clipped = True
+    else:
+        model.is_clipped = False
+        run(session, 'clip off', log=False)
 
     # Make sure tomo is visible
     model.display = True

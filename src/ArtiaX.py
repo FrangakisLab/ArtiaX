@@ -122,7 +122,7 @@ class ArtiaX(Model):
         self._options_geomodel = None
 
         # Tomogram clipping
-        self._clip_thickness = 200
+        self._clip_thickness = 300
 
         # Mouse modes
         from .mouse import (
