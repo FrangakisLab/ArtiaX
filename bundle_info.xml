@@ -6,7 +6,7 @@ will be displayed without the ChimeraX- prefix.
 -->
 
 <BundleInfo name="ChimeraX-ArtiaX"
-	    version="0.4.4" package="chimerax.artiax"
+	    version="0.4.5" package="chimerax.artiax"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -184,6 +184,8 @@ will be displayed without the ChimeraX- prefix.
       name="XZ" icon="view_xz.png" description="Set viewing direction to XZ planes."/>
     <Provider tab="ArtiaX" section="View"
       name="YZ" icon="view_yz.png" description="Set viewing direction to YZ planes."/>
+    <Provider tab="ArtiaX" section="View"
+      name="Clip" icon="clip.png" description="Turn slab-clipping on or off for all tomograms."/>
 
     <!-- ArtiaX tab, Standard Mouse Modes -->
     <Provider tab="ArtiaX" section="Movement" mouse_mode="select"
@@ -456,6 +458,11 @@ will be displayed without the ChimeraX- prefix.
     <ChimeraXClassifier>ChimeraX :: Command :: artiax label :: General ::
       Label particles with attribute.</ChimeraXClassifier>
 
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax clip :: General ::
+      Turn on slab-dependent clipping planes for a tomogram.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax cap :: General ::
+      Turn on/off surface capping for particle lists.</ChimeraXClassifier>
 
   </Classifiers>
 </BundleInfo>

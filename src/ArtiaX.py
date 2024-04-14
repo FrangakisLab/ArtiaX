@@ -17,39 +17,38 @@ from .particle import ParticleList
 from .geometricmodel import GeoModel
 
 # Triggers
-TOMOGRAM_ADD = 'tomo added'
-TOMOGRAM_DEL = 'tomo removed'
+TOMOGRAM_ADD = "tomo added"
+TOMOGRAM_DEL = "tomo removed"
 
-PARTICLES_ADD = 'parts added'
-PARTICLES_DEL = 'parts removed'
+PARTICLES_ADD = "parts added"
+PARTICLES_DEL = "parts removed"
 
-GEOMODEL_ADD = 'geometricmodel added'
-GEOMODEL_DEL = 'geometricmodel removed'
+GEOMODEL_ADD = "geometricmodel added"
+GEOMODEL_DEL = "geometricmodel removed"
 
-OPTIONS_TOMO_CHANGED = 'options tomo changed'
-OPTIONS_PARTLIST_CHANGED = 'options partlist changed'
-OPTIONS_GEOMODEL_CHANGED = 'options geomodel changed'
+OPTIONS_TOMO_CHANGED = "options tomo changed"
+OPTIONS_PARTLIST_CHANGED = "options partlist changed"
+OPTIONS_GEOMODEL_CHANGED = "options geomodel changed"
 
-SEL_TOMO_CHANGED = 'selected tomo changed'
-SEL_PARTLIST_CHANGED = 'selected partlist changed'
-SEL_GEOMODEL_CHANGED = 'selected geometricmodel changed'
+SEL_TOMO_CHANGED = "selected tomo changed"
+SEL_PARTLIST_CHANGED = "selected partlist changed"
+SEL_GEOMODEL_CHANGED = "selected geometricmodel changed"
 
-TOMO_DISPLAY_CHANGED = 'tomo display changed'
-PARTLIST_DISPLAY_CHANGED = 'partlist display changed'
-GEOMODEL_DISPLAY_CHANGED = 'geomodel display changed'
+TOMO_DISPLAY_CHANGED = "tomo display changed"
+PARTLIST_DISPLAY_CHANGED = "partlist display changed"
+GEOMODEL_DISPLAY_CHANGED = "geomodel display changed"
+
 
 class ArtiaX(Model):
 
     DEBUG = False
     SESSION_SAVE = True
 
-    def __init__(self, session,
-                 add: bool = True,
-                 create_managers: bool = True):
-        super().__init__('ArtiaX', session)
+    def __init__(self, session, add: bool = True, create_managers: bool = True):
+        super().__init__("ArtiaX", session)
 
         # GUI
-        #self.ui = ui
+        # self.ui = ui
 
         # Add self to session
         if add:
@@ -64,9 +63,9 @@ class ArtiaX(Model):
         self._partlists = None
         self._geomodels = None
         if create_managers:
-            self._tomograms = ManagerModel('Tomograms', self.session)
-            self._partlists = ManagerModel('Particle Lists', self.session)
-            self._geomodels = ManagerModel('Geometric Models', self.session)
+            self._tomograms = ManagerModel("Tomograms", self.session)
+            self._partlists = ManagerModel("Particle Lists", self.session)
+            self._geomodels = ManagerModel("Geometric Models", self.session)
 
             self.add([self.tomograms])
             self.add([self.partlists])
@@ -95,20 +94,26 @@ class ArtiaX(Model):
         self.triggers.add_trigger(GEOMODEL_DISPLAY_CHANGED)
 
         # When a particle list is added to the session, move it to the particle list manager
-        self._add_model_handler = self.session.triggers.add_handler(ADD_MODELS, self._model_added)
-        self._rem_model_handler = self.session.triggers.add_handler(REMOVE_MODELS, self._model_removed)
-        self._mdc_handler = self.session.triggers.add_handler(MODEL_DISPLAY_CHANGED, self._model_display_changed)
+        self._add_model_handler = self.session.triggers.add_handler(
+            ADD_MODELS, self._model_added
+        )
+        self._rem_model_handler = self.session.triggers.add_handler(
+            REMOVE_MODELS, self._model_removed
+        )
+        self._mdc_handler = self.session.triggers.add_handler(
+            MODEL_DISPLAY_CHANGED, self._model_display_changed
+        )
 
         self.triggers.add_trigger(GEOMODEL_ADD)
         self.triggers.add_trigger(GEOMODEL_DEL)
-        #self.triggers.add_handler(GEOMODEL_ADD, self._geomodel_added)
-        #self.triggers.add_handler(GEOMODEL_DEL, self._geomodel_deleted)
+        # self.triggers.add_handler(GEOMODEL_ADD, self._geomodel_added)
+        # self.triggers.add_handler(GEOMODEL_DEL, self._geomodel_deleted)
 
         # Graphical preset
         run(self.session, "preset artiax default", log=False)
 
         # Selection
-        #self.selected_tomogram = None
+        # self.selected_tomogram = None
         self._selected_tomogram = None
         self._options_tomogram = None
         self._selected_partlist = None
@@ -116,16 +121,21 @@ class ArtiaX(Model):
         self._selected_geomodel = None
         self._options_geomodel = None
 
+        # Tomogram clipping
+        self._clip_thickness = 300
+
         # Mouse modes
-        from .mouse import (TranslateSelectedParticlesMode,
-                            RotateSelectedParticlesMode,
-                            TranslatePickedParticleMode,
-                            RotatePickedParticleMode,
-                            DeletePickedParticleMode,
-                            DeleteSelectedParticlesMode,
-                            DeletePickedTriangleMode,
-                            DeletePickedTetraMode,
-                            MaskConnectedTrianglesMode)
+        from .mouse import (
+            TranslateSelectedParticlesMode,
+            RotateSelectedParticlesMode,
+            TranslatePickedParticleMode,
+            RotatePickedParticleMode,
+            DeletePickedParticleMode,
+            DeleteSelectedParticlesMode,
+            DeletePickedTriangleMode,
+            DeletePickedTetraMode,
+            MaskConnectedTrianglesMode,
+        )
 
         self.translate_selected = TranslateSelectedParticlesMode(self.session)
         self.translate_picked = TranslatePickedParticleMode(self.session)
@@ -146,18 +156,17 @@ class ArtiaX(Model):
         self.session.ui.mouse_modes.add_mode(self.delete_picked_tetra)
         self.session.ui.mouse_modes.add_mode(self.mask_connected_triangles)
 
-
     @property
     def tomograms(self):
         if self._tomograms is None:
-            mod = [c for c in self.child_models() if c.name == 'Tomograms']
+            mod = [c for c in self.child_models() if c.name == "Tomograms"]
             if len(mod) == 1:
                 self._tomograms = mod[0]
             else:
-                return ManagerModel('Tomograms', self.session)
+                return ManagerModel("Tomograms", self.session)
         # Deleted
         if self._tomograms.deleted:
-            self._tomograms = ManagerModel('Tomograms', self.session)
+            self._tomograms = ManagerModel("Tomograms", self.session)
             self.add([self._tomograms])
 
         return self._tomograms
@@ -165,14 +174,14 @@ class ArtiaX(Model):
     @property
     def partlists(self):
         if self._partlists is None:
-            mod = [c for c in self.child_models() if c.name == 'Particle Lists']
+            mod = [c for c in self.child_models() if c.name == "Particle Lists"]
             if len(mod) == 1:
                 self._partlists = mod[0]
             else:
-                return ManagerModel('Particle Lists', self.session)
+                return ManagerModel("Particle Lists", self.session)
         # Deleted
         if self._partlists.deleted:
-            self._partlists = ManagerModel('Particle Lists', self.session)
+            self._partlists = ManagerModel("Particle Lists", self.session)
             self.add([self._partlists])
 
         return self._partlists
@@ -180,14 +189,14 @@ class ArtiaX(Model):
     @property
     def geomodels(self):
         if self._geomodels is None:
-            mod = [c for c in self.child_models() if c.name == 'Geometric Models']
+            mod = [c for c in self.child_models() if c.name == "Geometric Models"]
             if len(mod) == 1:
                 self._geomodels = mod[0]
             else:
-                return ManagerModel('Geometric Models', self.session)
+                return ManagerModel("Geometric Models", self.session)
         # Deleted
         if self._geomodels.deleted:
-            self._geomodels = ManagerModel('Geometric Models', self.session)
+            self._geomodels = ManagerModel("Geometric Models", self.session)
             self.add([self._geomodels])
 
         return self._geomodels
@@ -240,7 +249,6 @@ class ArtiaX(Model):
         self._options_tomogram = value
         self.triggers.activate_trigger(OPTIONS_TOMO_CHANGED, self._options_tomogram)
 
-
     @property
     def options_geomodel(self):
         return self._options_geomodel
@@ -250,9 +258,9 @@ class ArtiaX(Model):
         self._options_geomodel = value
         self.triggers.activate_trigger(OPTIONS_GEOMODEL_CHANGED, self._options_geomodel)
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# Convenience Methods
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # Convenience Methods
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     def get_tomograms(self):
         """Return list of all tomogram models."""
@@ -299,6 +307,7 @@ class ArtiaX(Model):
         self.triggers.activate_trigger(TOMOGRAM_ADD, model)
         self.selected_tomogram = model.id
         self.options_tomogram = model.id
+        run(self.session, "artiax clip off")
 
     def add_particlelist(self, model):
         """Add a particle list model."""
@@ -306,6 +315,7 @@ class ArtiaX(Model):
         self.triggers.activate_trigger(PARTICLES_ADD, model)
         self.selected_partlist = model.id
         self.options_partlist = model.id
+        run(self.session, "artiax clip off")
 
     def add_geomodel(self, model):
         """Add a geometric model."""
@@ -313,6 +323,7 @@ class ArtiaX(Model):
         self.triggers.activate_trigger(GEOMODEL_ADD, model)
         self.selected_geomodel = model.id
         self.options_geomodel = model.id
+        run(self.session, "artiax clip off")
 
     @property
     def tomo_count(self):
@@ -346,9 +357,9 @@ class ArtiaX(Model):
         self._selected_geomodel = None
         self._options_geomodel = None
 
-        self.triggers.activate_trigger(TOMOGRAM_DEL, '')
-        self.triggers.activate_trigger(PARTICLES_DEL, '')
-        self.triggers.activate_trigger(GEOMODEL_DEL, '')
+        self.triggers.activate_trigger(TOMOGRAM_DEL, "")
+        self.triggers.activate_trigger(PARTICLES_DEL, "")
+        self.triggers.activate_trigger(GEOMODEL_DEL, "")
 
         # Now manager models
         self.tomograms.delete()
@@ -363,17 +374,17 @@ class ArtiaX(Model):
         # Delete own triggers
         triggers = list(self.triggers.trigger_names())
         for t in triggers:
-            if t != 'deleted':
+            if t != "deleted":
                 self.triggers.delete_trigger(t)
 
         # Delete self from session
-        delattr(self.session, 'ArtiaX')
+        delattr(self.session, "ArtiaX")
 
         Model.delete(self)
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# I/O
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # I/O
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     def open_tomogram(self, path):
         """Load a tomogram from file."""
@@ -383,23 +394,27 @@ class ArtiaX(Model):
 
         # TODO: Do this in pure python?
         run(self.session, "volume #{} capFaces false".format(tomo.id_string), log=False)
-        #run(self.session, orthoplane_cmd(tomo, 'xy'))
-        run(self.session, 'artiax tomo #{} sliceDirection 0,0,1'.format(tomo.id_string))
-        run(self.session, 'artiax view xy')
+        # run(self.session, orthoplane_cmd(tomo, 'xy'))
+        run(self.session, "artiax tomo #{} sliceDirection 0,0,1".format(tomo.id_string))
+        run(self.session, "artiax view xy")
 
     def import_tomogram(self, model):
         """Import a tomogram from ChimeraX."""
         if not isinstance(model, Volume):
-            raise errors.UserError("Cannot import data of type {} to ArtiaX as a tomogram.".format(type(model)))
+            raise errors.UserError(
+                "Cannot import data of type {} to ArtiaX as a tomogram.".format(
+                    type(model)
+                )
+            )
 
         tomo = Tomogram.from_volume(self.session, model)
         self.add_tomogram(tomo)
 
         # TODO: Do this in pure python?
         run(self.session, "volume #{} capFaces false".format(tomo.id_string), log=False)
-        #run(self.session, orthoplane_cmd(tomo, 'xy'))
-        run(self.session, 'artiax tomo #{} sliceDirection 0,0,1'.format(tomo.id_string))
-        run(self.session, 'artiax view xy')
+        # run(self.session, orthoplane_cmd(tomo, 'xy'))
+        run(self.session, "artiax tomo #{} sliceDirection 0,0,1".format(tomo.id_string))
+        run(self.session, "artiax view xy")
 
         return tomo
 
@@ -414,18 +429,22 @@ class ArtiaX(Model):
             self.options_tomogram = None
 
         self.tomograms.get(identifier).delete()
-        self.triggers.activate_trigger(TOMOGRAM_DEL, '')
+        self.triggers.activate_trigger(TOMOGRAM_DEL, "")
 
     def open_partlist(self, path, format):
         partlist = open_particle_list(self.session, [], path, format)[0][0]
         self.add_particlelist(partlist)
 
-    def create_partlist(self, pixelsize=1, format_name="Artiatomi Motivelist", name="particles"):
+    def create_partlist(
+        self, pixelsize=1, format_name="Artiatomi Motivelist", name="particles"
+    ):
         partlist = None
         formats = get_formats(self.session)
         if format_name in formats:
             name = "particles"
-            data = formats[format_name].particle_data(self.session, file_name=None, oripix=1, trapix=1)
+            data = formats[format_name].particle_data(
+                self.session, file_name=None, oripix=1, trapix=1
+            )
             partlist = ParticleList(name, self.session, data)
 
         if partlist is not None:
@@ -440,7 +459,7 @@ class ArtiaX(Model):
             self.options_partlist = None
 
         self.partlists.get(identifier).delete()
-        self.triggers.activate_trigger(PARTICLES_DEL, '')
+        self.triggers.activate_trigger(PARTICLES_DEL, "")
 
     def save_partlist(self, identifier, file_name, format_name):
         partlist = self.partlists.get(identifier)
@@ -457,48 +476,81 @@ class ArtiaX(Model):
             self.options_geomodel = None
 
         self.geomodels.get(identifier).delete()
-        self.triggers.activate_trigger(GEOMODEL_DEL, '')
+        self.triggers.activate_trigger(GEOMODEL_DEL, "")
 
     def attach_display_model(self, identifier, model):
         self.partlists.get(identifier).attach_display_model(model)
 
     def show_tomogram(self, identifier):
-        run(self.session, 'show #!{} models'.format(self.tomograms.get(identifier).id_string))
+        run(
+            self.session,
+            "show #!{} models".format(self.tomograms.get(identifier).id_string),
+        )
 
     def hide_tomogram(self, identifier):
-        run(self.session, 'hide #!{} models'.format(self.tomograms.get(identifier).id_string))
+        run(
+            self.session,
+            "hide #!{} models".format(self.tomograms.get(identifier).id_string),
+        )
 
     def show_partlist(self, identifier):
-        run(self.session, 'show #!{} models'.format(self.partlists.get(identifier).id_string))
+        run(
+            self.session,
+            "show #!{} models".format(self.partlists.get(identifier).id_string),
+        )
 
     def hide_partlist(self, identifier):
-        run(self.session, 'hide #!{} models'.format(self.partlists.get(identifier).id_string))
+        run(
+            self.session,
+            "hide #!{} models".format(self.partlists.get(identifier).id_string),
+        )
 
     def show_geomodel(self, identifier):
-        run(self.session, 'show #!{} models'.format(self.geomodels.get(identifier).id_string))
+        run(
+            self.session,
+            "show #!{} models".format(self.geomodels.get(identifier).id_string),
+        )
 
     def hide_geomodel(self, identifier):
-        run(self.session, 'hide #!{} models'.format(self.geomodels.get(identifier).id_string))
+        run(
+            self.session,
+            "hide #!{} models".format(self.geomodels.get(identifier).id_string),
+        )
 
     def show_particles(self, identifier, attributes, minima, maxima):
         id = self.partlists.get(identifier).id
         from .util.select import display_cmd
+
         display_cmd(self.session, id, attributes, minima, maxima)
 
     def select_particles(self, identifier, attributes, minima, maxima):
         id = self.partlists.get(identifier).id
         from .util.select import selection_cmd
+
         selection_cmd(self.session, id, attributes, minima, maxima)
 
     def color_particles(self, identifier, color, log=False):
         id = self.partlists.get(identifier).id
         from .util.select import color_cmd
+
         color_cmd(self.session, id, color, log=log)
 
-    def color_particles_byattribute(self, identifier, palette, attribute, minimum, maximum, transparency, log=False):
+    def color_particles_byattribute(
+        self, identifier, palette, attribute, minimum, maximum, transparency, log=False
+    ):
         id = self.partlists.get(identifier).id
         from .util.select import colormap_cmd
-        colormap_cmd(self.session, id, palette, attribute, minimum, maximum, transparency, log=log)
+
+        colormap_cmd(
+            self.session,
+            id,
+            palette,
+            attribute,
+            minimum,
+            maximum,
+            transparency,
+            log=log,
+        )
 
     def color_geomodel(self, identifier, color, log=False):
         geomodel = self.geomodels.get(identifier)
@@ -506,18 +558,23 @@ class ArtiaX(Model):
         if log:
             from chimerax.core.commands import log_equivalent_command
             from chimerax.core.colors import Color
+
             c = Color(color)
             color = c.rgba * 100
-            log_equivalent_command(self.session, "artiax geomodel color #{}.{}.{} {},{},{},{}".format(*geomodel.id,
-                                                                                            round(color[0]),
-                                                                                            round(color[1]),
-                                                                                            round(color[2]),
-                                                                                            round(color[3])))
+            log_equivalent_command(
+                self.session,
+                "artiax geomodel color #{}.{}.{} {},{},{},{}".format(
+                    *geomodel.id,
+                    round(color[0]),
+                    round(color[1]),
+                    round(color[2]),
+                    round(color[3])
+                ),
+            )
 
-
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# Callbacks
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # Callbacks
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     # Callback for trigger ADD_MODELS
     def _model_added(self, name, data):
@@ -558,17 +615,17 @@ class ArtiaX(Model):
                 # Since ID is unknown at this point, we need to cancel any selection
                 self.selected_partlist = None
                 self.options_partlist = None
-                self.triggers.activate_trigger(PARTICLES_DEL, '')
+                self.triggers.activate_trigger(PARTICLES_DEL, "")
             elif isinstance(m, Tomogram):
                 # Since ID is unknown at this point, we need to cancel any selection
                 self.selected_tomogram = None
                 self.options_tomogram = None
-                self.triggers.activate_trigger(TOMOGRAM_DEL, '')
+                self.triggers.activate_trigger(TOMOGRAM_DEL, "")
             elif isinstance(m, GeoModel):
                 # Since ID is unknown at this point, we need to cancel any selection
                 self.selected_geomodel = None
                 self.options_geomodel = None
-                self.triggers.activate_trigger(GEOMODEL_DEL, '')
+                self.triggers.activate_trigger(GEOMODEL_DEL, "")
 
     # Callback for trigger MODEL_DISPLAY_CHANGED
     def _model_display_changed(self, name, data):
@@ -579,9 +636,24 @@ class ArtiaX(Model):
         elif isinstance(data, GeoModel):
             self.triggers.activate_trigger(GEOMODEL_DISPLAY_CHANGED, data)
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# Save/Load
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # Clip Thickness
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    @property
+    def clip_thickness(self) -> float:
+        return self._clip_thickness
+
+    @clip_thickness.setter
+    def clip_thickness(self, value: float):
+        self._clip_thickness = value
+
+        for t in self.tomograms.child_models():
+            if t.is_clipped:
+                t.update_clip()
+
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # Save/Load
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     def take_snapshot(self, session, flags):
         data = {}
@@ -595,14 +667,13 @@ class ArtiaX(Model):
         from chimerax.core import tools
         from .tool import ArtiaXUI
 
-        if hasattr(session, 'ArtiaX'):
+        if hasattr(session, "ArtiaX"):
             artia = session.ArtiaX
         else:
             artia = cls(session, add=False, create_managers=False)
 
         Model.set_state_from_snapshot(artia, session, data["model state"])
         session.ArtiaX = artia
-        tools.get_singleton(session, ArtiaXUI, 'ArtiaX', create=True)
+        tools.get_singleton(session, ArtiaXUI, "ArtiaX", create=True)
 
         return session.ArtiaX
-
