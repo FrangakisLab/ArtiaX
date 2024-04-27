@@ -1194,9 +1194,12 @@ class ParticleList(Model):
         return pl
 
     def delete(self):
-        self.markers.delete()
-        self._collection_model.delete()
-        self._display_model.delete()
+        if not self.markers.deleted:
+            self.markers.delete()
+        if not self._collection_model.deleted:
+            self._collection_model.delete()
+        if not self._display_model.deleted:
+            self._display_model.delete()
 
         self.session.triggers.remove_handler(self.restore_handler)
 
