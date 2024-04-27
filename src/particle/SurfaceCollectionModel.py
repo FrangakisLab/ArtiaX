@@ -21,6 +21,7 @@ class SurfaceCollectionModel(Model):
     mouse modes, because this causes unexpected behavior. Hiding the positions in a drawing prevents this, because
     seleceted instances are determined using the "selected" attribute, not the "highlighted_positions" attribute.
     """
+
     SESSION_ENDURING = False
     SESSION_SAVE = False
     DEBUG = False
@@ -48,9 +49,9 @@ class SurfaceCollectionModel(Model):
     def __len__(self):
         return len(self._gl_instances)
 
-# ==============================================================================
-# Collection level actions =====================================================
-# ==============================================================================
+    # ==============================================================================
+    # Collection level actions =====================================================
+    # ==============================================================================
     def add_collection(self, name):
         """Create a new collection of surfaces to display at the child positions."""
         if name in self.collections:
@@ -60,7 +61,7 @@ class SurfaceCollectionModel(Model):
             self.collections[name].positions = self.child_positions
             self.collections[name].display_positions = self.displayed_child_positions
             self.collections[name].highlighted_positions = self.selected_positions
-            #self.collections[name].colors = self.child_colors
+            # self.collections[name].colors = self.child_colors
             self.add_drawing(self.collections[name])
             return self.collections[name]
 
@@ -76,11 +77,14 @@ class SurfaceCollectionModel(Model):
 
     def show_collection(self, name, show=True):
         if name not in self.collections.keys():
-            #TODO: Warning?
+            # TODO: Warning?
             return
 
         from numpy import logical_and
-        self.collections[name].display_positions = logical_and(self.displayed_child_positions, show)
+
+        self.collections[name].display_positions = logical_and(
+            self.displayed_child_positions, show
+        )
         self.collections[name].active = show
 
     def hide_collection(self, name):
@@ -100,18 +104,21 @@ class SurfaceCollectionModel(Model):
         for name, col in self.collections.items():
             col.update_graphics(self.child_positions)
 
-# ==============================================================================
-# Position level actions =======================================================
-# ==============================================================================
+    # ==============================================================================
+    # Position level actions =======================================================
+    # ==============================================================================
     def add_place(self, place_id, pos):
         """Add a new display position and update graphics."""
         self._gl_instances[place_id] = pos
 
         from numpy import array, append
+
         if self.displayed_child_positions is None:
             self._displayed_child_positions = array([True])
         else:
-            self._displayed_child_positions = append(self.displayed_child_positions, True)
+            self._displayed_child_positions = append(
+                self.displayed_child_positions, True
+            )
 
         if self.selected_child_positions is None:
             self._selected_child_positions = array([True])
@@ -126,8 +133,9 @@ class SurfaceCollectionModel(Model):
             self._gl_instances[pid] = pos
 
         from numpy import ones, zeros, append
-        tr = ones((len(place_ids), ), dtype=bool)
-        fa = zeros((len(place_ids), ), dtype=bool)
+
+        tr = ones((len(place_ids),), dtype=bool)
+        fa = zeros((len(place_ids),), dtype=bool)
         if self.displayed_child_positions is None:
             self._displayed_child_positions = tr
         else:
@@ -166,6 +174,7 @@ class SurfaceCollectionModel(Model):
     def delete_place(self, place_id):
         """Delete a specific position by id."""
         from numpy import logical_not
+
         mask = logical_not(self.child_ids == place_id)
 
         self._gl_instances.pop(place_id)
@@ -178,7 +187,8 @@ class SurfaceCollectionModel(Model):
     def delete_places(self, place_ids):
         """Delete multiple positions by ids. Update graphics only once for speed."""
         from numpy import zeros, logical_or, logical_not
-        mask = zeros((len(self), ), dtype=bool)
+
+        mask = zeros((len(self),), dtype=bool)
 
         cids = self.child_ids
         for pid in place_ids:
@@ -194,14 +204,15 @@ class SurfaceCollectionModel(Model):
     # def get_id(self, idx):
     #     return list(self._gl_instances.keys())[idx]
 
-# ==============================================================================
-# Properties ===================================================================
-# ==============================================================================
+    # ==============================================================================
+    # Properties ===================================================================
+    # ==============================================================================
 
     @property
     def child_ids(self):
         from numpy import array, dtype
-        return array(list(self._gl_instances.keys()), dtype=dtype('U'))
+
+        return array(list(self._gl_instances.keys()), dtype=dtype("U"))
 
     @property
     def child_positions(self):
@@ -248,9 +259,11 @@ class SurfaceCollectionModel(Model):
 
         if value is None:
             from numpy import zeros
+
             value = zeros((len(self),), dtype=bool)
 
         from numpy import copy
+
         self._selected_child_positions = copy(value)
 
         for name, col in self.collections.items():
@@ -267,15 +280,16 @@ class SurfaceCollectionModel(Model):
     def displayed_child_positions(self, value):
         if value is None:
             from numpy import zeros
+
             value = zeros((len(self),), dtype=bool)
 
         from numpy import copy
+
         self._displayed_child_positions = copy(value)
 
         for name, col in self.collections.items():
             if col.active:
                 col.display_positions = copy(value)
-
 
     def scm_set_color(self, rgba):
         Drawing.set_color(self, rgba)
@@ -342,13 +356,13 @@ class SurfaceCollectionModel(Model):
         ids = self.child_ids[pm]
 
         # Work matrix so we don't allocate for every multiplication
-        sp_new = np.zeros((3, 4), np.float64, order='C')
+        sp_new = np.zeros((3, 4), np.float64, order="C")
 
         # Which places (so we don't have to iterate over all)
         indeces = pm.nonzero()[0]
 
         # Invert scene position array at once (much faster)
-        spi = np.zeros((indeces.shape[0], 4, 4), np.float64, order='C')
+        spi = np.zeros((indeces.shape[0], 4, 4), np.float64, order="C")
         spi[:, :3, :] = scene_pos.masked(pm).array()
         spi[:, 3, 3] = 1
         spi = np.linalg.inv(spi)
@@ -362,7 +376,9 @@ class SurfaceCollectionModel(Model):
 
             # For speed do this:
             _geometry.multiply_matrices(np.squeeze(spi[i, :3, :]), sp_new, sp_new)
-            _geometry.multiply_matrices(pos[idx]._matrix, sp_new, pos[idx]._matrix)  # <-- This already changes the
+            _geometry.multiply_matrices(
+                pos[idx]._matrix, sp_new, pos[idx]._matrix
+            )  # <-- This already changes the
             #                                                                              correct place, no need for
             #                                                                              assigning again.
             # instead of:
@@ -381,7 +397,8 @@ class SurfaceCollectionModel(Model):
             return self._highlighted_instances
 
         from numpy import logical_or, zeros
-        hpos = zeros((len(self._gl_instances), ), dtype=bool)
+
+        hpos = zeros((len(self._gl_instances),), dtype=bool)
         for name, col in self.collections.items():
             hpos = logical_or(hpos, col.highlighted_positions)
 
@@ -391,7 +408,10 @@ class SurfaceCollectionModel(Model):
     def highlighted_bounds(self):
         """Bounds of all highlighted positions in any SurfaceCollectionDrawings."""
         from chimerax.geometry import bounds
-        b = bounds.union_bounds(d.highlighted_bounds() for d in self.collections.values())
+
+        b = bounds.union_bounds(
+            d.highlighted_bounds() for d in self.collections.values()
+        )
         return b
 
     def masked_bounds(self, mask):
@@ -410,7 +430,8 @@ class SurfaceCollectionModel(Model):
             return None
 
         from numpy import logical_or, zeros
-        pm = zeros((len(self._gl_instances), ), dtype=bool)
+
+        pm = zeros((len(self._gl_instances),), dtype=bool)
         for name, col in self.collections.items():
             pm = logical_or(pm, col.position_mask(highlighted_only))
 
@@ -440,10 +461,11 @@ class SurfaceCollectionModel(Model):
         # Delete own triggers
         triggers = list(self.triggers.trigger_names())
         for t in triggers:
-            if t != 'deleted':
+            if t != "deleted":
                 self.triggers.delete_trigger(t)
 
         Model.delete(self)
+
 
 class SurfaceCollectionDrawing(Drawing):
     """
@@ -493,6 +515,7 @@ class SurfaceCollectionDrawing(Drawing):
     def highlighted_bounds(self):
         """Compute union bounds of highlighted positions (center of rotation)."""
         from chimerax.geometry import copies_bounding_box
+
         sb = self.geometry_bounds()
         spos = self.positions.masked(self.highlighted_positions)
         pb = sb if spos.is_identity() else copies_bounding_box(sb, spos)
@@ -505,6 +528,7 @@ class SurfaceCollectionDrawing(Drawing):
     def _scd_set_color(self, rgba):
         if self.color_locked:
             from numpy import any
+
             vc = self.vertex_colors
             if any(vc[:, 3] != rgba[3]):
                 vc[:, 3] = rgba[3]
@@ -518,6 +542,7 @@ class SurfaceCollectionDrawing(Drawing):
     def _scd_set_colors(self, rgba):
         if self.color_locked:
             from numpy import any
+
             vc = self.vertex_colors
             if any(vc[:, 3] != rgba[0, 3]):
                 vc[:, 3] = rgba[0, 3]
@@ -538,7 +563,9 @@ class SurfaceCollectionDrawing(Drawing):
         Drawing.set_highlighted_positions(self, spos)
         self.parent.selected_child_positions = spos
 
-    highlighted_positions = property(Drawing.highlighted_positions.fget, set_scd_highlighted_positions)
+    highlighted_positions = property(
+        Drawing.highlighted_positions.fget, set_scd_highlighted_positions
+    )
 
     def _first_intercept_excluding_children(self, mxyz1, mxyz2):
         if self.empty_drawing():
@@ -550,27 +577,53 @@ class SurfaceCollectionDrawing(Drawing):
             return None
         p = None
         from chimerax.geometry import closest_triangle_intercept
+
         if self.positions.is_identity():
             fmin, tmin = closest_triangle_intercept(va, ta, mxyz1, mxyz2)
             if fmin is not None:
-                p = PickedInstanceTriangle(fmin, tmin, 0, self, np.array([True]), self.positions[0].translation(),
-                                           self.parent.child_ids[0])
+                p = PickedInstanceTriangle(
+                    fmin,
+                    tmin,
+                    0,
+                    self,
+                    np.array([True]),
+                    self.positions[0].translation(),
+                    self.parent.child_ids[0],
+                )
         else:
-            pos_nums = self.bounds_intercept_copies(self.geometry_bounds(), mxyz1, mxyz2)
+            pos_nums = self.bounds_intercept_copies(
+                self.geometry_bounds(), mxyz1, mxyz2
+            )
             for i in pos_nums:
                 cxyz1, cxyz2 = self.positions[i].inverse() * (mxyz1, mxyz2)
                 fmin, tmin = closest_triangle_intercept(va, ta, cxyz1, cxyz2)
                 if fmin is not None and (p is None or fmin < p.distance):
-                    pm = np.zeros((len(self.positions), ), dtype=bool)
+                    pm = np.zeros((len(self.positions),), dtype=bool)
                     pm[i] = True
-                    p = PickedInstanceTriangle(fmin, tmin, i, self, pm, self.positions[i].translation(),
-                                               self.parent.child_ids[i])
+                    p = PickedInstanceTriangle(
+                        fmin,
+                        tmin,
+                        i,
+                        self,
+                        pm,
+                        self.positions[i].translation(),
+                        self.parent.child_ids[i],
+                    )
         return p
 
 
 class PickedInstanceTriangle(PickedTriangle):
 
-    def __init__(self, distance, triangle_number, copy_number, drawing, position_mask, coord, child_id):
+    def __init__(
+        self,
+        distance,
+        triangle_number,
+        copy_number,
+        drawing,
+        position_mask,
+        coord,
+        child_id,
+    ):
         PickedTriangle.__init__(self, distance, triangle_number, copy_number, drawing)
         self._position_mask = position_mask
         self._coord = coord
@@ -583,33 +636,36 @@ class PickedInstanceTriangle(PickedTriangle):
         return self._id
 
     def description(self):
-        model = '#{}, '.format(self.drawing().parent.id_string)
-        particle = 'particle {}/{}, '.format(self._copy+1, self._position_mask.shape[0])
-        position = 'x: {}, y: {}, z: {}'.format(round(self._coord[0], 2),
-                                                round(self._coord[1], 2),
-                                                round(self._coord[2], 2))
+        model = "#{}, ".format(self.drawing().parent.id_string)
+        particle = "particle {}/{}, ".format(
+            self._copy + 1, self._position_mask.shape[0]
+        )
+        position = "x: {}, y: {}, z: {}".format(
+            round(self._coord[0], 2), round(self._coord[1], 2), round(self._coord[2], 2)
+        )
         return model + particle + position
 
-    def select(self, mode = 'add'):
+    def select(self, mode="add"):
         d = self.drawing()
         pmask = d.highlighted_positions
         if pmask is None:
             from numpy import zeros, bool
+
             pmask = zeros((len(d.positions),), bool)
         else:
             # Copy, otherwise it is the same array and we can't check for changes .....
             from numpy import copy
+
             pmask = copy(pmask)
         c = self._copy
-        if mode == 'add':
+        if mode == "add":
             s = 1
-        elif mode == 'subtract':
+        elif mode == "subtract":
             s = 0
-        elif mode == 'toggle':
+        elif mode == "toggle":
             s = not pmask[c]
         pmask[c] = s
         d.highlighted_positions = pmask
-
 
 
 def rotate_instances(axis, angle, drawings, masks):
@@ -626,8 +682,10 @@ def rotate_instances(axis, angle, drawings, masks):
     center = b.center()
 
     from chimerax.geometry import rotation
+
     r = rotation(axis, angle, center)
     move_instances(r, drawings, masks)
+
 
 def translate_instances(shift, drawings, masks):
     """Translates individual opengl instances."""
@@ -635,18 +693,22 @@ def translate_instances(shift, drawings, masks):
         return
 
     from chimerax.geometry import translation
+
     t = translation(shift)
 
     move_instances(t, drawings, masks)
+
 
 def move_instances(tf, drawings, masks):
     """Moves individual opengl instances (rotation/translation)."""
     for d, m in zip(drawings, masks):
         d.move_children(tf, m)
 
+
 def invert_place(place):
     from numpy import zeros
     from numpy.linalg import inv
+
     tf = zeros((4, 4), float)
     tf[:3, :] = place.matrix
     tf[3, 3] = 1

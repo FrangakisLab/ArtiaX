@@ -91,6 +91,13 @@ will be displayed without the ChimeraX- prefix.
               reference_url="https://relion.readthedocs.io/en/release-3.1/Reference/Conventions.html"
               synopsis="RELION star files"/>
 
+    <Provider name="cryoET Data Portal"
+              suffixes=".ndjson"
+              category="particle list"
+              nicknames="cdp,data_portal"
+              reference_url=""
+              synopsis="CryoET data portal particle files."/>
+
     <Provider name="Coords file"
               suffixes=".coords"
               category="particle list"
@@ -125,6 +132,7 @@ will be displayed without the ChimeraX- prefix.
     <Provider name="Generic Particle List" want_path="true"/>
     <Provider name="Dynamo Table" want_path="true"/>
     <Provider name="RELION STAR file" want_path="true"/>
+    <Provider name="cryoET Data Portal" want_path="true"/>
     <Provider name="Coords file" want_path="true"/>
     <Provider name="Copick Picks file" want_path="true" is_default="false"/>
     <Provider name="PEET mod/csv" want_path="true"/>
@@ -136,6 +144,7 @@ will be displayed without the ChimeraX- prefix.
     <Provider name="Generic Particle List" />
     <Provider name="Dynamo Table" />
     <Provider name="RELION STAR file" />
+    <Provider name="cryoET Data Portal"/>
     <Provider name="Coords file"/>
     <Provider name="Copick Picks file"/>
     <Provider name="PEET mod/csv"/>

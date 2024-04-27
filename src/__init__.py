@@ -2,13 +2,14 @@
 
 from chimerax.core.toolshed import BundleAPI
 
+
 # Subclass from chimerax.core.toolshed.BundleAPI and
 # override the method for registering commands,
 # inheriting all other methods from the base class.
 class _MyAPI(BundleAPI):
-    api_version = 1     # start_tool called with BundleInfo and
-                        # ToolInfo instance (vs. BundleInfo and
-                        # tool name when api_version==0 [the default])
+    api_version = 1  # start_tool called with BundleInfo and
+    # ToolInfo instance (vs. BundleInfo and
+    # tool name when api_version==0 [the default])
 
     # Override method
     @staticmethod
@@ -25,6 +26,7 @@ class _MyAPI(BundleAPI):
         # appropiate class from the ''tool'' module.
         if ti.name == "ArtiaX":
             from . import tool
+
             return tool.ArtiaXUI(session, ti.name)
         raise ValueError("Trying to start unknown tool: %s" % ti.name)
 
@@ -35,7 +37,12 @@ class _MyAPI(BundleAPI):
         from .options_window import OptionsWindow
         from .ArtiaX import ArtiaX
         from .util import ManagerModel
-        from .particle import ParticleList, MarkerSetPlus, SurfaceCollectionModel, SurfaceCollectionDrawing
+        from .particle import (
+            ParticleList,
+            MarkerSetPlus,
+            SurfaceCollectionModel,
+            SurfaceCollectionDrawing,
+        )
         from .io.ParticleData import Particle, ParticleData
         from .io.Artiatomi.ArtiatomiParticleData import ArtiatomiParticleData
         from .io.Dynamo.DynamoParticleData import DynamoParticleData
@@ -43,6 +50,7 @@ class _MyAPI(BundleAPI):
         from .io.PEET.PEETParticleData import PEETParticleData
         from .io.RELION.RELIONParticleData import RELIONParticleData
         from .io.Copick.CopickParticleData import CopickParticleData
+        from .io.CryoETDataPortal.CDPParticleData import CDPParticleData
         from .volume import VolumePlus, Tomogram, ProcessableTomogram
         from .geometricmodel.GeoModel import GeoModel
         from .geometricmodel.ArbitraryModel import ArbitraryModel
@@ -56,39 +64,37 @@ class _MyAPI(BundleAPI):
 
         classes = {
             # UI and tool
-            'ArtiaXUI': ArtiaXUI,
-            'OptionsWindow': OptionsWindow,
-            'ArtiaX': ArtiaX,
-
+            "ArtiaXUI": ArtiaXUI,
+            "OptionsWindow": OptionsWindow,
+            "ArtiaX": ArtiaX,
             # Manager models
-            'ManagerModel': ManagerModel,
-
+            "ManagerModel": ManagerModel,
             # Particle models
-            'ParticleList': ParticleList,
-            'MarkerSetPlus': MarkerSetPlus,
-            'SurfaceCollectionModel': SurfaceCollectionModel,
-            'SurfaceCollectionDrawing': SurfaceCollectionDrawing,
-            'Tomogram': Tomogram,
-            'VolumePlus': VolumePlus,
-            'Particle': Particle,
-            'ParticleData': ParticleData,
-            'ArtiatomiParticleData': ArtiatomiParticleData,
-            'DynamoParticleData': DynamoParticleData,
-            'GenericParticleData': GenericParticleData,
-            'PEETParticleData': PEETParticleData,
-            'RELIONParticleData': RELIONParticleData,
-            'CopickParticleData': CopickParticleData,
-
+            "ParticleList": ParticleList,
+            "MarkerSetPlus": MarkerSetPlus,
+            "SurfaceCollectionModel": SurfaceCollectionModel,
+            "SurfaceCollectionDrawing": SurfaceCollectionDrawing,
+            "Tomogram": Tomogram,
+            "VolumePlus": VolumePlus,
+            "Particle": Particle,
+            "ParticleData": ParticleData,
+            "ArtiatomiParticleData": ArtiatomiParticleData,
+            "DynamoParticleData": DynamoParticleData,
+            "GenericParticleData": GenericParticleData,
+            "PEETParticleData": PEETParticleData,
+            "RELIONParticleData": RELIONParticleData,
+            "CopickParticleData": CopickParticleData,
+            "CDPParticleData": CDPParticleData,
             # Geomodels
-            'GeoModel': GeoModel,
-            'ArbitraryModel': ArbitraryModel,
-            'Boundary': Boundary,
-            'CurvedLine': CurvedLine,
-            'Line': Line,
-            'PopulatedModel': PopulatedModel,
-            'Sphere': Sphere,
-            'Surface': Surface,
-            'TriangulationSurface': TriangulationSurface,
+            "GeoModel": GeoModel,
+            "ArbitraryModel": ArbitraryModel,
+            "Boundary": Boundary,
+            "CurvedLine": CurvedLine,
+            "Line": Line,
+            "PopulatedModel": PopulatedModel,
+            "Sphere": Sphere,
+            "Surface": Surface,
+            "TriangulationSurface": TriangulationSurface,
         }
 
         return classes.get(class_name)
@@ -114,14 +120,16 @@ class _MyAPI(BundleAPI):
         # Preset
         if mgr == session.presets:
             from .presets import run_preset
+
             run_preset(session, name, mgr)
 
         elif mgr == session.toolbar:
             from .toolbar import run_provider
+
             run_provider(session, name)
 
         elif mgr == session.open_command:
-            #from chimerax.open_command import OpenerInfo
+            # from chimerax.open_command import OpenerInfo
             from .io.formats import get_formats
 
             # Make sure formats are known
@@ -131,10 +139,9 @@ class _MyAPI(BundleAPI):
             if name in formats:
                 return formats[name].opener_info
 
-
         elif mgr == session.save_command:
-            #from chimerax.save_command import SaverInfo
-            #from .io import save_particle_list
+            # from chimerax.save_command import SaverInfo
+            # from .io import save_particle_list
             from .io.formats import get_formats
 
             # Make sure formats are known
@@ -144,17 +151,17 @@ class _MyAPI(BundleAPI):
             if name in formats:
                 return formats[name].saver_info
 
-
     @staticmethod
     def register_command(bi, ci, logger):
         logger.status(ci.name)
         # Register all ArtiaX commands
-        if 'artiax' in ci.name:
+        if "artiax" in ci.name:
             from . import cmd
+
             cmd.register_artiax(logger)
 
-        #raise ValueError('Test')
+        # raise ValueError('Test')
+
 
 # Create the ''bundle_api'' object that ChimeraX expects.
 bundle_api = _MyAPI()
-
