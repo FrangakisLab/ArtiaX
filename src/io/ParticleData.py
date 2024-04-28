@@ -94,7 +94,9 @@ class Particle(State):
     within a tomogram, as well as particle format specific metadata.
     """
 
-    def __init__(self, id, data_keys, default_params, rot, pixelsize_ori, pixelsize_tra):#rot1, rot2, rot3, pixelsize_ori, pixelsize_tra):
+    def __init__(
+        self, id, data_keys, default_params, rot, pixelsize_ori, pixelsize_tra
+    ):  # rot1, rot2, rot3, pixelsize_ori, pixelsize_tra):
         self.id = id
         """This particles' uuid."""
         self.pixelsize_ori = pixelsize_ori
@@ -133,7 +135,7 @@ class Particle(State):
     def coord(self):
         ori = self._get_origin()
         tra = self._get_translation()
-        return (ori[0]+tra[0], ori[1]+tra[1], ori[2]+tra[2])
+        return (ori[0] + tra[0], ori[1] + tra[1], ori[2] + tra[2])
 
     @property
     def translation(self):
@@ -196,13 +198,13 @@ class Particle(State):
     @rotation.setter
     def rotation(self, value):
         if isinstance(value, Place):
-            self['ang_1'] = self.rot.rot1_from_matrix(value.matrix)
-            self['ang_2'] = self.rot.rot2_from_matrix(value.matrix)
-            self['ang_3'] = self.rot.rot3_from_matrix(value.matrix)
+            self["ang_1"] = self.rot.rot1_from_matrix(value.matrix)
+            self["ang_2"] = self.rot.rot2_from_matrix(value.matrix)
+            self["ang_3"] = self.rot.rot3_from_matrix(value.matrix)
         else:
-            self['ang_1'] = self.rot.rot1_from_matrix(value)
-            self['ang_2'] = self.rot.rot2_from_matrix(value)
-            self['ang_3'] = self.rot.rot3_from_matrix(value)
+            self["ang_1"] = self.rot.rot1_from_matrix(value)
+            self["ang_2"] = self.rot.rot2_from_matrix(value)
+            self["ang_3"] = self.rot.rot3_from_matrix(value)
 
     def __getitem__(self, item):
         """
@@ -245,15 +247,15 @@ class Particle(State):
         self._default_params."""
 
         expected_entries = [
-            'pos_x',
-            'pos_y',
-            'pos_z',
-            'shift_x',
-            'shift_y',
-            'shift_z',
-            'ang_1',
-            'ang_2',
-            'ang_3'
+            "pos_x",
+            "pos_y",
+            "pos_z",
+            "shift_x",
+            "shift_y",
+            "shift_z",
+            "ang_1",
+            "ang_2",
+            "ang_3",
         ]
 
         # Add all data entries and aliases
@@ -269,7 +271,11 @@ class Particle(State):
 
         # Does the data format conform to our spec?
         if len(expected_entries) > 0:
-            raise UserError("Incomplete Particle List format definition for format {}.".format(type(self._data)))
+            raise UserError(
+                "Incomplete Particle List format definition for format {}.".format(
+                    type(self._data)
+                )
+            )
 
     def _get_origin(self):
         """
@@ -279,9 +285,11 @@ class Particle(State):
         -------
         origin: three-element tuple of float
         """
-        return (self['pos_x'] * self.pixelsize_ori,
-                self['pos_y'] * self.pixelsize_ori,
-                self['pos_z'] * self.pixelsize_ori)
+        return (
+            self["pos_x"] * self.pixelsize_ori,
+            self["pos_y"] * self.pixelsize_ori,
+            self["pos_z"] * self.pixelsize_ori,
+        )
 
     def _set_origin(self, data):
         """
@@ -292,9 +300,9 @@ class Particle(State):
         data: three-element tuple, list or array
             The origin of the particle in physical coordinates.
         """
-        self['pos_x'] = data[0] / self.pixelsize_ori
-        self['pos_y'] = data[1] / self.pixelsize_ori
-        self['pos_z'] = data[2] / self.pixelsize_ori
+        self["pos_x"] = data[0] / self.pixelsize_ori
+        self["pos_y"] = data[1] / self.pixelsize_ori
+        self["pos_z"] = data[2] / self.pixelsize_ori
 
     def _get_translation(self):
         """
@@ -304,9 +312,11 @@ class Particle(State):
         -------
         translation: three-element tuple of float
         """
-        return (self['shift_x'] * self.pixelsize_tra,
-                self['shift_y'] * self.pixelsize_tra,
-                self['shift_z'] * self.pixelsize_tra)
+        return (
+            self["shift_x"] * self.pixelsize_tra,
+            self["shift_y"] * self.pixelsize_tra,
+            self["shift_z"] * self.pixelsize_tra,
+        )
 
     def _set_translation(self, data):
         """
@@ -317,9 +327,9 @@ class Particle(State):
         data : three-element tuple, list or array
             The translation of the particle in physical coordinates.
         """
-        self['shift_x'] = data[0] / self.pixelsize_tra
-        self['shift_y'] = data[1] / self.pixelsize_tra
-        self['shift_z'] = data[2] / self.pixelsize_tra
+        self["shift_x"] = data[0] / self.pixelsize_tra
+        self["shift_y"] = data[1] / self.pixelsize_tra
+        self["shift_z"] = data[2] / self.pixelsize_tra
 
     def _get_rotation(self):
         """
@@ -331,7 +341,7 @@ class Particle(State):
         rotation: three-element tuple of float
             The rotation
         """
-        return (self['ang_1'], self['ang_2'], self['ang_3'])
+        return (self["ang_1"], self["ang_2"], self["ang_3"])
 
     def _set_rotation(self, data):
         """
@@ -344,21 +354,23 @@ class Particle(State):
             The rotation transform of the particle.
         """
         if isinstance(data, Place):
-            self['ang_1'] = self.rot.rot1_from_matrix(data.matrix)
-            self['ang_2'] = self.rot.rot2_from_matrix(data.matrix)
-            self['ang_3'] = self.rot.rot3_from_matrix(data.matrix)
+            self["ang_1"] = self.rot.rot1_from_matrix(data.matrix)
+            self["ang_2"] = self.rot.rot2_from_matrix(data.matrix)
+            self["ang_3"] = self.rot.rot3_from_matrix(data.matrix)
         else:
-            self['ang_1'] = self.rot.rot1_from_matrix(data)
-            self['ang_2'] = self.rot.rot2_from_matrix(data)
-            self['ang_3'] = self.rot.rot3_from_matrix(data)
+            self["ang_1"] = self.rot.rot1_from_matrix(data)
+            self["ang_2"] = self.rot.rot2_from_matrix(data)
+            self["ang_3"] = self.rot.rot3_from_matrix(data)
 
     def copy(self):
-        new_part = Particle(self.id,
-                            self._data_keys,
-                            self._default_params,
-                            self._rot,
-                            self.pixelsize_ori,
-                            self.pixelsize_tra)
+        new_part = Particle(
+            self.id,
+            self._data_keys,
+            self._default_params,
+            self._rot,
+            self.pixelsize_ori,
+            self.pixelsize_tra,
+        )
 
         for key in self._data_keys.keys():
             new_part[key] = self[key]
@@ -397,14 +409,14 @@ class Particle(State):
 
     def take_snapshot(self, session, flags):
         data = {
-            'id': self.id,
-            'pixelsize_ori': self.pixelsize_ori,
-            'pixelsize_tra': self.pixelsize_tra,
-            'data_keys': self._data_keys,
-            'default_params': self._default_params,
-            'data': self._data,
-            'euler_module': self.rot.__class__.__module__,
-            'euler_class': self.rot.__class__.__name__
+            "id": self.id,
+            "pixelsize_ori": self.pixelsize_ori,
+            "pixelsize_tra": self.pixelsize_tra,
+            "data_keys": self._data_keys,
+            "default_params": self._default_params,
+            "data": self._data,
+            "euler_module": self.rot.__class__.__module__,
+            "euler_class": self.rot.__class__.__name__,
         }
 
         return data
@@ -413,19 +425,20 @@ class Particle(State):
     def restore_snapshot(cls, session, data):
 
         # Get the class with some magic
-        euler = getattr(import_module(data['euler_module']), data['euler_class'])
+        euler = getattr(import_module(data["euler_module"]), data["euler_class"])
 
-        p = cls(data['id'],
-                data['data_keys'],
-                data['default_params'],
-                euler,
-                pixelsize_ori=data['pixelsize_ori'],
-                pixelsize_tra=data['pixelsize_tra'])
+        p = cls(
+            data["id"],
+            data["data_keys"],
+            data["default_params"],
+            euler,
+            pixelsize_ori=data["pixelsize_ori"],
+            pixelsize_tra=data["pixelsize_tra"],
+        )
 
-        p._data = data['data']  # lol
+        p._data = data["data"]  # lol
 
         return p
-
 
 
 class ParticleData(State):
@@ -492,7 +505,7 @@ class ParticleData(State):
         trapix = particle_data.pixelsize_tra
 
         # The default attributes
-        default = ['pos_x', 'pos_y', 'pos_z', 'shift_x', 'shift_y', 'shift_z']
+        default = ["pos_x", "pos_y", "pos_z", "shift_x", "shift_y", "shift_z"]
 
         # Create the instance
         new_pd = cls(session, None, oripix, trapix)
@@ -562,12 +575,14 @@ class ParticleData(State):
             The new particle instance.
         """
         _id = self._new_id()
-        particle = Particle(_id,
-                            self._data_keys,
-                            self._default_params,
-                            self._rot,
-                            self.pixelsize_ori,
-                            self.pixelsize_tra)
+        particle = Particle(
+            _id,
+            self._data_keys,
+            self._default_params,
+            self._rot,
+            self.pixelsize_ori,
+            self.pixelsize_tra,
+        )
         self._particles[_id] = particle
 
         return particle
@@ -575,10 +590,12 @@ class ParticleData(State):
     def _store_orig_particles(self):
         for _id, part in self:
             from copy import copy
+
             self._orig_particles[_id] = part.copy()
 
     def reset_particles(self, reset_ids):
         from copy import copy
+
         orig_ids = list(self._orig_particles.keys())
 
         for rid in reset_ids:
@@ -589,6 +606,7 @@ class ParticleData(State):
 
     def reset_all_particles(self):
         from copy import copy
+
         self._particles.clear()
 
         for _id, p in self._orig_particles.items():
@@ -597,7 +615,8 @@ class ParticleData(State):
     @property
     def particle_ids(self):
         from numpy import array, dtype
-        return array(list(self._particles.keys()), dtype=dtype('U'))
+
+        return array(list(self._particles.keys()), dtype=dtype("U"))
 
     def delete_particle(self, _id):
         """Delete one particle by id.
@@ -706,18 +725,17 @@ class ParticleData(State):
 
     def _register_keys(self):
         # Make sure all keys are added as custom attributes for the Atom class
-        pass
-        # for key, value in self._data_keys.items():
-        #     if key not in type_attrs(Atom):
-        #         Atom.register_attr(self.session, key, 'artiax', attr_type=float)
-        #     for v in value:
-        #         if v not in type_attrs(Atom):
-        #             Atom.register_attr(self.session, v, 'artiax', attr_type=float)
-        #
-        # for key in self._default_params.keys():
-        #     if key not in type_attrs(Atom):
-        #         Atom.register_attr(self.session, key, 'artiax', attr_type=float)
+        # pass
+        for key, value in self._data_keys.items():
+            if key not in type_attrs(Atom):
+                Atom.register_attr(self.session, key, "artiax", attr_type=float)
+            for v in value:
+                if v not in type_attrs(Atom):
+                    Atom.register_attr(self.session, v, "artiax", attr_type=float)
 
+        for key in self._default_params.keys():
+            if key not in type_attrs(Atom):
+                Atom.register_attr(self.session, key, "artiax", attr_type=float)
 
     def get_all_transforms(self):
         """Get all positions for all particles.
@@ -750,45 +768,39 @@ class ParticleData(State):
             orig_parts.append(p)
 
         data = {
-            'file_name': self.file_name,
-            'additional_files': self.additional_files,
-            'data_keys': self._data_keys,
-            'default_params': self._default_params,
-            'pixelsize_ori': self.pixelsize_ori,
-            'pixelsize_tra': self.pixelsize_tra,
-            'parts': parts,
-            'orig_parts': orig_parts
+            "file_name": self.file_name,
+            "additional_files": self.additional_files,
+            "data_keys": self._data_keys,
+            "default_params": self._default_params,
+            "pixelsize_ori": self.pixelsize_ori,
+            "pixelsize_tra": self.pixelsize_tra,
+            "parts": parts,
+            "orig_parts": orig_parts,
         }
 
         return data
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        pd = cls(session,
-                 None,
-                 oripix=data['pixelsize_ori'],
-                 trapix=data['pixelsize_tra'],
-                 additional_files=data['additional_files'])
+        pd = cls(
+            session,
+            None,
+            oripix=data["pixelsize_ori"],
+            trapix=data["pixelsize_tra"],
+            additional_files=data["additional_files"],
+        )
 
-        pd._data_keys = data['data_keys']
-        pd._default_params = data['default_params']
+        pd._data_keys = data["data_keys"]
+        pd._default_params = data["default_params"]
 
         pd._register_keys()
 
-        for p in data['parts']:
-            #part = Particle.restore_snapshot(p)
+        for p in data["parts"]:
+            # part = Particle.restore_snapshot(p)
             pd._particles[p.id] = p
 
-        for op in data['orig_parts']:
-            #part = Particle.restore_snapshot(op)
+        for op in data["orig_parts"]:
+            # part = Particle.restore_snapshot(op)
             pd._orig_particles[op.id] = op
 
         return pd
-
-
-
-
-
-
-
-

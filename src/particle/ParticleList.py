@@ -17,7 +17,11 @@ from chimerax.graphics import Drawing
 from ..volume import VolumePlus
 from ..util import ManagerModel
 from ..io.ParticleData import ParticleData
-from .SurfaceCollectionModel import SurfaceCollectionModel, MODELS_MOVED, MODELS_SELECTED
+from .SurfaceCollectionModel import (
+    SurfaceCollectionModel,
+    MODELS_MOVED,
+    MODELS_SELECTED,
+)
 from .MarkerSetPlus import (
     MarkerSetPlus,
     MARKER_CREATED,
@@ -26,26 +30,29 @@ from .MarkerSetPlus import (
     MARKER_COLOR_CHANGED,
     MARKER_SELECTED,
     MARKER_DISPLAY_CHANGED,
-    MARKERSET_DELETED
+    MARKERSET_DELETED,
 )
 
 # Triggers
-PARTLIST_CHANGED = 'partlist changed'  # Data is the modified particle list.
-PARTLIST_DISPLAY_CHANGED = 'partlist '
+PARTLIST_CHANGED = "partlist changed"  # Data is the modified particle list.
+PARTLIST_DISPLAY_CHANGED = "partlist "
 
-END_SESSION_RESTORE = 'end restore session'
+END_SESSION_RESTORE = "end restore session"
+
 
 class ParticleList(Model):
-    '''A ParticleList displays ParticleData using a MarkerSetPlus and a SurfaceCollectionModel.'''
+    """A ParticleList displays ParticleData using a MarkerSetPlus and a SurfaceCollectionModel."""
 
     DEBUG = False
     SESSION_SAVE = True
 
-    def __init__(self,
-                 name,
-                 session,
-                 data: ParticleData,
-                 create_managers=True,):
+    def __init__(
+        self,
+        name,
+        session,
+        data: ParticleData,
+        create_managers=True,
+    ):
 
         super().__init__(name, session)
 
@@ -62,16 +69,16 @@ class ParticleList(Model):
         """Particle colors. Nx4 matrix of uint8 or None."""
 
         # Child models that display data
-        self.markers = MarkerSetPlus(session, 'Markers')
+        self.markers = MarkerSetPlus(session, "Markers")
         """MarkerSetPlus object for displaying and manipulating particles."""
         self._display_model = None
         """The model from which to extract the surface displayed in the SurfaceCollectionModel."""
 
         if create_managers:
-            self._display_model = ManagerModel('DisplayModel', session)
+            self._display_model = ManagerModel("DisplayModel", session)
             self.add([self._display_model])
 
-        self._collection_model = SurfaceCollectionModel('Particles', session)
+        self._collection_model = SurfaceCollectionModel("Particles", session)
         """SurfaceCollectionModel for displaying and manipulating particles."""
 
         # Add the child models
@@ -86,29 +93,33 @@ class ParticleList(Model):
         """Whether to prevent addition/deletion of particles."""
 
         # Initial selection settings (for selection table)
-        self.selection_settings = {'mode': 'show',
-                                   'names': [],
-                                   'minima': [],
-                                   'maxima': []}
+        self.selection_settings = {
+            "mode": "show",
+            "names": [],
+            "minima": [],
+            "maxima": [],
+        }
 
         # Initial color settings (for color range widget)
-        self.color_settings = {'mode': 'mono',
-                               'palette': '',
-                               'attribute': '',
-                               'minimum': 0,
-                               'maximum': 1,
-                               'transparency': 0}
+        self.color_settings = {
+            "mode": "mono",
+            "palette": "",
+            "attribute": "",
+            "minimum": 0,
+            "maximum": 1,
+            "transparency": 0,
+        }
 
         # Contains mapping Particle.id -> (Particle, Atom)
         self._map = {}
         # Register particle id tuple as attribute of atoms
-        # Atom.register_attr(self.session, 'particle_id', 'artiax', attr_type=str)
+        Atom.register_attr(self.session, "particle_id", "artiax", attr_type=str)
 
         # MarkerSet changes connections
         self._connect_markers()
 
         # Some parameters for display
-        self.display_mode = 'markers'
+        self.display_mode = "markers"
 
         if session.ArtiaX.tomograms.count > 0:
             pix = session.ArtiaX.tomograms.get(0).pixelsize[0]
@@ -132,7 +143,9 @@ class ParticleList(Model):
         # Change trigger for UI
         self.triggers.add_trigger(PARTLIST_CHANGED)
 
-        self.restore_handler = self.session.triggers.add_handler(END_SESSION_RESTORE, self._display_set_after_restore)
+        self.restore_handler = self.session.triggers.add_handler(
+            END_SESSION_RESTORE, self._display_set_after_restore
+        )
 
     @classmethod
     def from_particle_list(cls, particle_list: ParticleList, datatype=None):
@@ -150,13 +163,13 @@ class ParticleList(Model):
     @property
     def display_model(self):
         if self._display_model is None:
-            mod = [c for c in self.child_models() if c.name == 'DisplayModel']
+            mod = [c for c in self.child_models() if c.name == "DisplayModel"]
             if len(mod) == 1:
                 self._display_model = mod[0]
             else:
-                return ManagerModel('DisplayModel', self.session)
+                return ManagerModel("DisplayModel", self.session)
         if self._display_model.deleted:
-            self._display_model = ManagerModel('DisplayModel', self.session)
+            self._display_model = ManagerModel("DisplayModel", self.session)
             self.add([self._display_model])
 
         return self._display_model
@@ -166,7 +179,7 @@ class ParticleList(Model):
         # Recreate collection model if user deleted it.
         if self._collection_model.deleted:
             # Replace if deleted
-            self._collection_model = SurfaceCollectionModel('Particles', self.session)
+            self._collection_model = SurfaceCollectionModel("Particles", self.session)
             self.add([self._collection_model])
 
             # Initialize the surface collection model
@@ -183,15 +196,17 @@ class ParticleList(Model):
     def _init_collection_model(self):
         # New triggers
         self._collection_model.triggers.add_handler(MODELS_MOVED, self._model_moved)
-        self._collection_model.triggers.add_handler(MODELS_SELECTED, self._model_selected)
+        self._collection_model.triggers.add_handler(
+            MODELS_SELECTED, self._model_selected
+        )
 
         # Add axes representation
-        self._collection_model.add_collection('axes')
+        self._collection_model.add_collection("axes")
         v, n, t, vc = get_axes_surface(self.session, self._axes_size)
-        self._collection_model.set_surface('axes', v, n, t, vertex_colors=vc)
+        self._collection_model.set_surface("axes", v, n, t, vertex_colors=vc)
 
         # Add surface representation
-        self._collection_model.add_collection('surfaces')
+        self._collection_model.add_collection("surfaces")
 
     @property
     def data(self):
@@ -264,7 +279,7 @@ class ParticleList(Model):
         scm = self.collection_model
         v, n, t, vc = get_axes_surface(self.session, self._axes_size)
         vc[:, 3] = self.color[3]
-        scm.set_surface('axes', v, n, t, vertex_colors=vc)
+        scm.set_surface("axes", v, n, t, vertex_colors=vc)
 
     @property
     def surface_range(self):
@@ -288,8 +303,12 @@ class ParticleList(Model):
 
             base_model.surfaces[0].level = value
             base_model.update_drawings()
-            scm.set_surface('surfaces', base_model.surfaces[0].vertices, base_model.surfaces[0].normals,
-                            base_model.surfaces[0].triangles)
+            scm.set_surface(
+                "surfaces",
+                base_model.surfaces[0].vertices,
+                base_model.surfaces[0].normals,
+                base_model.surfaces[0].triangles,
+            )
 
     @property
     def selected_particles(self):
@@ -307,7 +326,8 @@ class ParticleList(Model):
         #  None value expanded to array
         if value is None:
             from numpy import zeros
-            value = zeros((self.size, ), dtype=bool)
+
+            value = zeros((self.size,), dtype=bool)
 
         # Current state is equal to list
         if self.size == size(self._selected_particles):
@@ -322,9 +342,11 @@ class ParticleList(Model):
         # Otherwise, set
         if size(value) == 1:
             from numpy import full
-            value = full((self.size, ), value)
+
+            value = full((self.size,), value)
 
         from numpy import copy
+
         self._selected_particles = copy(value)
 
         self.markers.selected_markers = copy(value)
@@ -346,7 +368,8 @@ class ParticleList(Model):
         # None value expanded to array
         if value is None:
             from numpy import zeros
-            value = zeros((self.size, ), dtype=bool)
+
+            value = zeros((self.size,), dtype=bool)
 
         # Current state is equal to list
         if self.size == size(self._displayed_particles):
@@ -361,9 +384,11 @@ class ParticleList(Model):
         # Otherwise, set
         if size(value) == 1:
             from numpy import full
-            value = full((self.size, ), value)
+
+            value = full((self.size,), value)
 
         from numpy import copy
+
         self._displayed_particles = copy(value)
 
         self.markers.displayed_markers = copy(value)
@@ -390,11 +415,13 @@ class ParticleList(Model):
         col = rgba
         if size(rgba) == 4:
             from numpy import zeros, uint8
+
             col = zeros((self.size, 4), dtype=uint8)
-            col[:, ] = rgba
+            col[:,] = rgba
 
         self.session.col = col
         from numpy import copy
+
         self._particle_colors = col
         self.display_model.color = copy(col[0, :])
         self.collection_model.colors = copy(col)
@@ -423,14 +450,18 @@ class ParticleList(Model):
             # later on apparently. Maybe blocked during command execution?
             model.update_drawings()
 
-        #TODO: delete the old one now, maybe add support for multiple models?
+        # TODO: delete the old one now, maybe add support for multiple models?
         if self.display_model.count > 0:
             self.display_model.get(0).delete()
 
         self.display_model.add([model])
 
         if isinstance(model, Volume):
-            run(self.session, "volume #{} capFaces false".format(model.id_string), log=True)
+            run(
+                self.session,
+                "volume #{} capFaces false".format(model.id_string),
+                log=True,
+            )
 
         self._add_display_set()
         self.triggers.activate_trigger(PARTLIST_CHANGED, self)
@@ -443,14 +474,14 @@ class ParticleList(Model):
 
     def store_marker_information(self):
         self.session._marker_settings = {
-            'marker set': self.markers,
-            'next_marker_num': None,
-            'marker_chain_id': 'M',
-            'marker color': self.color,
-            'marker radius': self.radius,
-            'link color': self.color,
-            'link radius': 0.5,
-            'link_new_markers': False,
+            "marker set": self.markers,
+            "next_marker_num": None,
+            "marker_chain_id": "M",
+            "marker color": self.color,
+            "marker radius": self.radius,
+            "link color": self.color,
+            "link radius": 0.5,
+            "link_new_markers": False,
         }
 
     def show_markers(self, show=True):
@@ -460,13 +491,13 @@ class ParticleList(Model):
         self.show_markers(show=False)
 
     def show_surfaces(self, show=True):
-        self.collection_model.show_collection('surfaces', show)
+        self.collection_model.show_collection("surfaces", show)
 
     def hide_surfaces(self):
         self.show_surfaces(show=False)
 
     def show_axes(self, show=True):
-        self.collection_model.show_collection('axes', show)
+        self.collection_model.show_collection("axes", show)
 
     def hide_axes(self):
         self.show_axes(show=False)
@@ -502,18 +533,18 @@ class ParticleList(Model):
 
         for a in attrs:
             info[a] = {}
-            info[a]['min'] = min([getattr(m, a) for m in self.markers.atoms])
-            info[a]['max'] = max([getattr(m, a) for m in self.markers.atoms])
-            info[a]['mean'] = np.mean([getattr(m, a) for m in self.markers.atoms])
-            info[a]['std'] = np.std([getattr(m, a) for m in self.markers.atoms])
-            info[a]['var'] = np.var([getattr(m, a) for m in self.markers.atoms])
-            info[a]['alias'] = self.data._data_keys[a]
+            info[a]["min"] = min([getattr(m, a) for m in self.markers.atoms])
+            info[a]["max"] = max([getattr(m, a) for m in self.markers.atoms])
+            info[a]["mean"] = np.mean([getattr(m, a) for m in self.markers.atoms])
+            info[a]["std"] = np.std([getattr(m, a) for m in self.markers.atoms])
+            info[a]["var"] = np.var([getattr(m, a) for m in self.markers.atoms])
+            info[a]["alias"] = self.data._data_keys[a]
 
             if a in self.data._default_params.values():
                 idx = list(self.data._default_params.values()).index(a)
-                info[a]['pos_attr'] = list(self.data._default_params.keys())[idx]
+                info[a]["pos_attr"] = list(self.data._default_params.keys())[idx]
             else:
-                info[a]['pos_attr'] = None
+                info[a]["pos_attr"] = None
 
         return dict(sorted(info.items()))
 
@@ -559,7 +590,7 @@ class ParticleList(Model):
         """
         # Deleted model was markerset, but particle list not deleted.
         if value is self.markers and not self.deleted:
-            self.markers = MarkerSetPlus(self.session, 'Markers')
+            self.markers = MarkerSetPlus(self.session, "Markers")
             self.add([self.markers])
 
             # Repopulate markers
@@ -574,13 +605,17 @@ class ParticleList(Model):
         self.markers.triggers.add_handler(MARKER_DELETED, self._marker_deleted)
         self.markers.triggers.add_handler(MARKER_CREATED, self._marker_created)
         self.markers.triggers.add_handler(MARKER_MOVED, self._marker_moved)
-        self.markers.triggers.add_handler(MARKER_COLOR_CHANGED, self._marker_color_changed)
+        self.markers.triggers.add_handler(
+            MARKER_COLOR_CHANGED, self._marker_color_changed
+        )
         self.markers.triggers.add_handler(MARKER_SELECTED, self._marker_selected)
-        self.markers.triggers.add_handler(MARKER_DISPLAY_CHANGED, self._marker_display_changed)
+        self.markers.triggers.add_handler(
+            MARKER_DISPLAY_CHANGED, self._marker_display_changed
+        )
         self.markers.triggers.add_handler(MARKERSET_DELETED, self._markerset_deleted)
 
     def _init_particles(self, markers=True, collection=True):
-        '''Add initial particles to this list.'''
+        """Add initial particles to this list."""
         pids = []
         pl = []
 
@@ -598,7 +633,9 @@ class ParticleList(Model):
 
             # Create the respective marker and set custom attributes
             if markers:
-                marker = self.markers.create_marker(place.translation(), self.color, self.radius, id=idx, trigger=False)
+                marker = self.markers.create_marker(
+                    place.translation(), self.color, self.radius, id=idx, trigger=False
+                )
 
                 # Add custom attributes
                 self._attr_to_marker(marker, particle)
@@ -610,10 +647,11 @@ class ParticleList(Model):
             self.collection_model.add_places(pids, pl)
 
         from numpy import ones, zeros, empty, uint8
-        self.displayed_particles = ones((self.size, ), dtype=bool)
+
+        self.displayed_particles = ones((self.size,), dtype=bool)
         self.selected_particles = zeros((self.size,), dtype=bool)
         col = empty((self.size, 4), dtype=uint8)
-        col[:, ] = self.color
+        col[:,] = self.color
         self.particle_colors = col
 
     def update_places(self):
@@ -667,8 +705,12 @@ class ParticleList(Model):
     def _add_display_set(self):
         base_model = self.display_model.get(0)
         scm = self.collection_model
-        scm.set_surface('surfaces', base_model.surfaces[0].vertices, base_model.surfaces[0].normals,
-                        base_model.surfaces[0].triangles)
+        scm.set_surface(
+            "surfaces",
+            base_model.surfaces[0].vertices,
+            base_model.surfaces[0].normals,
+            base_model.surfaces[0].triangles,
+        )
 
         base_model.display = False
 
@@ -702,7 +744,7 @@ class ParticleList(Model):
         return particle_id == self.particle_ids
 
     def delete_data(self, particle_ids, cache_markers=True):
-        """ Delete Marker and Particle instances if they exist."""
+        """Delete Marker and Particle instances if they exist."""
 
         # if not isinstance(particle_ids, list):
         #     particle_ids = [particle_ids]
@@ -714,7 +756,8 @@ class ParticleList(Model):
 
         # Do it this way, because deleting atoms happens all at once, so we cannot individually set masks
         from numpy import zeros, logical_not, logical_or
-        mask = zeros((self.size, ), dtype=bool)
+
+        mask = zeros((self.size,), dtype=bool)
         prev_ids = self._data.particle_ids
 
         pids = []
@@ -735,13 +778,13 @@ class ParticleList(Model):
 
             if not marker.deleted:
                 ats.append(marker)
-                #self.markers.delete_atom(marker)
+                # self.markers.delete_atom(marker)
                 if cache_markers:
                     self._marker_cache.append(marker)
 
             if pid in self.collection_model:
                 pids.append(pid)
-                #self.collection_model.delete_place(pid)
+                # self.collection_model.delete_place(pid)
 
         # Delete all atoms/places at once
         self.collection_model.delete_places(pids)
@@ -749,6 +792,7 @@ class ParticleList(Model):
         # For atoms this is a little weird. If we delete the last atom of the set using a collection, chimerax crashes.
         # So we intersect with all atoms, and if all are contained, we handle special cases.
         from chimerax.atomic import Atoms
+
         atoms = Atoms(ats)
         if np.all(self.markers.atoms.mask(atoms)):
             # If there is only one atom, just delete using Atom-object's method
@@ -777,23 +821,35 @@ class ParticleList(Model):
 
         pids = []
         places = []
-        for (o, t, r) in zip(origins, translations, rotations):
-            p = self.new_particle(o, t, r, update_selectors=False, add_to_collection=False, update_masks=False)
+        for o, t, r in zip(origins, translations, rotations):
+            p = self.new_particle(
+                o,
+                t,
+                r,
+                update_selectors=False,
+                add_to_collection=False,
+                update_masks=False,
+            )
             pids.append(p.id)
             places.append(p.full_transform())
 
         self.collection_model.add_places(pids, places)
 
         from numpy import array, append, reshape, tile
+
         if self.selected_particles is None:
             self.selected_particles = array([True] * len(pids))
         else:
-            self.selected_particles = append(self.selected_particles, array([True] * len(pids)))
+            self.selected_particles = append(
+                self.selected_particles, array([True] * len(pids))
+            )
 
         if self.displayed_particles is None:
             self.displayed_particles = array(array([True] * len(pids)))
         else:
-            self.displayed_particles = append(self.displayed_particles, array([True] * len(pids)))
+            self.displayed_particles = append(
+                self.displayed_particles, array([True] * len(pids))
+            )
 
         if self.particle_colors is None:
             self.particle_colors = tile(self.color, (len(pids), 1))  # array(self.color)
@@ -804,7 +860,15 @@ class ParticleList(Model):
 
         self.update_position_selectors()
 
-    def new_particle(self, origin, translation, rotation, update_selectors=True, add_to_collection=True, update_masks=True):
+    def new_particle(
+        self,
+        origin,
+        translation,
+        rotation,
+        update_selectors=True,
+        add_to_collection=True,
+        update_masks=True,
+    ):
         if self.editing_locked:
             return
 
@@ -813,7 +877,9 @@ class ParticleList(Model):
         particle.translation = translation
         particle.rotation = rotation
 
-        marker = self.markers.create_marker(particle.coord, self.color, self.radius, trigger=False)
+        marker = self.markers.create_marker(
+            particle.coord, self.color, self.radius, trigger=False
+        )
 
         # Add to surface collection
         if add_to_collection:
@@ -861,7 +927,9 @@ class ParticleList(Model):
         particle.origin = marker.coord
 
         # Add to surface collection
-        self.collection_model.add_place(particle.id, particle.full_transform()) #TODO THIS IS WHEN THE MODEL OF A PARTICLE IS CREATED
+        self.collection_model.add_place(
+            particle.id, particle.full_transform()
+        )  # TODO THIS IS WHEN THE MODEL OF A PARTICLE IS CREATED
 
         # Set custom attributes
         self._attr_to_marker(marker, particle)
@@ -907,11 +975,11 @@ class ParticleList(Model):
             new_coord = m.coord
 
             # Set as additional translation for now
-            #ori = particle.origin.translation()
-            #dx = new_coord[0] - ori[0]
-            #dy = new_coord[1] - ori[1]
-            #dz = new_coord[2] - ori[2]
-            #particle.translation = (dx, dy, dz)
+            # ori = particle.origin.translation()
+            # dx = new_coord[0] - ori[0]
+            # dy = new_coord[1] - ori[1]
+            # dz = new_coord[2] - ori[2]
+            # particle.translation = (dx, dy, dz)
 
             # Set particle translation to 0
             if not particle.translation.is_identity():
@@ -955,11 +1023,11 @@ class ParticleList(Model):
                 new_place = translation(new_coord) * new_rot.zero_translation()
 
                 # Set as additional translation for now
-                #ori = particle.origin_coord
-                #dx = new_coord[0] - ori[0]
-                #dy = new_coord[1] - ori[1]
-                #dz = new_coord[2] - ori[2]
-                #particle.translation = (dx, dy, dz)
+                # ori = particle.origin_coord
+                # dx = new_coord[0] - ori[0]
+                # dy = new_coord[1] - ori[1]
+                # dz = new_coord[2] - ori[2]
+                # particle.translation = (dx, dy, dz)
 
                 # Set particle translation to 0
                 if not particle.translation.is_identity():
@@ -974,8 +1042,6 @@ class ParticleList(Model):
 
                 # Update attributes
                 self._attr_to_marker(marker, particle)
-
-
 
     def update_position_selectors(self):
         # names = self.selection_settings['names']
@@ -1001,40 +1067,48 @@ class ParticleList(Model):
         sm = self.markers.selected_markers
 
         from numpy import all
+
         if all(self._selected_particles == sm):
             return
 
         from numpy import copy
+
         self.selected_particles = copy(sm)
 
     def _model_selected(self, name, data):
         sc = self.collection_model.selected_child_positions
 
         from numpy import all
+
         if all(self._selected_particles == sc):
             return
 
         from numpy import copy
+
         self.selected_particles = copy(sc)
 
     def _marker_color_changed(self, name, data):
         cm = self.markers.marker_colors
 
         from numpy import all
+
         if all(self._particle_colors == cm):
             return
 
         from numpy import copy
+
         self.colors = copy(cm)
 
     def _marker_display_changed(self, name, data):
         dm = self.markers.displayed_markers
 
         from numpy import all
+
         if all(self._displayed_particles == dm):
             return
 
         from numpy import copy
+
         self.displayed_particles = copy(dm)
 
     def _particlelist_set_color(self, rgba):
@@ -1072,19 +1146,19 @@ class ParticleList(Model):
         data_module = self.data.__class__.__module__
 
         data = {
-            'model state': Model.take_snapshot(self, session, flags),
-            'id': self.id,
-            'name': self.name,
-            'data': self._data,
-            'selected': self._selected_particles,
-            'displayed': self._displayed_particles,
-            'colors': self._particle_colors,
-            'translation_locked': self.translation_locked,
-            'rotation_locked': self.rotation_locked,
-            'selection_settings': self.selection_settings,
-            'color_settings': self.color_settings,
-            'radius': self._radius,
-            'axes_size': self._axes_size,
+            "model state": Model.take_snapshot(self, session, flags),
+            "id": self.id,
+            "name": self.name,
+            "data": self._data,
+            "selected": self._selected_particles,
+            "displayed": self._displayed_particles,
+            "colors": self._particle_colors,
+            "translation_locked": self.translation_locked,
+            "rotation_locked": self.rotation_locked,
+            "selection_settings": self.selection_settings,
+            "color_settings": self.color_settings,
+            "radius": self._radius,
+            "axes_size": self._axes_size,
         }
 
         return data
@@ -1093,35 +1167,39 @@ class ParticleList(Model):
     def restore_snapshot(cls, session, data):
 
         from numpy import copy
-        pl = cls(data['name'], session, data['data'], create_managers=False)
-        Model.set_state_from_snapshot(pl, session, data['model state'])
 
-        pl._selected_particles = data['selected']
+        pl = cls(data["name"], session, data["data"], create_managers=False)
+        Model.set_state_from_snapshot(pl, session, data["model state"])
+
+        pl._selected_particles = data["selected"]
         pl.markers.selected_markers = copy(pl._selected_particles)
         pl.collection_model.selected_child_positions = copy(pl._selected_particles)
 
-        pl._displayed_particles = data['displayed']
+        pl._displayed_particles = data["displayed"]
         pl.markers.displayed_markers = copy(pl._displayed_particles)
         pl.collection_model.displayed_child_positions = copy(pl._displayed_particles)
 
-        pl._particle_colors = data['colors']
+        pl._particle_colors = data["colors"]
         pl.display_model.color = copy(pl._particle_colors[0, :])
         pl.collection_model.colors = copy(pl._particle_colors)
         pl.markers.marker_colors = copy(pl._particle_colors)
 
-        pl.translation_locked = data['translation_locked']
-        pl.rotation_locked = data['rotation_locked']
-        pl.selection_settings = data['selection_settings']
-        pl.color_settings = data['color_settings']
-        pl._radius = data['radius']
-        pl._axes_size = data['axes_size']
+        pl.translation_locked = data["translation_locked"]
+        pl.rotation_locked = data["rotation_locked"]
+        pl.selection_settings = data["selection_settings"]
+        pl.color_settings = data["color_settings"]
+        pl._radius = data["radius"]
+        pl._axes_size = data["axes_size"]
 
         return pl
 
     def delete(self):
-        self.markers.delete()
-        self.collection_model.delete()
-        self.display_model.delete()
+        if not self.markers.deleted:
+            self.markers.delete()
+        if not self._collection_model.deleted:
+            self._collection_model.delete()
+        if not self._display_model.deleted:
+            self._display_model.delete()
 
         self.session.triggers.remove_handler(self.restore_handler)
 
@@ -1132,25 +1210,34 @@ def get_axes_surface(session, size):
 
     # Axes from https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/bild.html
     from chimerax.bild.bild import _BildFile
-    b = _BildFile(session, 'dummy')
+
+    b = _BildFile(session, "dummy")
     # print(size)
-    b.color_command('.color 1 0 0'.split())
+    b.color_command(".color 1 0 0".split())
     # print('.arrow 0 0 0 {} 0 0 {} {}'.format(size, size/15, size/15*4).split())
-    b.arrow_command('.arrow 0 0 0 {} 0 0 {} {}'.format(size, size/15, size/15*4).split())
-    b.color_command('.color 1 1 0'.split())
-    b.arrow_command('.arrow 0 0 0 0 {} 0 {} {}'.format(size, size/15, size/15*4).split())
-    b.color_command('.color 0 0 1'.split())
-    b.arrow_command('.arrow 0 0 0 0 0 {} {} {}'.format(size, size/15, size/15*4).split())
+    b.arrow_command(
+        ".arrow 0 0 0 {} 0 0 {} {}".format(size, size / 15, size / 15 * 4).split()
+    )
+    b.color_command(".color 1 1 0".split())
+    b.arrow_command(
+        ".arrow 0 0 0 0 {} 0 {} {}".format(size, size / 15, size / 15 * 4).split()
+    )
+    b.color_command(".color 0 0 1".split())
+    b.arrow_command(
+        ".arrow 0 0 0 0 0 {} {} {}".format(size, size / 15, size / 15 * 4).split()
+    )
 
     from chimerax.atomic import AtomicShapeDrawing
-    d = AtomicShapeDrawing('shapes')
+
+    d = AtomicShapeDrawing("shapes")
     d.add_shapes(b.shapes)
 
     return (d.vertices, d.normals, d.triangles, d.vertex_colors)
 
+
 def selected_collections(session, exclude_rot_lock=False):
 
-    if not hasattr(session, 'ArtiaX'):
+    if not hasattr(session, "ArtiaX"):
         return [], []
 
     artia = session.ArtiaX
@@ -1159,6 +1246,7 @@ def selected_collections(session, exclude_rot_lock=False):
     position_masks = []
 
     from numpy import any
+
     for plist in artia.partlists.iter():
         scm = plist.collection_model
         markers = plist.markers
@@ -1168,13 +1256,16 @@ def selected_collections(session, exclude_rot_lock=False):
 
         if any(plist.selected_particles):
             selected_drawings.append(scm)
-            position_masks.append(np.logical_or(scm.position_mask(), markers.position_mask()))
+            position_masks.append(
+                np.logical_or(scm.position_mask(), markers.position_mask())
+            )
 
     return selected_drawings, position_masks
 
+
 def get_unused_color(session):
 
-    if not hasattr(session, 'ArtiaX'):
+    if not hasattr(session, "ArtiaX"):
         return
 
     artia = session.ArtiaX
@@ -1197,16 +1288,16 @@ def lock_particlelist(models, lock_state, what, do_print=True):
     lock_trans = False
     lock_rot = False
 
-    if what in ['editing', 'all']:
+    if what in ["editing", "all"]:
         lock_edit = True
 
-    if what in ['translation', 'movement', 'all']:
+    if what in ["translation", "movement", "all"]:
         lock_trans = True
 
-    if what in ['rotation', 'movement', 'all']:
+    if what in ["rotation", "movement", "all"]:
         lock_rot = True
 
-    action = 'Locked' if lock_state else 'Unlocked'
+    action = "Locked" if lock_state else "Unlocked"
     text = "{} {} of models: ".format(action, what)
 
     for m in models:
@@ -1221,13 +1312,14 @@ def lock_particlelist(models, lock_state, what, do_print=True):
                 m.rotation_locked = lock_state
 
             if lock_trans or lock_rot:
-                text += '{}, '.format(str(m))
+                text += "{}, ".format(str(m))
                 m.triggers.activate_trigger(PARTLIST_CHANGED, m)
 
     text = text[:-2]
 
     if do_print:
         print(text)
+
 
 def delete_selected_particles(session):
     """Delete all currently selected particles in the session."""
@@ -1238,15 +1330,17 @@ def delete_selected_particles(session):
         ids = col.child_ids[ma]
         pl.delete_data(list(ids))
 
+
 def invert_selection(session):
     """Invert selection of all visible particle lists."""
 
-    if not hasattr(session, 'ArtiaX'):
+    if not hasattr(session, "ArtiaX"):
         return
 
     artia = session.ArtiaX
 
     from numpy import logical_not
+
     for plist in artia.partlists.iter():
         if plist.visible:
             markerset = plist.markers
