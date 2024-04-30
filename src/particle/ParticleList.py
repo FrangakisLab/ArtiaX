@@ -764,6 +764,10 @@ class ParticleList(Model):
         ats = []
         self._marker_cache = []
 
+        pre_sel = self.selected_particles
+        pre_disp = self.displayed_particles
+        pre_col = self.particle_colors
+
         for pid in particle_ids:
             # Particle already deleted?
             if pid in self._map:
@@ -808,11 +812,12 @@ class ParticleList(Model):
 
         # Now update colors and display to keep consistent
         mask = logical_not(mask)
+        # print(mask)
 
-        self.selected_particles = zeros((self.size,), dtype=bool)
-        self.displayed_particles = self.displayed_particles[mask]
+        self.selected_particles = pre_sel[mask]  # zeros((self.size,), dtype=bool)
+        self.displayed_particles = pre_disp[mask]  # self.displayed_particles[mask]
 
-        self.particle_colors = self.particle_colors[mask, :]
+        self.particle_colors = pre_col[mask, :]  # self.particle_colors[mask, :]
         self.triggers.activate_trigger(PARTLIST_CHANGED, self)
 
     def new_particles(self, origins, translations, rotations):
