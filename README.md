@@ -22,7 +22,7 @@ Read the companion paper on [bioRxiv](https://www.biorxiv.org/content/10.1101/20
 [ChimeraX Download](https://www.rbvi.ucsf.edu/chimerax/download.html#release). 
 
 2. Run these commands in the ChimeraX shell:
->toolshed reload available
+>toolshed reload all
 
 >toolshed install ArtiaX
 
