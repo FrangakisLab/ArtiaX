@@ -195,6 +195,9 @@ will be displayed without the ChimeraX- prefix.
       name="YZ" icon="view_yz.png" description="Set viewing direction to YZ planes."/>
     <Provider tab="ArtiaX" section="View"
       name="Clip" icon="clip.png" description="Turn slab-clipping on or off for all tomograms."/>
+    <Provider tab="ArtiaX" section="View"
+      name="Invert Contrast" icon="invert_contrast.png" description="Invert contrast of visible tomograms."/>
+
 
     <!-- ArtiaX tab, Standard Mouse Modes -->
     <Provider tab="ArtiaX" section="Movement" mouse_mode="select"
@@ -472,6 +475,9 @@ will be displayed without the ChimeraX- prefix.
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax cap :: General ::
       Turn on/off surface capping for particle lists.</ChimeraXClassifier>
+
+    <ChimeraXClassifier>ChimeraX :: Command :: artiax invert :: General ::
+      Invert the contrast of specified or all visible tomograms.</ChimeraXClassifier>
 
   </Classifiers>
 </BundleInfo>

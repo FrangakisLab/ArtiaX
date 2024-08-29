@@ -2,18 +2,17 @@
   <head>
     <meta http-equiv="content-type" content="text/html; charset=windows-1252">
     <link rel="stylesheet" type="text/css" href="../userdocs.css">
-    <title>Command: artiax cap</title>
+    <title>Command: artiax invert</title>
   </head>
   <body> <a name="top"></a> <a href="../artiax_index.html"> <img src="../ArtiaX-docs-icon.svg"
         alt="ChimeraX docs icon" class="clRight" title="User Guide Index" width="60px"></a>
-    <h3><a href="../artiax_index.html#commands">Command</a>: artiax cap</h3>
+    <h3><a href="../artiax_index.html#commands">Command</a>: artiax invert</h3>
     <h3 class="usage"><a href="usageconventions.html">Usage</a>: <br><b>artiax
-      cap</b> ( <i>true</i> | <i>false</i> ) </h3>
-    <p> The <b>artiax cap</b> command allows turning on/off surface caps for the particle list axes and surface visualization. Turning off will increase performance for older machines. 
-
+      invert</b> [ <b>model</b> <a href="atomspec.html#hierarchy"><i>model-spec</i></a>  ]</h3>
+    <p> The <b>artiax invert</b> command allows inverting the rendered contrast in the specified tomogram models. If
+    no models are specified, contrast of all visible models is inverted. </p>
     <p> Examples: </p>
-    <blockquote> <b>artiax cap true<br>
-      artiax cap false<br>
+    <blockquote> <b>artiax invert #1.1.1<br>
       </b> </blockquote>
     <p></p>
     <hr>

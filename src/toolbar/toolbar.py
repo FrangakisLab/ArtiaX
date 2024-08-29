@@ -10,6 +10,7 @@ _providers = {
     "XZ": "artiax view xz",
     "YZ": "artiax view yz",
     "Clip": "artiax clip toggle",
+    "Invert Contrast": "artiax invert",
     "XY Models Tab": "artiax view xy",
     "XZ Models Tab": "artiax view xz",
     "YZ Models Tab": "artiax view yz",

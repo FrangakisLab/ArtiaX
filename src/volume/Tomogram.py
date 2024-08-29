@@ -20,6 +20,7 @@ from chimerax.std_commands.clip import clip
 
 # This package
 from .VolumePlus import VolumePlus, RENDERING_OPTIONS_CHANGED
+from ..util.settings import ArtiaXSettings
 
 
 class Tomogram(VolumePlus):
@@ -32,6 +33,8 @@ class Tomogram(VolumePlus):
         )
 
         # Image Levels
+        settings = ArtiaXSettings(session, "ArtiaX")
+        self._contrast_mode = settings.contrast
         self.default_levels = None
         self._compute_default_levels()
         # Colormap on GPU for adjusting contrast quickly, even in tilted slab mode.
@@ -98,6 +101,18 @@ class Tomogram(VolumePlus):
     @contrast_width.setter
     def contrast_width(self, value):
         self._set_levels(center=self.contrast_center, width=value)
+
+    @property
+    def contrast_mode(self):
+        return self._contrast_mode
+
+    @contrast_mode.setter
+    def contrast_mode(self, value):
+        if value not in ["DARK_ON_LIGHT", "LIGHT_ON_DARK"]:
+            raise ValueError("Unknown contrast mode: {}".format(value))
+
+        self._contrast_mode = value
+        self._set_levels(center=self.contrast_center, width=self.contrast_width)
 
     @property
     def normal(self):
@@ -517,7 +532,12 @@ class Tomogram(VolumePlus):
         l1 = center - width / 2
         l2 = center
         l3 = center + width / 2
-        levels = [(l1, 0), (l2, position), (l3, 1)]
+        if self._contrast_mode == "DARK_ON_LIGHT":
+            levels = [(l1, 0), (l2, position), (l3, 1)]
+        elif self._contrast_mode == "LIGHT_ON_DARK":
+            levels = [(l1, 1), (l2, position), (l3, 0)]
+        else:
+            raise ValueError("Unknown contrast mode: {}".format(self._contrast_mode))
 
         # Colormap on GPU for adjusting contrast quickly, even in tilted slab mode.
         self.set_parameters(image_levels=levels, colormap_on_gpu=True)
@@ -623,7 +643,13 @@ class Tomogram(VolumePlus):
         l1 = center - width / 2
         l2 = center
         l3 = center + width / 2
-        self.default_levels = [(l1, 0), (l2, position), (l3, 1)]
+
+        if self._contrast_mode == "DARK_ON_LIGHT":
+            self.default_levels = [(l1, 0), (l2, position), (l3, 1)]
+        elif self._contrast_mode == "LIGHT_ON_DARK":
+            self.default_levels = [(l1, 1), (l2, position), (l3, 0)]
+        else:
+            raise ValueError("Unknown contrast mode: {}".format(self._contrast_mode))
 
     def _tomogram_set_position(self, pos):
         """Tomogram has static position at the origin."""

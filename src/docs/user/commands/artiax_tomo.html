@@ -9,8 +9,10 @@
     <h3><a href="../artiax_index.html#commands">Command</a>: artiax tomo</h3>
     <h3 class="usage"><a href="usageconventions.html">Usage</a>: <br>
       <b>artiax tomo</b> <a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;[<strong>contrasCenter</strong>
-      <em>value</em>] [<strong>contrastWidth</strong> <em>value</em>] [<strong>slice</strong>
-      <em>value</em>] [<strong>sliceDirection </strong><i>value</i>]</h3>
+      <em>value</em>] [<strong>contrastWidth</strong> <em>value</em>] [<strong>contrastMode</strong> <em>dol</em> | <em>lod</em>]
+      [<strong>slice</strong> <em>value</em>] [<strong>sliceDirection </strong><i>value</i>]
+      [<strong>endSlice </strong><i>value</i>] [<strong>slicePerFrame </strong><i>value</i>]
+      [<strong>pixelSize </strong><i>value</i>] </h3>
     <p> The <b>artiax tomo</b> command enables setting a property of the
       selected tomogram.</p>
     <table style="width: 764px; height: 108px;" border="1">
@@ -37,6 +39,12 @@
           <td style="width: 1580.48px; text-align: center;">N/A</td>
         </tr>
         <tr>
+          <td style="height: 19px; text-align: center;"><strong>contrastMode</strong></td>
+          <td>Whether to render with dark-on-light (default) or light-on-dark contrast</td>
+          <td style="width: 1580.48px; text-align: center;"><em>str ('dol' or 'lod')</em></td>
+          <td style="width: 1580.48px; text-align: center;">dol</td>
+        </tr>
+        <tr>
           <td style="text-align: center;"><strong>slice</strong></td>
           <td>Slice to display. Slice thickness is the grid step of the volume.
           </td>
@@ -51,7 +59,19 @@
           <td style="width: 1580.48px; text-align: center;">0,0,1</td>
         </tr>
         <tr>
-          <td style="text-align: center;"><strong>pixel</strong></td>
+          <td style="text-align: center;"><strong>endSlice</strong></td>
+          <td>If provided, slices are animated from slice to endSlice</td>
+          <td style="width: 1580.48px; text-align: center;"><em>integer</em></td>
+          <td style="width: 1580.48px; text-align: center;">N/A</td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>slicePerFrame</strong></td>
+          <td>If endSlice is provided, move this many slices per frame of the animation</td>
+          <td style="width: 1580.48px; text-align: center;"><em>integer</em></td>
+          <td style="width: 1580.48px; text-align: center;">N/A</td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>pixelSize</strong></td>
           <td>Pixel Size in Angstrom</td>
           <td style="width: 1580.48px; text-align: center;"><em>float</em></td>
           <td style="width: 1580.48px; text-align: center;">1</td>
@@ -59,8 +79,13 @@
       </tbody>
     </table>
     <p> Examples: </p>
-    <blockquote> <b>artiax tomo #1.1.1 slice 52&nbsp; <br>
-        artiax tomo #1.1.4 sliceDirection 1,1,1</b> </blockquote>
+    <blockquote>
+      <b>artiax tomo #1.1.1 slice 52&nbsp; <br>
+        artiax tomo #1.1.4 sliceDirection 1,1,1 <br>
+        artiax tomo #1.1.4 sliceDirection 1,1,1 endSlice 100 slicePerFrame 5 <br>
+        artiax tomo #1.1.4 pixelSize 0.5
+      </b>
+    </blockquote>
     <p></p>
     <hr>
     <address>BMLS Frangakis Group / June 2022</address>
