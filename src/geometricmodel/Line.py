@@ -28,7 +28,7 @@ class Line(GeoModel):
 
         self.has_particles = False
         self.spacing_edit_range = (1, 100)
-        self.spacing = (self.spacing_edit_range[1] + self.spacing_edit_range[0])/2
+        self.spacing = (self.spacing_edit_range[1] + self.spacing_edit_range[0]) / 2
         self.spheres = Model("spheres", session)
         self.add([self.spheres])
 
@@ -37,11 +37,15 @@ class Line(GeoModel):
 
     def define_line(self):
         from chimerax.bild.bild import _BildFile
-        b = _BildFile(self.session, 'dummy')
-        b.cylinder_command(".cylinder {} {} {} {} {} {} 1".format(*self.start, *self.end).split())
+
+        b = _BildFile(self.session, "dummy")
+        b.cylinder_command(
+            ".cylinder {} {} {} {} {} {} 1".format(*self.start, *self.end).split()
+        )
 
         from chimerax.atomic import AtomicShapeDrawing
-        d = AtomicShapeDrawing('shapes')
+
+        d = AtomicShapeDrawing("shapes")
         d.add_shapes(b.shapes)
 
         return d.vertices, d.normals, d.triangles, d.vertex_colors
@@ -58,7 +62,9 @@ class Line(GeoModel):
         self._color = color
         self.vertex_colors = np.full(np.shape(self.vertex_colors), color)
         if self.spheres.vertex_colors is not None:
-            self.spheres.vertex_colors = np.full(np.shape(self.spheres.vertex_colors), color)
+            self.spheres.vertex_colors = np.full(
+                np.shape(self.spheres.vertex_colors), color
+            )
 
     def create_spheres(self):
         self.has_particles = True
@@ -70,11 +76,11 @@ class Line(GeoModel):
             print("too large spacing")
             return
 
-        b = _BildFile(self.session, 'dummy')
-        d = AtomicShapeDrawing('shapes')
+        b = _BildFile(self.session, "dummy")
+        d = AtomicShapeDrawing("shapes")
         for i in range(1, int(nr_particles) + 1):
             pos = self.start + direction * self.spacing * i
-            b.sphere_command('.sphere {} {} {} {}'.format(*pos, 4).split())
+            b.sphere_command(".sphere {} {} {} {}".format(*pos, 4).split())
             d.add_shapes(b.shapes)
         self.spheres.set_geometry(d.vertices, d.normals, d.triangles)
         if d.vertex_colors is not None:
@@ -91,7 +97,14 @@ class Line(GeoModel):
         artia = self.session.ArtiaX
         artia.create_partlist(name=self.name + " particles")
         partlist = artia.partlists.child_models()[-1]
-        artia.ui.ow._show_tab("geomodel")
+
+        # Get UI and ensure we stay in geomodel tab
+        from ..tool import ArtiaXUI
+        from chimerax.core import tools
+
+        t = tools.get_singleton(self.session, ArtiaXUI, "ArtiaX", create=True)
+        t.ow._show_tab("geomodel")
+
         self.create_particles(partlist)
 
     def create_particles(self, partlist):
@@ -129,35 +142,46 @@ class Line(GeoModel):
         # Find center and radius by solving Ac = b with A = [[x1,y1,1], [x2,y2,1], [x3,y3,1]] and
         # b = [x1² + y1², x2² + y2², x3² + y3²]. This gives c = [2x0,2y0,r² - x0² - y0²]
         A = np.array([np.append(p1, 1), np.append(p2, 1), np.append(p3, 1)])
-        b = np.array([np.sum(np.multiply(p1,p1)), np.sum(np.multiply(p2,p2)), np.sum(np.multiply(p3,p3))])
+        b = np.array(
+            [
+                np.sum(np.multiply(p1, p1)),
+                np.sum(np.multiply(p2, p2)),
+                np.sum(np.multiply(p3, p3)),
+            ]
+        )
         c = np.linalg.solve(A, b)
         center = [c[0] / 2, c[1] / 2]
-        #radius = c[2] + np.sum(np.multiply(center))
+        # radius = c[2] + np.sum(np.multiply(center))
 
         # Translate center back to euclidean
-        center = center[0]*u + center[1]*v
-
+        center = center[0] * u + center[1] * v
 
         from chimerax.bild.bild import _BildFile
-        b = _BildFile(self.session, 'dummy')
+
+        b = _BildFile(self.session, "dummy")
         from chimerax.atomic import AtomicShapeDrawing
-        d = AtomicShapeDrawing('shapes')
+
+        d = AtomicShapeDrawing("shapes")
 
         curr_point = self.start
         reached_end = False
         i = 0
-        while (not reached_end and i<10000):
+        while not reached_end and i < 10000:
             along_circle_vector = np.cross(curr_point - center, w)
-            along_circle_vector = along_circle_vector / np.linalg.norm(along_circle_vector)
+            along_circle_vector = along_circle_vector / np.linalg.norm(
+                along_circle_vector
+            )
             next_point = curr_point + along_circle_vector * step_length
-            #print("curr: {}".format(curr_point))
-            if np.linalg.norm(next_point - self.end) < step_length*2:
+            # print("curr: {}".format(curr_point))
+            if np.linalg.norm(next_point - self.end) < step_length * 2:
                 next_point = self.end
                 reached_end = True
 
-            b.cylinder_command(".cylinder {} {} {} {} {} {} 1".format(*curr_point, *next_point).split())
+            b.cylinder_command(
+                ".cylinder {} {} {} {} {} {} 1".format(*curr_point, *next_point).split()
+            )
             curr_point = next_point
-            i+=1
+            i += 1
 
         if i == 10000:
             print("could not curve line")

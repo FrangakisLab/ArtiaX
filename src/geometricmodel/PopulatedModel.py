@@ -28,16 +28,16 @@ class PopulatedModel(GeoModel):
         else:
             self.marker_size = 4
             self.axes_size = 15
-        self.marker_size_edit_range = (0, self.marker_size*2)
-        self.axes_size_edit_range = (0, self.axes_size*2)
+        self.marker_size_edit_range = (0, self.marker_size * 2)
+        self.axes_size_edit_range = (0, self.axes_size * 2)
         """Options for the widget."""
 
-        self.collection_model = SurfaceCollectionModel('Spheres', session)
+        self.collection_model = SurfaceCollectionModel("Spheres", session)
         """Collection model for collecting the fake particles so that not every one has to be drawn separately."""
         self.add([self.collection_model])
-        self.collection_model.add_collection('direction_markers')
+        self.collection_model.add_collection("direction_markers")
         v, n, t, vc = self.get_direction_marker_surface()
-        self.collection_model.set_surface('direction_markers', v, n, t)
+        self.collection_model.set_surface("direction_markers", v, n, t)
         self.spheres_places = np.array([])
         """List containing the place object for every fake particle."""
         self.indices = []
@@ -55,24 +55,30 @@ class PopulatedModel(GeoModel):
         if self.marker_size != r:
             self.marker_size = r
             v, n, t, vc = self.get_direction_marker_surface()
-            self.collection_model.set_surface('direction_markers', v, n, t)
+            self.collection_model.set_surface("direction_markers", v, n, t)
 
     def change_axes_size(self, s):
         if self.axes_size != s:
             self.axes_size = s
             v, n, t, vc = self.get_direction_marker_surface()
-            self.collection_model.set_surface('direction_markers', v, n, t)
+            self.collection_model.set_surface("direction_markers", v, n, t)
 
     def get_direction_marker_surface(self):
-        b = _BildFile(self.session, 'dummy')
+        b = _BildFile(self.session, "dummy")
 
-        b.sphere_command('.sphere 0 0 0 {}'.format(self.marker_size).split())
-        b.arrow_command(".arrow 0 0 0 {} 0 0 {} {}".format(self.axes_size, self.axes_size / 15,
-                                                           self.axes_size / 15 * 4).split())
-        b.arrow_command(".arrow 0 0 0 0 0 {} {} {}".format(self.axes_size, self.axes_size / 15,
-                                                           self.axes_size / 15 * 4).split())
+        b.sphere_command(".sphere 0 0 0 {}".format(self.marker_size).split())
+        b.arrow_command(
+            ".arrow 0 0 0 {} 0 0 {} {}".format(
+                self.axes_size, self.axes_size / 15, self.axes_size / 15 * 4
+            ).split()
+        )
+        b.arrow_command(
+            ".arrow 0 0 0 0 0 {} {} {}".format(
+                self.axes_size, self.axes_size / 15, self.axes_size / 15 * 4
+            ).split()
+        )
 
-        d = AtomicShapeDrawing('shapes')
+        d = AtomicShapeDrawing("shapes")
         d.add_shapes(b.shapes)
 
         return d.vertices, d.normals, d.triangles, d.vertex_colors
@@ -89,7 +95,16 @@ class PopulatedModel(GeoModel):
         artia = self.session.ArtiaX
         artia.create_partlist(name=self.name + " particles")
         partlist = artia.partlists.child_models()[-1]
-        artia.ui.ow._show_tab("geomodel")
 
+        # Get UI and ensure we stay in geomodel tab
+        from ..tool import ArtiaXUI
+        from chimerax.core import tools
 
-        partlist.new_particles(self.spheres_places, np.zeros((len(self.spheres_places), 3)), self.spheres_places)
+        t = tools.get_singleton(self.session, ArtiaXUI, "ArtiaX", create=True)
+        t.ow._show_tab("geomodel")
+
+        partlist.new_particles(
+            self.spheres_places,
+            np.zeros((len(self.spheres_places), 3)),
+            self.spheres_places,
+        )
