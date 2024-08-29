@@ -1212,6 +1212,7 @@ def artiax_tomo(
     slicePerFrame=None,
     sliceDirection=None,
     pixelSize=None,
+    contrastMode=None,
 ):
     # No ArtiaX
     if not hasattr(session, "ArtiaX"):
@@ -1243,6 +1244,15 @@ def artiax_tomo(
         contrastWidth = min(contrastWidth, model.range)
         contrastWidth = max(contrastWidth, 0)
         model.contrast_width = contrastWidth
+
+    if contrastMode is not None:
+        # Test value
+        if contrastMode not in ["dol", "lod"]:
+            raise errors.UserError(
+                "artiax tomo: contrastMode needs to be 'dol' (dark-on-light) or 'lod' (light-on-dark)."
+            )
+        modes = {"dol": "DARK_ON_LIGHT", "lod": "LIGHT_ON_DARK"}
+        model.contrast_mode = modes[contrastMode]
 
     if sliceDirection is not None:
         model.normal = sliceDirection
@@ -1523,6 +1533,22 @@ def artiax_cap(session: Session, status: bool):
     from ..util.clip import cap
 
     cap(session, do_cap=status)
+
+
+def artiax_invert(session: Session, models: Optional[List[Model]] = None):
+    """
+    Invert the contrast of.
+    """
+    if not hasattr(session, "ArtiaX"):
+        session.logger.warning("ArtiaX is not currently running.")
+        return
+
+    from ..util.contrast import invert_contrast
+
+    if models is None:
+        models = [t for t in session.ArtiaX.tomograms.child_models() if t.visible]
+
+    invert_contrast(session, models)
 
 
 def register_artiax(logger):
@@ -1863,6 +1889,7 @@ def register_artiax(logger):
             keyword=[
                 ("contrastCenter", FloatArg),
                 ("contrastWidth", FloatArg),
+                ("contrastMode", EnumOf(("dol", "lod"))),
                 ("slice", IntArg),
                 ("endSlice", IntArg),
                 ("slicePerFrame", IntArg),
@@ -1922,6 +1949,14 @@ def register_artiax(logger):
         )
         register("artiax cap", desc, artiax_cap)
 
+    def register_artiax_invert():
+        desc = CmdDesc(
+            optional=[("models", ModelsArg)],
+            synopsis="Invert the contrast of specified or all visible tomograms.",
+            url="help:user/commands/artiax_invert.html",
+        )
+        register("artiax invert", desc, artiax_invert)
+
     register_artiax_start()
     register_artiax_open_tomo()
     register_artiax_add_tomo()
@@ -1960,6 +1995,7 @@ def register_artiax(logger):
     register_artiax_info()
     register_artiax_clip()
     register_artiax_cap()
+    register_artiax_invert()
 
 
 # Possible styles
