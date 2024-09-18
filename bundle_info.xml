@@ -91,6 +91,13 @@ will be displayed without the ChimeraX- prefix.
               reference_url="https://relion.readthedocs.io/en/release-3.1/Reference/Conventions.html"
               synopsis="RELION star files"/>
 
+    <Provider name="RELION5 STAR file"
+              suffixes=".star"
+              category="particle list"
+              nicknames="star, relion5"
+              reference_url="https://relion.readthedocs.io/en/latest/Reference/STA/Datatypes/particle_set.html#sec-sta-particle-set"
+              synopsis="RELION5 star files"/>
+
     <Provider name="cryoET Data Portal"
               suffixes=".ndjson"
               category="particle list"

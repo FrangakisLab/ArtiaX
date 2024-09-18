@@ -1,9 +1,11 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+
 # General
 import numpy as np
 import starfile
 import pandas as pd
+from Cython.Compiler.Visitor import PrintTree
 
 # Chimerax
 from chimerax.core.errors import UserError
@@ -11,6 +13,8 @@ from chimerax.core.errors import UserError
 # This package
 from ..formats import ArtiaXFormat
 from ..ParticleData import ParticleData, EulerRotation
+from ...widgets.RelionAddInfo import CoordInputDialog
+from ...widgets.Relion5ReadAddInfo import CoordInputDialogRead
 
 EPSILON = np.finfo(np.float32).eps
 EPSILON16 = 16 * EPSILON
@@ -120,178 +124,345 @@ class RELIONParticleData(ParticleData):
         super().__init__(session, file_name, oripix=oripix, trapix=trapix, additional_files=additional_files)
 
     def read_file(self):
+        '''reads star file, checks if its in regular relion format or in relion5 format'''
         content = starfile.read(self.file_name, always_dict=True)
 
-        # Identify the loop that contains the data
+        # Identify the loop that contains the data, and checks if relion or relion5
         data_loop = None
+        format_version = None
         for key, val in content.items():
             if 'rlnCoordinateZ' in list(val.keys()):
                 data_loop = key
+                format_version = 'relion'
+                print(f"Imported as Relion File")
                 break
 
-        # Abort if none found
+            elif 'rlnCenteredCoordinateZAngst' in list(val.keys()):
+                data_loop = key
+                format_version = 'relion5'
+                print(f"Imported as Relion5 File")
+                break
+
         if data_loop is None:
-            raise UserError('rlnCoordinateZ was not found in any loop section of file {}.'.format(self.file_name))
+            raise UserError('rlnCoordinateZ or rlnCenteredCoordinateZAngst was not found in any loop section of file {}.'.format(self.file_name))
 
-        # Take the good one, store the rest and the loop name so we can write it out again later on
-        df = content[data_loop]
-        content.pop(data_loop)
-        self.loop_name = data_loop
-        self.remaining_loops = content
+        #Reading file in regular relion format
+        if format_version == 'relion':
 
-        # What is present
-        df_keys = list(df.keys())
-        additional_keys = df_keys
+            # Take the good loop, store the rest and the loop name so we can write it out again later on
+            df = content[data_loop]
+            content.pop(data_loop)
+            self.loop_name = data_loop
+            self.remaining_loops = content
 
-        # Do we have tomo names?
-        names_present = False
-        if 'rlnTomoName' in df_keys:
-            names = list(df['rlnTomoName'])
+            # What is present
+            df_keys = list(df.keys())
+            additional_keys = df_keys
 
-            # Sanity check names
-            first_name = names[0]
-            if '_' not in first_name:
-                raise UserError('Encountered particle without "_" in rlnTomoName. Aborting.')
+            # Do we have tomo names?
+            names_present = False
+            if 'rlnTomoName' in df_keys:
+                names = list(df['rlnTomoName'])
 
-            full = first_name.split('_')
-            prefix_guess = ''.join(full[0:-1])
-            num_guess = full[-1]
-
-            for n in names:
-                if '_' not in n:
+                # Sanity check names
+                first_name = names[0]
+                if '_' not in first_name:
                     raise UserError('Encountered particle without "_" in rlnTomoName. Aborting.')
 
-                full = n.split('_')
-                prefix_test = ''.join(full[0:-1])
+                full = first_name.split('_')
+                prefix_guess = ''.join(full[0:-1])
+                num_guess = full[-1]
 
-                if prefix_test != prefix_guess:
-                    raise UserError(
-                        'Encountered particles with inconsistent '
-                        'rlnTomoName prefixes {} and {}. Aborting.'.format(prefix_test, prefix_guess))
+                for n in names:
+                    if '_' not in n:
+                        raise UserError('Encountered particle without "_" in rlnTomoName. Aborting.')
 
-            self.name_prefix = prefix_guess
-            self.name_leading_zeros = len(num_guess)
-            names_present = True
-            additional_keys.remove('rlnTomoName')
-        else:
-            self._data_keys.pop('rlnTomoName')
+                    full = n.split('_')
+                    prefix_test = ''.join(full[0:-1])
 
-        # If we have shifts in Angstrom, use those instead of the pixel shifts, remodel the format definition
-        origin_present = False
-        origin_angstrom = False
-        if 'rlnOriginZ' in df_keys:
-            origin_present = True
+                    if prefix_test != prefix_guess:
+                        raise UserError(
+                            'Encountered particles with inconsistent '
+                            'rlnTomoName prefixes {} and {}. Aborting.'.format(prefix_test, prefix_guess))
 
-            additional_keys.remove('rlnOriginX')
-            additional_keys.remove('rlnOriginY')
-            additional_keys.remove('rlnOriginZ')
-
-        elif 'rlnOriginZAngst' in df_keys:
-            origin_present = True
-            origin_angstrom = True
-
-            self._data_keys.pop('rlnOriginX')
-            self._data_keys.pop('rlnOriginY')
-            self._data_keys.pop('rlnOriginZ')
-
-            self._data_keys['rlnOriginXAngst'] = []
-            self._data_keys['rlnOriginYAngst'] = []
-            self._data_keys['rlnOriginZAngst'] = []
-
-            self._default_params['shift_x'] = 'rlnOriginXAngst'
-            self._default_params['shift_y'] = 'rlnOriginYAngst'
-            self._default_params['shift_z'] = 'rlnOriginZAngst'
-
-            additional_keys.remove('rlnOriginXAngst')
-            additional_keys.remove('rlnOriginYAngst')
-            additional_keys.remove('rlnOriginZAngst')
-
-        #TODO: what about rlnTomoSubtomogramRot/Tilt/Psi? Disregard it for now.
-
-        # If angles are not there, take note
-        rot_present = False
-        if 'rlnAngleRot' in df_keys:
-            rot_present = True
-            additional_keys.remove('rlnAngleRot')
-
-        tilt_present = False
-        if 'rlnAngleTilt' in df_keys:
-            tilt_present = True
-            additional_keys.remove('rlnAngleTilt')
-
-        psi_present = False
-        if 'rlnAnglePsi' in df_keys:
-            psi_present = True
-            additional_keys.remove('rlnAnglePsi')
-
-        # Additional data (everything that is a number)
-        additional_entries = []
-        for key in additional_keys:
-            if np.issubdtype(df.dtypes[key], np.number):
-                additional_entries.append(key)
-                self._data_keys[key] = []
+                self.name_prefix = prefix_guess
+                self.name_leading_zeros = len(num_guess)
+                names_present = True
+                additional_keys.remove('rlnTomoName')
             else:
-                self.remaining_data[key] = df[key]
+                self._data_keys.pop('rlnTomoName')
 
+            # If we have shifts in Angstrom, use those instead of the pixel shifts, remodel the format definition
+            origin_present = False
+            origin_angstrom = False
+            if 'rlnOriginZ' in df_keys:
+                origin_present = True
 
-        # Store everything
-        self._register_keys()
+                additional_keys.remove('rlnOriginX')
+                additional_keys.remove('rlnOriginY')
+                additional_keys.remove('rlnOriginZ')
 
-        # Now make particles
-        df.reset_index()
-        for idx, row in df.iterrows():
-            p = self.new_particle()
+            elif 'rlnOriginZAngst' in df_keys:
+                origin_present = True
+                origin_angstrom = True
 
-            # Name
-            if names_present:
-                n = row['rlnTomoName'].split('_')
-                num = int(n[-1])
-                p['rlnTomoName'] = num
+                self._data_keys.pop('rlnOriginX')
+                self._data_keys.pop('rlnOriginY')
+                self._data_keys.pop('rlnOriginZ')
 
-            # Position
-            p['pos_x'] = row['rlnCoordinateX']
-            p['pos_y'] = row['rlnCoordinateY']
-            p['pos_z'] = row['rlnCoordinateZ']
+                self._data_keys['rlnOriginXAngst'] = []
+                self._data_keys['rlnOriginYAngst'] = []
+                self._data_keys['rlnOriginZAngst'] = []
 
-            # Shift
-            if origin_present:
-                if origin_angstrom:
-                    # Note negation due to convention
-                    p['shift_x'] = - row['rlnOriginXAngst']
-                    p['shift_y'] = - row['rlnOriginYAngst']
-                    p['shift_z'] = - row['rlnOriginZAngst']
+                self._default_params['shift_x'] = 'rlnOriginXAngst'
+                self._default_params['shift_y'] = 'rlnOriginYAngst'
+                self._default_params['shift_z'] = 'rlnOriginZAngst'
+
+                additional_keys.remove('rlnOriginXAngst')
+                additional_keys.remove('rlnOriginYAngst')
+                additional_keys.remove('rlnOriginZAngst')
+
+            # TODO: what about rlnTomoSubtomogramRot/Tilt/Psi? Disregard it for now.
+
+            # If angles are not there, take note
+            rot_present = False
+            if 'rlnAngleRot' in df_keys:
+                rot_present = True
+                additional_keys.remove('rlnAngleRot')
+
+            tilt_present = False
+            if 'rlnAngleTilt' in df_keys:
+                tilt_present = True
+                additional_keys.remove('rlnAngleTilt')
+
+            psi_present = False
+            if 'rlnAnglePsi' in df_keys:
+                psi_present = True
+                additional_keys.remove('rlnAnglePsi')
+
+            # Additional data (everything that is a number)
+            additional_entries = []
+            for key in additional_keys:
+                if np.issubdtype(df.dtypes[key], np.number):
+                    additional_entries.append(key)
+                    self._data_keys[key] = []
                 else:
-                    # Note negation due to convention
-                    p['shift_x'] = - row['rlnOriginX']
-                    p['shift_y'] = - row['rlnOriginY']
-                    p['shift_z'] = - row['rlnOriginZ']
-            else:
-                p['shift_x'] = 0
-                p['shift_y'] = 0
-                p['shift_z'] = 0
+                    self.remaining_data[key] = df[key]
 
-            # Orientation
-            if rot_present:
-                p['ang_1'] = row['rlnAngleRot']
-            else:
-                p['ang_1'] = 0
 
-            if tilt_present:
-                p['ang_2'] = row['rlnAngleTilt']
-            else:
-                p['ang_2'] = 0
+            # Store everything
+            self._register_keys()
 
-            if psi_present:
-                p['ang_3'] = row['rlnAnglePsi']
-            else:
-                p['ang_3'] = 0
+            # Now make particles
+            df.reset_index()
+            for idx, row in df.iterrows():
+                p = self.new_particle()
 
-            # Everything else
-            for attr in additional_entries:
-                p[attr] = float(row[attr])
+                # Name
+                if names_present:
+                    n = row['rlnTomoName'].split('_')
+                    num = int(n[-1])
+                    p['rlnTomoName'] = num
+
+                # Position
+                p['pos_x'] = row['rlnCoordinateX']
+                p['pos_y'] = row['rlnCoordinateY']
+                p['pos_z'] = row['rlnCoordinateZ']
+
+                # Shift
+                if origin_present:
+                    if origin_angstrom:
+                        # Note negation due to convention
+                        p['shift_x'] = - row['rlnOriginXAngst']
+                        p['shift_y'] = - row['rlnOriginYAngst']
+                        p['shift_z'] = - row['rlnOriginZAngst']
+                    else:
+                        # Note negation due to convention
+                        p['shift_x'] = - row['rlnOriginX']
+                        p['shift_y'] = - row['rlnOriginY']
+                        p['shift_z'] = - row['rlnOriginZ']
+                else:
+                    p['shift_x'] = 0
+                    p['shift_y'] = 0
+                    p['shift_z'] = 0
+
+                # Orientation
+                if rot_present:
+                    p['ang_1'] = row['rlnAngleRot']
+                else:
+                    p['ang_1'] = 0
+
+                if tilt_present:
+                    p['ang_2'] = row['rlnAngleTilt']
+                else:
+                    p['ang_2'] = 0
+
+                if psi_present:
+                    p['ang_3'] = row['rlnAnglePsi']
+                else:
+                    p['ang_3'] = 0
+
+                # Everything else
+                for attr in additional_entries:
+                    p[attr] = float(row[attr])
+
+        #Read as new Relion5 format
+        elif format_version == 'relion5':
+
+            #get information through widget about tomogram size and pixelsize
+            dialog = CoordInputDialogRead()
+            x_size, y_size, z_size, pixsize = dialog.get_info_read()
+
+            if x_size is not None and y_size is not None and z_size is not None and pixsize is not None:
+                print(f"Using sizes: X: {x_size}, Y: {y_size}, Z: {z_size}")
+                print(f"Using pixelsize: {pixsize}")
+
+                # calculate center of corresponding tomogram
+                x_center = (x_size / 2)
+                y_center = (y_size / 2)
+                z_center = (z_size / 2)
+
+                self.oripix = pixsize
+
+                # Take the good loop, store the rest and the loop name so we can write it out again later on
+                df = content[data_loop]
+                content.pop(data_loop)
+                self.loop_name = data_loop
+                self.remaining_loops = content
+
+                # What is present
+                df_keys = list(df.keys())
+                additional_keys = df_keys
+
+
+                # Do we have tomo names?
+                names_present = False
+                if 'rlnTomoName' in df_keys:
+                    names = list(df['rlnTomoName'])
+
+                    # Sanity check names
+                    first_name = names[0]
+                    if '_' not in first_name:
+                        raise UserError('Encountered particle without "_" in rlnTomoName. Aborting.')
+
+                    full = first_name.split('_')
+                    prefix_guess = ''.join(full[0:-1])
+                    num_guess = full[-1]
+
+                    for n in names:
+                        if '_' not in n:
+                            raise UserError('Encountered particle without "_" in rlnTomoName. Aborting.')
+
+                        full = n.split('_')
+                        prefix_test = ''.join(full[0:-1])
+
+                        if prefix_test != prefix_guess:
+                            raise UserError(
+                                'Encountered particles with inconsistent '
+                                'rlnTomoName prefixes {} and {}. Aborting.'.format(prefix_test, prefix_guess))
+
+                    self.name_prefix = prefix_guess
+                    self.name_leading_zeros = len(num_guess)
+                    names_present = True
+                    additional_keys.remove('rlnTomoName')
+                else:
+                    self._data_keys.pop('rlnTomoName')
+
+
+                # TODO: what about rlnTomoSubtomogramRot/Tilt/Psi? Disregard it for now.
+
+                # If angles are not there, take note
+                rot_present = False
+                if 'rlnAngleRot' in df_keys:
+                    rot_present = True
+                    additional_keys.remove('rlnAngleRot')
+
+                tilt_present = False
+                if 'rlnAngleTilt' in df_keys:
+                    tilt_present = True
+                    additional_keys.remove('rlnAngleTilt')
+
+                psi_present = False
+                if 'rlnAnglePsi' in df_keys:
+                    psi_present = True
+                    additional_keys.remove('rlnAnglePsi')
+
+
+                # Additional data (everything that is a number)
+                additional_entries = []
+                for key in additional_keys:
+                    if np.issubdtype(df.dtypes[key], np.number):
+                        additional_entries.append(key)
+                        self._data_keys[key] = []
+                    else:
+                        self.remaining_data[key] = df[key]
+
+
+                #remove column names from regular relion format
+                self._data_keys.pop('rlnCoordinateX')
+                self._data_keys.pop('rlnCoordinateY')
+                self._data_keys.pop('rlnCoordinateZ')
+                self._data_keys.pop('rlnOriginX')
+                self._data_keys.pop('rlnOriginY')
+                self._data_keys.pop('rlnOriginZ')
+
+
+                # Store everything
+                self._register_keys()
+
+
+                # Now make particles
+                df.reset_index()
+
+                for idx, row in df.iterrows():
+
+                    p = self.new_particle()
+
+                    # Name
+                    if names_present:
+                        n = row['rlnTomoName'].split('_')
+                        num = int(n[-1])
+                        p['rlnTomoName'] = num
+
+                    # Position, recalculate to pixel coordinates not centered
+                    p['pos_x'] = ((row['rlnCenteredCoordinateXAngst'] / pixsize) + x_center)
+                    p['pos_y'] = ((row['rlnCenteredCoordinateYAngst'] / pixsize) + y_center)
+                    p['pos_z'] = ((row['rlnCenteredCoordinateZAngst'] / pixsize) + z_center)
+
+                    # Shift, rlnOriginX/Y/Z no longer in relion5 format, therefore 0
+                    p['shift_x'] = 0
+                    p['shift_y'] = 0
+                    p['shift_z'] = 0
+
+                    # Orientation
+                    if rot_present:
+                        p['ang_1'] = row['rlnAngleRot']
+                    else:
+                        p['ang_1'] = 0
+
+                    if tilt_present:
+                        p['ang_2'] = row['rlnAngleTilt']
+                    else:
+                        p['ang_2'] = 0
+
+                    if psi_present:
+                        p['ang_3'] = row['rlnAnglePsi']
+                    else:
+                        p['ang_3'] = 0
+
+                    # Everything else
+                    for attr in additional_entries:
+                        p[attr] = float(row[attr])
+
 
 
     def write_file(self, file_name=None, additional_files=None):
+        '''writing file in regular relion format'''
+
+        # Get the corresponding tomogram name from widget
+        #dialog = CoordInputDialog()
+        #tomogram_name = dialog.get_info()
+
         if file_name is None:
             file_name = self.file_name
 
@@ -314,8 +485,12 @@ class RELIONParticleData(ParticleData):
                 fmt = '{{}}_{{:0{}d}}'.format(self.name_leading_zeros)
                 data['rlnTomoName'][idx] = fmt.format(self.name_prefix, data['rlnTomoName'][idx])
         else:
+            #for manually adding name for column rlnTomoName
+            #for idx, n in enumerate(data['rlnTomoName']):
+            #    data['rlnTomoName'][idx] = tomogram_name
             if 'rlnTomoName' in data.keys():
                 data.pop('rlnTomoName')
+
 
         df = pd.DataFrame(data=data)
 
