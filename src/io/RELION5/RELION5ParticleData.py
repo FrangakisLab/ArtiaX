@@ -180,6 +180,23 @@ class RELION5ParticleData(ParticleData):
 
             starfile.write(full_dict, file_name, overwrite=True)
 
+            # Change data_0 to data_particles in star file
+            with open(file_name, 'r') as file:
+                lines = file.readlines()
+
+            search_string = 'data_0'
+            new_content = 'data_particles\n'
+
+            # Iterate over the lines and replace the one containing the specific content
+            for i, line in enumerate(lines):
+                if search_string in line:
+                    lines[i] = new_content
+                    break
+
+            # Write the modified content back to the same file
+            with open(file_name, 'w') as file:
+                file.writelines(lines)
+
         else:
             print("Input is not valid, exiting the function.")
 
