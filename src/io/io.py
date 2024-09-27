@@ -2,101 +2,156 @@
 
 # General
 import os
+from typing import List, TextIO, Tuple, Union
 
 # ChimeraX
 import numpy as np
 from chimerax.core.errors import UserError
+from chimerax.core.session import Session
+from chimerax.core.models import Model
 
 # This package
-#from ..particle import ParticleList
+# from ..particle import ParticleList
 
-def open_particle_list(session, stream, file_name, format_name=None, from_chimx=False, additional_files=None):
+
+def open_particle_list(
+    session: Session,
+    stream: Union[TextIO, str],
+    file_name: str,
+    format_name: str = None,
+    from_chimx: bool = False,
+    additional_files: List[str] = None,
+    **kwargs,
+) -> Tuple[List[Model], str]:
 
     if format_name is None:
         raise UserError("open_particle_list: Format name must be set.")
 
     if format_name not in get_partlist_fmt_names(session):
-        raise UserError("open_particle_list: {} is not a known particle list format.".format(format_name))
+        raise UserError(
+            f"open_particle_list: {format_name} is not a known particle list format."
+        )
 
     if from_chimx:
         file_name = stream
 
     model = None
-    modelname = ''
-    status = 'Failed to open as Particle List: {}'.format(file_name)
+    modelname = ""
+    status = "Failed to open as Particle List: {}".format(file_name)
 
     # Make sure file format manager is there
     from .formats import get_formats
+
     formats = get_formats(session)
 
     # Read file if possible
     if format_name in formats:
         modelname = os.path.basename(file_name)
-        data = formats[format_name].particle_data(session, file_name, oripix=1, trapix=1, additional_files=additional_files)
+        data = formats[format_name].particle_data(
+            session,
+            file_name,
+            oripix=1,
+            trapix=1,
+            additional_files=additional_files,
+            **kwargs,
+        )
         from ..particle import ParticleList
+
         model = ParticleList(modelname, session, data)
 
     if model is not None:
-        status = 'Opened Particle list {} with {} particles.'.format(modelname, model.size)
+        status = "Opened Particle list {} with {} particles.".format(
+            modelname, model.size
+        )
 
     return [model], status
 
-def save_particle_list(session, file_name, partlist, format_name=None, additional_files=None):
+
+def save_particle_list(
+    session: Session,
+    file_name: str,
+    partlist: Model,
+    format_name: str = None,
+    additional_files: List[str] = None,
+    **kwargs,
+) -> None:
     if format_name is None:
         raise UserError("save_particle_list: Format name must be set.")
 
     if format_name not in get_partlist_fmt_names(session):
-        raise UserError("save_particle_list: {} is not a known particle list format.".format(format_name))
+        raise UserError(
+            f"save_particle_list: {format_name} is not a known particle list format."
+        )
 
     from ..particle import ParticleList
+
     if not isinstance(partlist, ParticleList):
-        raise UserError("save_particle_list: {} is not a particle list.".format(partlist.id_string))
+        raise UserError(
+            f"save_particle_list: #{partlist.id_string} is not a particle list."
+        )
 
     save_data = None
 
     from .formats import get_formats
+
     formats = get_formats(session)
 
     if format_name in formats:
         if not partlist.datatype == formats[format_name].particle_data:
-            save_data = formats[format_name].particle_data.from_particle_data(partlist.data)
+            save_data = formats[format_name].particle_data.from_particle_data(
+                partlist.data
+            )
         else:
             save_data = partlist.data
 
     if save_data is not None:
-        save_data.write_file(file_name=file_name, additional_files=additional_files)
+        save_data.write_file(
+            file_name=file_name,
+            additional_files=additional_files,
+            **kwargs,
+        )
+
 
 def open_geomodel(session, stream, file_name, format_name=None):
     model_type = None
-    status = ''
+    status = ""
 
     # Read file if possible
     modelname = os.path.basename(file_name)
     data = np.load(stream)
     try:
-        model_type = data['model_type']
+        model_type = data["model_type"]
     except:
-        status = 'Failed to open as Geometric Model: {}'.format(file_name)
+        status = "Failed to open as Geometric Model: {}".format(file_name)
 
     from ..geometricmodel.GeoModel import open_model
+
     model = open_model(session, modelname, model_type, data)
 
     if model_type is not None:
-        status = 'Opened {}, a {} Geometric Model.'.format(modelname, model_type)
+        status = "Opened {}, a {} Geometric Model.".format(modelname, model_type)
 
     return [model], status
 
+
 def save_geomodel(session, file_name, geomodel, format_name=None):
     from ..geometricmodel.GeoModel import GeoModel
+
     if not isinstance(geomodel, GeoModel):
-        raise UserError("save_geomodel: {} is not a geometric model.".format(geomodel.id_string))
+        raise UserError(
+            "save_geomodel: {} is not a geometric model.".format(geomodel.id_string)
+        )
 
     geomodel.write_file(file_name)
 
-def get_partlist_formats(session):
-    return [fmt for fmt in session.data_formats.formats if fmt.category == "particle list"]
 
-def get_partlist_fmt_names(session):
+def get_partlist_formats(session: Session):
+    return [
+        fmt for fmt in session.data_formats.formats if fmt.category == "particle list"
+    ]
+
+
+def get_partlist_fmt_names(session: Session):
     list = get_partlist_formats(session)
 
     names = []
@@ -108,7 +163,8 @@ def get_partlist_fmt_names(session):
 
     return names
 
-def get_fmt_aliases(session, name):
+
+def get_fmt_aliases(session: Session, name: str) -> List[str]:
     fmt = session.data_formats[name]
 
     names = [name]
@@ -117,4 +173,3 @@ def get_fmt_aliases(session, name):
         names.append(nick)
 
     return names
-
