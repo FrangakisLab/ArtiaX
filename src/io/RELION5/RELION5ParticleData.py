@@ -48,9 +48,9 @@ class RELION5ParticleData(ParticleData):
         "shift_x": "rlnOriginX",
         "shift_y": "rlnOriginY",
         "shift_z": "rlnOriginZ",
-        "ang_1": "rlnAngleRot",
-        "ang_2": "rlnAngleTilt",
-        "ang_3": "rlnAnglePsi",
+        "ang_1": "rlnTomoSubtomogramRot",
+        "ang_2": "rlnTomoSubtomogramTilt",
+        "ang_3": "rlnTomoSubtomogramPsi",
     }
 
     ROT = RELIONEulerRotation
@@ -183,6 +183,21 @@ class RELION5ParticleData(ParticleData):
             psi_present = True
             additional_keys.remove("rlnAnglePsi")
 
+        tomo_rot_present = False
+        if 'rlnTomoSubtomogramRot' in df_keys:
+            tomo_rot_present = True
+            additional_keys.remove('rlnTomoSubtomogramRot')
+
+        tomo_tilt_present = False
+        if 'rlnTomoSubtomogramTilt' in df_keys:
+            tomo_tilt_present = True
+            additional_keys.remove('rlnTomoSubtomogramTilt')
+
+        tomo_psi_present = False
+        if 'rlnTomoSubtomogramPsi' in df_keys:
+            tomo_psi_present = True
+            additional_keys.remove('rlnTomoSubtomogramPsi')
+
         # Additional data (everything that is a number)
         additional_entries = []
         for key in additional_keys:
@@ -227,20 +242,64 @@ class RELION5ParticleData(ParticleData):
             p["shift_z"] = 0
 
             # Orientation
-            if rot_present:
-                p["ang_1"] = row["rlnAngleRot"]
-            else:
-                p["ang_1"] = 0
+            from scipy.spatial.transform import Rotation as R
 
-            if tilt_present:
-                p["ang_2"] = row["rlnAngleTilt"]
-            else:
-                p["ang_2"] = 0
 
-            if psi_present:
-                p["ang_3"] = row["rlnAnglePsi"]
+            if rot_present and tilt_present and psi_present and tomo_rot_present and tomo_psi_present and tomo_tilt_present:
+                print("Combining rlnTomoSubtomogram and rlnAngle")
+                # Box angles in degrees
+                box_angle_rot = row['rlnTomoSubtomogramRot']
+                box_angle_tilt = row['rlnTomoSubtomogramTilt']
+                box_angle_psi = row['rlnTomoSubtomogramPsi']
+
+                # Particle angles in degrees
+                particle_angle_rot = row['rlnAngleRot']
+                particle_angle_tilt = row['rlnAngleTilt']
+                particle_angle_psi = row['rlnAnglePsi']
+
+                # Convert box angles to a rotation matrix (ZYZ convention)
+                box_rotation = R.from_euler('zyz', [box_angle_rot, box_angle_tilt, box_angle_psi],
+                                            degrees=True).as_matrix()
+
+                # Convert particle angles to a rotation matrix (ZYZ convention)
+                particle_rotation = R.from_euler('zyz',
+                                                 [particle_angle_rot, particle_angle_tilt,
+                                                  particle_angle_psi],
+                                                 degrees=True).as_matrix()
+
+                # Combine rotations by multiplying the matrices (box followed by particle)
+                combined_rotation = box_rotation @ particle_rotation
+
+                combined_rotation = R.from_matrix(
+                    combined_rotation)  # Convert matrix back to a Rotation object
+
+                # Convert the combined rotation matrix back to Euler angles in 'ZYZ' convention
+                combined_euler_angles = combined_rotation.as_euler('zyz', degrees=True)
+
+                # Store the combined Euler angles in the p dictionary
+                p['ang_1'] = combined_euler_angles[0]  # Combined rot
+                p['ang_2'] = combined_euler_angles[1]  # Combined tilt
+                p['ang_3'] = combined_euler_angles[2]  # Combined psi
+
+            # if only rlnAngle present
+            elif rot_present and tilt_present and psi_present:
+                p['ang_1'] = row['rlnAngleRot']
+                p['ang_2'] = row['rlnAngleTilt']
+                p['ang_3'] = row['rlnAnglePsi']
+                print("Using rlnAngle")
+
+            # if only rlnTomoSubtomogram present
+            elif tomo_rot_present and tilt_present and psi_present:
+                p['ang_1'] = row['rlnTomoSubtomogramRot']
+                p['ang_2'] = row['rlnTomoSubtomogramTilt']
+                p['ang_3'] = row['rlnTomoSubtomogramPsi']
+                print("Using rlnTomoSubtomogram")
+
             else:
-                p["ang_3"] = 0
+                print("Angle Information not complete, default set to 0")
+                p['ang_1'] = 0
+                p['ang_2'] = 0
+                p['ang_3'] = 0
 
             # Everything else
             for attr in additional_entries:
