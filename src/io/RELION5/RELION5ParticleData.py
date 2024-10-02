@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Tuple, Union
 import numpy as np
 import starfile
 import pandas as pd
+from scipy.spatial.transform import Rotation as R
 
 # Chimerax
 import chimerax
@@ -257,12 +258,12 @@ class RELION5ParticleData(ParticleData):
                 particle_angle_tilt = row['rlnAngleTilt']
                 particle_angle_psi = row['rlnAnglePsi']
 
-                # Convert box angles to a rotation matrix (ZYZ convention)
+                # Convert box angles to a rotation matrix (zyz convention)
                 box_rotation = R.from_euler('zyz', [box_angle_rot, box_angle_tilt, box_angle_psi],
                                             degrees=True).as_matrix()
 
                 # Convert particle angles to a rotation matrix (ZYZ convention)
-                particle_rotation = R.from_euler('zyz',
+                particle_rotation = R.from_euler('ZYZ',
                                                  [particle_angle_rot, particle_angle_tilt,
                                                   particle_angle_psi],
                                                  degrees=True).as_matrix()
@@ -342,6 +343,44 @@ class RELION5ParticleData(ParticleData):
                     data["rlnTomoName"][idx] = ""  # tomogram_name #TODO:
                 # if 'rlnTomoName' in data.keys():
                 #    data.pop('rlnTomoName')
+
+
+            # Angles
+            # the internal artiax angle needs to be decomposed, so that you have the rlnTomoSubtomogram Angles and the rlnAngles
+            remove_angles = (0, 90, 0)
+
+            for idx in range(len(data['rlnTomoSubtomogramRot'])):
+                # Extract the original rlnTomoSubtomogram angles
+                tomo_rot = data['rlnTomoSubtomogramRot'][idx]
+                tomo_tilt = data['rlnTomoSubtomogramTilt'][idx]
+                tomo_psi = data['rlnTomoSubtomogramPsi'][idx]
+
+                # Convert rlnTomoSubtomogram angles to rotation matrix
+                rotation_matrix = R.from_euler('zyz', [tomo_rot, tomo_tilt, tomo_psi], degrees=True).as_matrix()
+
+                # Create a new rotation matrix for the angles to remove
+                remove_rotation_matrix = R.from_euler('zyz', remove_angles, degrees=True).as_matrix()
+
+                # Combine the two rotations: original rotation minus the removal rotation
+                # Inverting the remove_rotation to effectively "remove" it
+                resulting_rotation_matrix = rotation_matrix @ remove_rotation_matrix.T
+
+                # Convert the resulting rotation matrix back to Euler angles
+                combined_euler_angles = R.from_matrix(resulting_rotation_matrix).as_euler('zyz', degrees=True)
+
+                # Update data with new angle sets
+                data['rlnTomoSubtomogramRot'][idx] = combined_euler_angles[0]
+                data['rlnTomoSubtomogramTilt'][idx] = combined_euler_angles[1]
+                data['rlnTomoSubtomogramPsi'][idx] = combined_euler_angles[2]
+
+                # Also create rlnAngle with (0, 90, 0)
+                data['rlnAngleRot'] = remove_angles[0]
+                data['rlnAngleTilt'] = remove_angles[1]
+                data['rlnAnglePsi'] = remove_angles[2]
+
+                # Also create rlnAnglePrior with (90, 0)
+                data['rlnAngleTiltPrior'] = remove_angles[1]
+                data['rlnAnglePsiPrior'] = remove_angles[2]
 
             for idx, v in enumerate(data["rlnCenteredCoordinateXAngst"]):
                 # changes unit from pixel to Angstrom and makes coordinate centered
