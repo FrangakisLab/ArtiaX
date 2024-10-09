@@ -12,6 +12,8 @@ class CoordInputDialogRead(QDialog):
         self.y_input = None
         self.z_input = None
         self.pixsize_input = None
+        self.prefix_input = None
+        self.suffix_input = None
 
         # Initialize the UI
         self.init_ui()
@@ -24,6 +26,8 @@ class CoordInputDialogRead(QDialog):
         self.y_input = QLineEdit()
         self.z_input = QLineEdit()
         self.pixsize_input = QLineEdit()
+        self.prefix_input = QLineEdit()
+        self.suffix_input = QLineEdit()
 
         layout.addWidget(QLabel("Enter size of corresponding tomogram in binned pixels (x):"))
         layout.addWidget(self.x_input)
@@ -33,6 +37,10 @@ class CoordInputDialogRead(QDialog):
         layout.addWidget(self.z_input)
         layout.addWidget(QLabel("Enter pixelsize:"))
         layout.addWidget(self.pixsize_input)
+        layout.addWidget(QLabel("Enter Tomogram number prefix in 'rlnTomoName':"))
+        layout.addWidget(self.prefix_input)
+        layout.addWidget(QLabel("Enter Tomogram number sufffix in 'rlnTomoName':"))
+        layout.addWidget(self.suffix_input)
 
         # Submit button
         submit_button = QPushButton("Submit")
@@ -48,22 +56,24 @@ class CoordInputDialogRead(QDialog):
             x_size = int(self.x_input.text())
             y_size = int(self.y_input.text())
             z_size = int(self.z_input.text())
-            pixsize = int(self.pixsize_input.text())  # Get the name as a string
+            pixsize = float(self.pixsize_input.text())  # Get the name as a string
+            prefix = self.prefix_input.text()
+            suffix = self.suffix_input.text()
 
             # Return the values and accept the dialog
             self.accept()
 
             # Return the coordinates as a tuple
-            return x_size, y_size, z_size, pixsize
+            return x_size, y_size, z_size, pixsize, prefix, suffix
 
         except ValueError:
             # If there's a validation error, show a message
-            QMessageBox.warning(self, "Input Error", "Please enter valid integer values for X, Y, and Z.")
-            return None, None, None, None
+            QMessageBox.warning(self, "Input Error", "Please enter valid integer values for X, Y, and Z and for the pixelsize and strings for prefix and suffix.")
+            return None, None, None, None, None, None
 
     def get_info_read(self):
         """Returns the X, Y, Z coordinates and pixsize if valid, or None if the user cancels the dialog."""
         if self.exec_() == QDialog.Accepted:
-            return int(self.x_input.text()), int(self.y_input.text()), int(self.z_input.text()), int(self.pixsize_input.text())
+            return int(self.x_input.text()), int(self.y_input.text()), int(self.z_input.text()), float(self.pixsize_input.text()), self.prefix_input.text(), self.suffix_input.text()
         else:
-            return None, None, None, None
+            return None, None, None, None, None, None

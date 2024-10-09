@@ -101,6 +101,54 @@ def save_particle_list(
             save_data = formats[format_name].particle_data.from_particle_data(
                 partlist.data
             )
+            # add info which particle belongs to which tomo number
+            all_keys = partlist.get_all_attributes()
+            if 'rlnTomoName' or 'tomo_number' in all_keys:  # check if tomo number info is already present
+                print('info present')
+
+                tomo_number_values = None
+                # Get TomoNumber infos
+                if 'rlnTomoName' in all_keys:
+                    tomo_number_values = partlist.get_values_of_attribute('rlnTomoName')  # when input was star file
+                elif 'tomo_number' in all_keys:
+                    tomo_number_values = partlist.get_values_of_attribute('tomo_number')  # when input was em file
+
+                # Add rlnTomoNumber infos when desired output file is star file
+                if format_name == 'RELION STAR file' or format_name == 'RELION5 STAR file':
+                    # Update the 'rlnTomoName' values in save_data for all entries
+                    if 'rlnTomoName' in save_data._data_keys:  # Ensure the key exists
+                        rlnTomoName_count = len(tomo_number_values)  # Number of new values
+                        save_data_count = sum(1 for _id, p in save_data)  # Number of entries in save_data
+
+                        # Check if lengths match
+                        if rlnTomoName_count == save_data_count:
+                            for index, (_id, p) in enumerate(save_data):  # Using enumerate to get index
+                                print(f"former value: {p['rlnTomoName']}")
+                                p['rlnTomoName'] = tomo_number_values[index]  # Assign the corresponding value
+                                print(f"New value: {p['rlnTomoName']}")
+                                print("values updated")
+                        else:
+                            print(f"Warning: Length mismatch! rlnTomoName_values ({rlnTomoName_count}) "
+                                  f"does not match save_data entries ({save_data_count}).")
+
+                # Add rlnTomoNumber infos when desired output file is star file
+                if format_name == 'Artiatomi Motivelist':
+                    # Update the 'tomo_number' values in save_data for all entries
+                    if 'tomo_number' in save_data._data_keys:  # Ensure the key exists
+                        tomo_number_count = len(tomo_number_values)  # Number of new values
+                        save_data_count = sum(1 for _id, p in save_data)  # Number of entries in save_data
+
+                        # Check if lengths match
+                        if tomo_number_count == save_data_count:
+                            for index, (_id, p) in enumerate(save_data):  # Using enumerate to get index
+                                print(f"former value: {p['tomo_number']}")
+                                p['tomo_number'] = tomo_number_values[
+                                    index]  # Assign the corresponding value
+                                print(f"New value: {p['tomo_number']}")
+                                print("values updated")
+                        else:
+                            print(f"Warning: Length mismatch! rlnTomoName_values ({tomo_number_count}) "
+                                  f"does not match save_data entries ({save_data_count}).")
         else:
             save_data = partlist.data
 

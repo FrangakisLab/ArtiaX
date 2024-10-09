@@ -505,6 +505,9 @@ class ParticleList(Model):
     def get_main_attributes(self):
         return self._data.get_main_attributes()
 
+    def get_values_of_attribute(self, attribute):
+        return [getattr(m, attribute) for m in self.markers.atoms]
+
     def get_all_attributes(self):
         return self._data.get_all_attributes()
 

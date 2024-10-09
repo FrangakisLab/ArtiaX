@@ -8,6 +8,7 @@ import pandas as pd
 
 # Chimerax
 import chimerax
+from chimerax.core.commands import StringArg
 from chimerax.core.errors import UserError
 from chimerax.core.session import Session
 from chimerax.core.models import Model
@@ -64,12 +65,19 @@ class RELION5ParticleData(ParticleData):
         additional_files: List[str] = None,
         dimensions: List[float] = None,
         voxel_size: float = None,
+        prefix: str = None,
+        suffix: str = None,
     ) -> None:
         self.remaining_loops = {}
         self.remaining_data = {}
         self.loop_name = 0
         self.name_prefix = None
         self.name_leading_zeros = None
+
+        self.dimensions = dimensions
+        self.voxel_size = voxel_size
+        self.prefix = prefix
+        self.suffix = suffix
 
         super().__init__(
             session,
@@ -101,21 +109,28 @@ class RELION5ParticleData(ParticleData):
 
         x_size, y_size, z_size, pixsize = 0, 0, 0, 0
 
-        if (
-            x_size is not None
-            and y_size is not None
-            and z_size is not None
-            and pixsize is not None
-        ):
+        if self.dimensions is not None and len(self.dimensions) == 3:
+            x_size, y_size, z_size = self.dimensions
             print(f"Using sizes: X: {x_size}, Y: {y_size}, Z: {z_size}")
+
+        if self.oripix is not None:
+            pixsize = self.oripix
             print(f"Using pixelsize: {pixsize}")
+
+        if self.prefix is not None:
+            prefix = self.prefix
+            print(f"Using prefix: {prefix}")
+
+        if self.suffix is not None:
+            suffix = self.suffix
+            print(f"Using suffix: {suffix}")
+
 
         # calculate center of corresponding tomogram
         x_center = x_size / 2
         y_center = y_size / 2
         z_center = z_size / 2
 
-        self.oripix = pixsize
 
         # Take the good loop, store the rest and the loop name so we can write it out again later on
         df = content[data_loop]
@@ -134,32 +149,42 @@ class RELION5ParticleData(ParticleData):
 
             # Sanity check names
             first_name = names[0]
-            if "_" not in first_name:
-                raise UserError(
-                    'Encountered particle without "_" in rlnTomoName. Aborting.'
-                )
 
-            full = first_name.split("_")
-            prefix_guess = "".join(full[0:-1])
-            num_guess = full[-1]
+            # Ensure proper handling of prefix and suffix
+            if first_name.startswith(prefix):
+                if suffix:  # Check if suffix is not empty
+                    if first_name.endswith(suffix):
+                        num = first_name[len(prefix): -len(suffix)]
+                    else:
+                        raise UserError('Tomogram number cannot be extracted due to unmatched suffix.')
+                else:
+                    # If suffix is empty, just get the part after the prefix
+                    num = first_name[len(prefix):]
+            else:
+                raise UserError('Tomogram number cannot be extracted due to unmatched prefix.')
 
             for n in names:
-                if "_" not in n:
-                    raise UserError(
-                        'Encountered particle without "_" in rlnTomoName. Aborting.'
-                    )
+                if not (n.startswith(prefix)):
+                    raise UserError('Encountered particle without matching prefix in rlnTomoName. Aborting.')
 
-                full = n.split("_")
-                prefix_test = "".join(full[0:-1])
+                # Extract number only once
+                if suffix:
+                    if n.endswith(suffix):
+                        num = n[len(prefix): -len(suffix)]
+                    else:
+                        raise UserError(
+                            'Encountered particle without matching suffix in rlnTomoName. Aborting.')
+                else:
+                    # If suffix is empty, extract part after the prefix
+                    num = n[len(prefix):]
 
-                if prefix_test != prefix_guess:
-                    raise UserError(
-                        f"Encountered particles with inconsistent "
-                        f"rlnTomoName prefixes {prefix_test} and {prefix_guess}. Aborting."
-                    )
+                if num.isdigit():
+                    pass  # Optionally, you can add additional processing here
+                else:
+                    print(f"Encountered particles with inconsistent 'rlnTomoName' prefixes and suffixes in {n}")
 
-            self.name_prefix = prefix_guess
-            self.name_leading_zeros = len(num_guess)
+            self.name_prefix = prefix
+            self.name_leading_zeros = len(num)
             names_present = True
             additional_keys.remove("rlnTomoName")
         else:
@@ -212,9 +237,18 @@ class RELION5ParticleData(ParticleData):
 
             # Name
             if names_present:
-                n = row["rlnTomoName"].split("_")
-                num = int(n[-1])
-                p["rlnTomoName"] = num
+                n = row['rlnTomoName']
+
+                if suffix:
+                    if n.endswith(suffix):
+                        num = n[len(prefix): -len(suffix)]
+                        num = float(num)
+                        p['rlnTomoName'] = num
+                else:
+                    # If suffix is empty, extract part after the prefix
+                    num = n[len(prefix):]
+                    num = float(num)
+                    p['rlnTomoName'] = num
 
             # Position, recalculate to pixel coordinates not centered
             p["pos_x"] = (row["rlnCenteredCoordinateXAngst"] / pixsize) + x_center
@@ -251,40 +285,60 @@ class RELION5ParticleData(ParticleData):
         file_name: str = None,
         additional_files: List[str] = None,
         dimensions: List[float] = None,
+        prefix: str = None,
+        suffix: str = None,
+        tomonumber: int = None,
     ) -> None:
 
-        # Get the X, Y, and Z sizes from widget
-        # dialog = CoordInputDialog()
-        # x_size, y_size, z_size, tomogram_name = dialog.get_info()
+        self.dimensions = dimensions
+        self.prefix = prefix
+        self.suffix = suffix
+        self.tomonumber = tomonumber
+
         x_size, y_size, z_size, name = 0, 0, 0, ""
+
+        if self.dimensions is not None and len(self.dimensions) == 3:
+            x_size, y_size, z_size = self.dimensions
+            print(f"Using sizes: X: {x_size}, Y: {y_size}, Z: {z_size}")
+
+        if self.tomonumber is not None:
+            tomogram_name = self.tomonumber
+            print(f"Corresponding tomogram number: {tomogram_name}")
 
         if x_size is not None and y_size is not None and z_size is not None:
             print(f"Using sizes: X: {x_size}, Y: {y_size}, Z: {z_size}")
             print(f"Using pixelsize: {self.oripix}")
 
-            # calculate center in pixel
-            x_center = x_size / 2
-            y_center = y_size / 2
-            z_center = z_size / 2
+        # calculate center in pixel
+        x_center = x_size / 2
+        y_center = y_size / 2
+        z_center = z_size / 2
 
-            if file_name is None:
-                file_name = self.file_name
+        if file_name is None:
+            file_name = self.file_name
 
-            data = self.as_dictionary()
+        data = self.as_dictionary()
 
-            if self.name_prefix is not None:
-                for idx, n in enumerate(data["rlnTomoName"]):
-                    fmt = "{{}}_{{:0{}d}}".format(self.name_leading_zeros)
-                    data["rlnTomoName"][idx] = fmt.format(
-                        self.name_prefix, data["rlnTomoName"][idx]
-                    )
-            else:
-                for idx, n in enumerate(data["rlnTomoName"]):
-                    data["rlnTomoName"][idx] = ""  # tomogram_name #TODO:
-                # if 'rlnTomoName' in data.keys():
-                #    data.pop('rlnTomoName')
+        # Tomo Name/Number
+        if tomogram_name is not None:  # name/number is being overwritten by what was inputted
+            for idx, n in enumerate(data['rlnTomoName']):
+                data['rlnTomoName'][idx] = f"{prefix}{tomogram_name}{suffix}"
 
-            for idx, v in enumerate(data["rlnCenteredCoordinateXAngst"]):
+        elif tomogram_name is None:  # no overwriting desired
+            # get tomo numbers from internal particle list data
+            for idx, n in enumerate(data['rlnTomoName']):
+                num = int(float(n))
+
+                # Ensure self.name_leading_zeros has a default value if it's None
+                leading_zeros = self.name_leading_zeros if self.name_leading_zeros is not None else 0
+                # Zero-pad the number based on the leading zeros
+                formatted_num = f"{num:0{leading_zeros}d}"
+                # Combine the prefix, zero-padded number, and suffix
+                data['rlnTomoName'][idx] = f"{prefix}{formatted_num}{suffix}"
+
+
+        #Coordinates
+        for idx, v in enumerate(data["rlnCenteredCoordinateXAngst"]):
                 # changes unit from pixel to Angstrom and makes coordinate centered
 
                 # center coordinate
@@ -303,32 +357,31 @@ class RELION5ParticleData(ParticleData):
                 data["rlnCenteredCoordinateYAngst"][idx] *= self.oripix
                 data["rlnCenteredCoordinateZAngst"][idx] *= self.oripix
 
-            df = pd.DataFrame(data=data)
+        df = pd.DataFrame(data=data)
 
-            full_dict = self.remaining_loops
-            full_dict[self.loop_name] = df
+        full_dict = self.remaining_loops
+        full_dict[self.loop_name] = df
 
-            starfile.write(full_dict, file_name, overwrite=True)
+        starfile.write(full_dict, file_name, overwrite=True)
 
-            # Change data_0 to data_particles in star file
-            with open(file_name, "r") as file:
-                lines = file.readlines()
+        # Change data_0 to data_particles in star file
+        with open(file_name, "r") as file:
+            lines = file.readlines()
 
-            search_string = "data_0"
-            new_content = "data_particles\n"
+        search_string = "data_0"
+        new_content = "data_particles\n"
 
-            # Iterate over the lines and replace the one containing the specific content
-            for i, line in enumerate(lines):
-                if search_string in line:
-                    lines[i] = new_content
-                    break
+        # Iterate over the lines and replace the one containing the specific content
+        for i, line in enumerate(lines):
+            if search_string in line:
+                lines[i] = new_content
+                break
 
-            # Write the modified content back to the same file
-            with open(file_name, "w") as file:
-                file.writelines(lines)
+        # Write the modified content back to the same file
+        with open(file_name, "w") as file:
+            file.writelines(lines)
 
-        else:
-            print("Input is not valid, exiting the function.")
+
 
 
 class RELION5OpenerInfo(ArtiaXOpenerInfo):
@@ -339,6 +392,16 @@ class RELION5OpenerInfo(ArtiaXOpenerInfo):
 
         get_singleton(session)
 
+        #rlnTomoName
+        prefix_input = kwargs.get("prefix", None)
+        suffix_input = kwargs.get("suffix", None)
+
+        if prefix_input is not None:
+            prefix = prefix_input
+        if suffix_input is not None:
+            suffix = suffix_input
+
+        #Dimensions
         # Users can either:
         # Provide the dimensions explictely (voxel size and binning from the star file)
         dimensions = kwargs.get("voldim", None)
@@ -373,7 +436,7 @@ class RELION5OpenerInfo(ArtiaXOpenerInfo):
             from ...widgets.Relion5ReadAddInfo import CoordInputDialogRead
 
             dialog = CoordInputDialogRead()
-            x, y, z, voxelsize = dialog.get_info_read()
+            x, y, z, voxelsize, prefix, suffix = dialog.get_info_read()
 
         # Open list
         from ..io import open_particle_list
@@ -388,13 +451,15 @@ class RELION5OpenerInfo(ArtiaXOpenerInfo):
             dimensions=(x, y, z),
             voxelsize=voxelsize,
             volume=volume,
+            prefix=prefix,
+            suffix=suffix,
         )
 
     @property
     def open_args(self):
-        from chimerax.core.commands import FloatArg, Float3Arg, ModelArg
+        from chimerax.core.commands import FloatArg, Float3Arg, ModelArg, StringArg
 
-        return {"voldim": Float3Arg, "voxelsize": FloatArg, "volume": ModelArg}
+        return {"voldim": Float3Arg, "voxelsize": FloatArg, "volume": ModelArg, "prefix": StringArg, "suffix": StringArg}
 
 
 class RELION5SaveArgsWidget(SaveArgsWidget):
@@ -406,17 +471,64 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         from ...widgets.NLabelValue import NLabelValue
         from ...widgets.IgnorantComboBox import IgnorantComboBox
 
-        # Choose single tomogram name
+        #Use new tomogram number with specified prefix and suffix
+        # Choose single tomogram number
         self._name_layout = QHBoxLayout()
-        self._name_label = QLabel("TomoName:")
+        self._name_label = QLabel("TomoNumber:")
         self._name_edit = QLineEdit("")
         self._name_layout.addWidget(self._name_label)
         self._name_layout.addWidget(self._name_edit)
 
-        self._tomoname_group = QGroupBox("Set TomoName:")
-        self._tomoname_group.setLayout(self._name_layout)
+        # Layout for the prefix input
+        self._name_prefix_layout = QHBoxLayout()  # Horizontal layout for prefix
+        self._name_prefix_label = QLabel("Prefix:")  # Label for prefix
+        self._name_prefix_edit = QLineEdit("")  # Text input for prefix
+        self._name_prefix_layout.addWidget(self._name_prefix_label)
+        self._name_prefix_layout.addWidget(self._name_prefix_edit)
+
+        # Layout for the suffix input (newly added)
+        self._name_suffix_layout = QHBoxLayout()  # Horizontal layout for suffix
+        self._name_suffix_label = QLabel("Suffix:")  # Label for suffix
+        self._name_suffix_edit = QLineEdit("")  # Text input for suffix
+        self._name_suffix_layout.addWidget(self._name_suffix_label)
+        self._name_suffix_layout.addWidget(self._name_suffix_edit)
+
+        # Create a vertical layout to hold both prefix and suffix fields
+        self._combined_layout = QVBoxLayout()
+        self._combined_layout.addLayout(self._name_layout)  # Add tomo number layout
+        self._combined_layout.addLayout(self._name_prefix_layout)  # Add prefix layout
+        self._combined_layout.addLayout(self._name_suffix_layout)  # Add suffix layout
+
+        self._tomoname_group = QGroupBox("Set new TomoNumber (optional, will overwrite existing numbers):")
+        self._tomoname_group.setLayout(self._combined_layout)
         self._tomoname_group.setCheckable(True)
         self._tomoname_group.setChecked(False)
+
+        #Use existing tomonumbers
+        # Layout for the prefix input
+        self._keep_name_prefix_layout = QHBoxLayout()  # Horizontal layout for prefix
+        self._keep_name_prefix_label = QLabel("Prefix:")  # Label for prefix
+        self._keep_name_prefix_edit = QLineEdit("")  # Text input for prefix
+        self._keep_name_prefix_layout.addWidget(self._keep_name_prefix_label)
+        self._keep_name_prefix_layout.addWidget(self._keep_name_prefix_edit)
+
+        # Layout for the suffix input (newly added)
+        self._keep_name_suffix_layout = QHBoxLayout()  # Horizontal layout for suffix
+        self._keep_name_suffix_label = QLabel("Suffix:")  # Label for suffix
+        self._keep_name_suffix_edit = QLineEdit("")  # Text input for suffix
+        self._keep_name_suffix_layout.addWidget(self._keep_name_suffix_label)
+        self._keep_name_suffix_layout.addWidget(self._keep_name_suffix_edit)
+
+        # Create a vertical layout to hold both prefix and suffix fields
+        self._keep_combined_layout = QVBoxLayout()
+        self._keep_combined_layout.addLayout(self._keep_name_prefix_layout)  # Add prefix layout
+        self._keep_combined_layout.addLayout(self._keep_name_suffix_layout)  # Add suffix layout
+
+        # Create a group box to hold both prefix and suffix inputs
+        self._keep_tomoname_group = QGroupBox("Save existing TomoNumbers with specified prefix and/or suffix:")
+        self._keep_tomoname_group.setLayout(self._keep_combined_layout)  # Set combined layout to group box
+        self._keep_tomoname_group.setCheckable(True)  # Make group box checkable
+        self._keep_tomoname_group.setChecked(False)  # Initially unchecked (disabled)
 
         # Choose dimensions / voxel size
         # Get from Volume
@@ -470,6 +582,7 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
 
         self._main = QVBoxLayout()
         self._main.addWidget(self._tomoname_group)
+        self._main.addWidget(self._keep_tomoname_group)
         self._main.addWidget(self._dim_group)
 
         from Qt.QtCore import Qt
@@ -502,7 +615,7 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
 
         return txt
 
-
+#TODO continue here
 class RELION5SaverInfo(ArtiaXSaverInfo):
 
     def save(
@@ -514,6 +627,9 @@ class RELION5SaverInfo(ArtiaXSaverInfo):
         voldim: List[float] = None,
         voxelsize: float = None,
         volume: Model = None,
+        prefix: str = None,
+        suffix: str = None,
+        tomonumber: int = None,
     ) -> None:
         # No volume dimensions provided
         if voldim is None:
@@ -528,17 +644,24 @@ class RELION5SaverInfo(ArtiaXSaverInfo):
             format_name=self.name,
             additional_files=[],
             dimensions=voldim,
+            prefix=prefix,
+            suffix=suffix,
+            tomonumber=tomonumber,
+
         )
 
     @property
     def save_args(self) -> Dict[str, Any]:
-        from chimerax.core.commands import ModelArg, Float3Arg, FloatArg
+        from chimerax.core.commands import ModelArg, Float3Arg, FloatArg, StringArg, IntArg
 
         return {
             "partlist": ModelArg,
             "voldim": Float3Arg,
             "voxelsize": FloatArg,
             "volume": ModelArg,
+            "prefix": StringArg,
+            "suffix": StringArg,
+            "tomonumber": IntArg,
         }
 
 
