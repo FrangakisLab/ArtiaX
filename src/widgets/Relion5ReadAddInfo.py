@@ -57,8 +57,8 @@ class CoordInputDialogRead(QDialog):
             y_size = int(self.y_input.text())
             z_size = int(self.z_input.text())
             pixsize = float(self.pixsize_input.text())  # Get the name as a string
-            prefix = self.prefix_input.text()
-            suffix = self.suffix_input.text()
+            prefix = self.prefix_input.text() or None
+            suffix = self.suffix_input.text() or None
 
             # Return the values and accept the dialog
             self.accept()
@@ -74,6 +74,6 @@ class CoordInputDialogRead(QDialog):
     def get_info_read(self):
         """Returns the X, Y, Z coordinates and pixsize if valid, or None if the user cancels the dialog."""
         if self.exec_() == QDialog.Accepted:
-            return int(self.x_input.text()), int(self.y_input.text()), int(self.z_input.text()), float(self.pixsize_input.text()), self.prefix_input.text(), self.suffix_input.text()
+            return self.submit_input()
         else:
             return None, None, None, None, None, None

@@ -9,6 +9,8 @@ import numpy as np
 from chimerax.core.errors import UserError
 from chimerax.core.session import Session
 from chimerax.core.models import Model
+from pexpect import searcher_string
+
 
 # This package
 # from ..particle import ParticleList
@@ -47,6 +49,23 @@ def open_particle_list(
     # Read file if possible
     if format_name in formats:
         modelname = os.path.basename(file_name)
+        print(f"{format_name} ")
+        if format_name == "RELION STAR file":
+            import starfile
+            content = starfile.read(file_name, always_dict=True)
+            search_string = "rlnCenteredCoordinateZAngst"
+            # Check if the string is in the file contents
+            for key, val in content.items():
+                if "rlnCenteredCoordinateZAngst" in list(val.keys()):
+                    print(f"The string '{search_string}' was found in the file. Therefore it is relion5")
+                    format_name = "RELION5 STAR file"
+                    break
+                else:
+                    print(f"The string '{search_string}' was NOT found in the file. Therefore it is old relion")
+
+            print(f"Changed to {format_name} ")
+
+
         data = formats[format_name].particle_data(
             session,
             file_name,
@@ -55,9 +74,11 @@ def open_particle_list(
             additional_files=additional_files,
             **kwargs,
         )
-        from ..particle import ParticleList
 
+        from ..particle import ParticleList
         model = ParticleList(modelname, session, data)
+
+        print("io.open_particle_list is being run")
 
     if model is not None:
         status = "Opened Particle list {} with {} particles.".format(

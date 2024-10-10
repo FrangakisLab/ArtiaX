@@ -43,9 +43,9 @@ class RELION5ParticleData(ParticleData):
     }
 
     DEFAULT_PARAMS = {
-        "pos_x": "rlnCenteredCoordinateXAngst",
-        "pos_y": "rlnCenteredCoordinateYAngst",
-        "pos_z": "rlnCenteredCoordinateZAngst",
+        "pos_x": "rlnCoordinateX",
+        "pos_y": "rlnCoordinateY",
+        "pos_z": "rlnCoordinateZ",
         "shift_x": "rlnOriginX",
         "shift_y": "rlnOriginY",
         "shift_z": "rlnOriginZ",
@@ -78,6 +78,7 @@ class RELION5ParticleData(ParticleData):
         self.voxel_size = voxel_size
         self.prefix = prefix
         self.suffix = suffix
+        self.oripix = oripix
 
         super().__init__(
             session,
@@ -87,10 +88,10 @@ class RELION5ParticleData(ParticleData):
             additional_files=additional_files,
         )
 
-        self.oripix = oripix
+
 
     # reading of Relion5 files is included in Relion.RelionParticleData
-    def read_file(self) -> None:
+    def read_file(self, oripix = None, dimensions = None, prefix = None, suffix = None) -> None:
         """Reads RELION5 star file."""
         content = starfile.read(self.file_name, always_dict=True)
 
@@ -107,15 +108,23 @@ class RELION5ParticleData(ParticleData):
                 f"rlnCenteredCoordinateZAngst was not found in any loop section of file {self.file_name}."
             )
 
-        x_size, y_size, z_size, pixsize = 0, 0, 0, 0
-
-        if self.dimensions is not None and len(self.dimensions) == 3:
+        #check if necessary info already inputted through command line
+        if self.dimensions is not None and len(self.dimensions) == 3 and self.oripix is not None:
             x_size, y_size, z_size = self.dimensions
             print(f"Using sizes: X: {x_size}, Y: {y_size}, Z: {z_size}")
 
-        if self.oripix is not None:
             pixsize = self.oripix
             print(f"Using pixelsize: {pixsize}")
+
+        elif self.dimensions is None:
+            print("open pop up")
+            from ...widgets.Relion5ReadAddInfo import CoordInputDialogRead
+            # get information through widget about tomogram size and pixelsize
+            dialog = CoordInputDialogRead()
+            x_size, y_size, z_size, pixsize, prefix, suffix = dialog.get_info_read()
+            print(f"Using sizes: X: {x_size}, Y: {y_size}, Z: {z_size}")
+            print(f"Using pixelsize: {pixsize}")
+
 
         if self.prefix is not None:
             prefix = self.prefix
@@ -130,6 +139,7 @@ class RELION5ParticleData(ParticleData):
         x_center = x_size / 2
         y_center = y_size / 2
         z_center = z_size / 2
+        print(x_center)
 
 
         # Take the good loop, store the rest and the loop name so we can write it out again later on
@@ -217,13 +227,6 @@ class RELION5ParticleData(ParticleData):
             else:
                 self.remaining_data[key] = df[key]
 
-        # remove column names from regular relion format
-        self._data_keys.pop("rlnCoordinateX")
-        self._data_keys.pop("rlnCoordinateY")
-        self._data_keys.pop("rlnCoordinateZ")
-        self._data_keys.pop("rlnOriginX")
-        self._data_keys.pop("rlnOriginY")
-        self._data_keys.pop("rlnOriginZ")
 
         # Store everything
         self._register_keys()
@@ -254,6 +257,16 @@ class RELION5ParticleData(ParticleData):
             p["pos_x"] = (row["rlnCenteredCoordinateXAngst"] / pixsize) + x_center
             p["pos_y"] = (row["rlnCenteredCoordinateYAngst"] / pixsize) + y_center
             p["pos_z"] = (row["rlnCenteredCoordinateZAngst"] / pixsize) + z_center
+
+            #Debug
+            # new_coord_x = ((row["rlnCenteredCoordinateXAngst"] / pixsize) + x_center)
+            # new_coord_y = ((row["rlnCenteredCoordinateYAngst"] / pixsize) + y_center)
+            # new_coord_z = ((row["rlnCenteredCoordinateZAngst"] / pixsize) + z_center)
+            #
+            # p["pos_x"] = new_coord_x
+            # p["pos_y"] = new_coord_y
+            # p["pos_z"] = new_coord_z
+
 
             # Shift, rlnOriginX/Y/Z no longer in relion5 format, therefore 0
             p["shift_x"] = 0
@@ -295,6 +308,11 @@ class RELION5ParticleData(ParticleData):
         self.suffix = suffix
         self.tomonumber = tomonumber
 
+        print(f"Dimensions:{self.dimensions}")
+        print(f"Prefix:{self.prefix}")
+        print(f"Suffix:{self.suffix}")
+        print(f"Tomonumber:{self.tomonumber}")
+
         x_size, y_size, z_size, name = 0, 0, 0, ""
 
         if self.dimensions is not None and len(self.dimensions) == 3:
@@ -334,8 +352,12 @@ class RELION5ParticleData(ParticleData):
                 # Zero-pad the number based on the leading zeros
                 formatted_num = f"{num:0{leading_zeros}d}"
                 # Combine the prefix, zero-padded number, and suffix
-                data['rlnTomoName'][idx] = f"{prefix}{formatted_num}{suffix}"
-
+                if suffix is not None and prefix is not None:
+                    data['rlnTomoName'][idx] = f"{prefix}{formatted_num}{suffix}"
+                elif prefix is not None:
+                    data['rlnTomoName'][idx] = f"{prefix}{formatted_num}"
+                elif suffix is not None:
+                    data['rlnTomoName'][idx] = f"{formatted_num}{suffix}"
 
         #Coordinates
         for idx, v in enumerate(data["rlnCenteredCoordinateXAngst"]):
@@ -401,6 +423,7 @@ class RELION5OpenerInfo(ArtiaXOpenerInfo):
         if suffix_input is not None:
             suffix = suffix_input
 
+        print("relion5openerinfo is run")
         #Dimensions
         # Users can either:
         # Provide the dimensions explictely (voxel size and binning from the star file)
@@ -530,6 +553,7 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         self._keep_tomoname_group.setCheckable(True)  # Make group box checkable
         self._keep_tomoname_group.setChecked(False)  # Initially unchecked (disabled)
 
+
         # Choose dimensions / voxel size
         # Get from Volume
         self._vol_layout = QHBoxLayout()
@@ -558,7 +582,6 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
 
         # Dimensions
         self._dim_widget = NLabelValue(["X", "Y", "Z"])
-
         self._dim_layout = QVBoxLayout()
         self._dim_layout.addLayout(self._vol_layout)
         self._dim_layout.addWidget(self._dim_widget)
@@ -607,15 +630,43 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         self._vs_edit.setText(str(vs))
 
     def additional_argument_string(self) -> str:
-        x = float(self._dimx_edit.text())
-        y = float(self._dimy_edit.text())
-        z = float(self._dimz_edit.text())
 
-        txt = f"voldim {x:.3f},{y:.3f},{z:.3f}"
+        #Dimensions
+        values = self._dim_widget.values
+        # Convert the X, Y, Z values to float and format the string
+        x = float(values[0])  # X dimension
+        y = float(values[1])  # Y dimension
+        z = float(values[2])  # Z dimension
+
+        #Voxelsize
+        v = float(self._vs_edit.text())
+
+        # Prefix (get text from the QLineEdit)
+        if self._name_prefix_edit.text():  # Check if it has input
+            prefix = self._name_prefix_edit.text()
+        elif self._keep_name_prefix_edit.text():
+            prefix = self._keep_name_prefix_edit.text()
+        else:
+            prefix = ""  # Default empty prefix if neither field has input
+
+        # Suffix (corrected to get from the edit field, not label)
+        if self._name_suffix_edit.text():
+            name_suffix = self._name_suffix_edit.text()
+        elif self._keep_name_suffix_edit.text():
+            name_suffix = self._keep_name_suffix_edit.text()
+        else:
+            name_suffix = None  # Default empty suffix if neither field has input
+
+        if self._name_edit.text():
+            name_number = self._name_edit.text()
+        else:
+            name_number = None
+
+        print(f"Name_number:{name_number}")
+        txt = f"voldim {x:.3f},{y:.3f},{z:.3f} voxelsize {v:.3f} prefix {prefix} suffix {name_suffix} tomonumber {name_number}"
 
         return txt
 
-#TODO continue here
 class RELION5SaverInfo(ArtiaXSaverInfo):
 
     def save(
