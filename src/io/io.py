@@ -124,7 +124,8 @@ def save_particle_list(
             )
             # add info which particle belongs to which tomo number
             all_keys = partlist.get_all_attributes()
-            if 'rlnTomoName' or 'tomo_number' in all_keys:  # check if tomo number info is already present
+            print(f"all_keys: {all_keys}")
+            if 'rlnTomoName' in all_keys or 'tomo_number' in all_keys:  # check if tomo number info is already present
                 print('info present')
 
                 tomo_number_values = None

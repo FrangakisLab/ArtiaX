@@ -29,9 +29,9 @@ class RELION5ParticleData(ParticleData):
 
     DATA_KEYS = {
         "rlnTomoName": [],
-        "rlnCenteredCoordinateXAngst": [],
-        "rlnCenteredCoordinateYAngst": [],
-        "rlnCenteredCoordinateZAngst": [],
+        "rlnCoordinateX": [],
+        "rlnCoordinateY": [],
+        "rlnCoordinateZ": [],
         "rlnTomoSubtomogramRot": [],
         "rlnTomoSubtomogramTilt": [],
         "rlnTomoSubtomogramPsi": [],
@@ -95,9 +95,8 @@ class RELION5ParticleData(ParticleData):
         """Reads RELION5 star file."""
         content = starfile.read(self.file_name, always_dict=True)
 
-        # Identify the loop that contains the data, and checks if relion or relion5
+        # Identify the loop that contains the data
         data_loop = None
-        format_version = None
         for key, val in content.items():
             if "rlnCenteredCoordinateZAngst" in list(val.keys()):
                 data_loop = key
@@ -218,6 +217,9 @@ class RELION5ParticleData(ParticleData):
             psi_present = True
             additional_keys.remove("rlnAnglePsi")
 
+        additional_keys.remove("rlnCenteredCoordinateXAngst")
+        additional_keys.remove("rlnCenteredCoordinateYAngst")
+        additional_keys.remove("rlnCenteredCoordinateZAngst")
         # Additional data (everything that is a number)
         additional_entries = []
         for key in additional_keys:
@@ -258,15 +260,6 @@ class RELION5ParticleData(ParticleData):
             p["pos_y"] = (row["rlnCenteredCoordinateYAngst"] / pixsize) + y_center
             p["pos_z"] = (row["rlnCenteredCoordinateZAngst"] / pixsize) + z_center
 
-            #Debug
-            # new_coord_x = ((row["rlnCenteredCoordinateXAngst"] / pixsize) + x_center)
-            # new_coord_y = ((row["rlnCenteredCoordinateYAngst"] / pixsize) + y_center)
-            # new_coord_z = ((row["rlnCenteredCoordinateZAngst"] / pixsize) + z_center)
-            #
-            # p["pos_x"] = new_coord_x
-            # p["pos_y"] = new_coord_y
-            # p["pos_z"] = new_coord_z
-
 
             # Shift, rlnOriginX/Y/Z no longer in relion5 format, therefore 0
             p["shift_x"] = 0
@@ -301,12 +294,14 @@ class RELION5ParticleData(ParticleData):
         prefix: str = None,
         suffix: str = None,
         tomonumber: int = None,
+        pixelsize: float = None,
     ) -> None:
 
         self.dimensions = dimensions
         self.prefix = prefix
         self.suffix = suffix
         self.tomonumber = tomonumber
+        self.pixelsize = pixelsize
 
         print(f"Dimensions:{self.dimensions}")
         print(f"Prefix:{self.prefix}")
@@ -319,13 +314,17 @@ class RELION5ParticleData(ParticleData):
             x_size, y_size, z_size = self.dimensions
             print(f"Using sizes: X: {x_size}, Y: {y_size}, Z: {z_size}")
 
-        if self.tomonumber is not None:
+        if self.tomonumber != 9999:  #None was not possible for placeholder signaling no user input, therefore 9999
             tomogram_name = self.tomonumber
             print(f"Corresponding tomogram number: {tomogram_name}")
+        else:
+            tomogram_name = None
 
         if x_size is not None and y_size is not None and z_size is not None:
             print(f"Using sizes: X: {x_size}, Y: {y_size}, Z: {z_size}")
-            print(f"Using pixelsize: {self.oripix}")
+        if self.pixelsize is not None:
+            print(f"Using pixelsize: {self.pixelsize}")
+            pixsize = self.pixelsize
 
         # calculate center in pixel
         x_center = x_size / 2
@@ -359,25 +358,56 @@ class RELION5ParticleData(ParticleData):
                 elif suffix is not None:
                     data['rlnTomoName'][idx] = f"{formatted_num}{suffix}"
 
+        print(f"x_center:{x_center}, y_center:{y_center}, z_center:{z_center}")
+        print(f"pixsize:{pixsize}")
         #Coordinates
-        for idx, v in enumerate(data["rlnCenteredCoordinateXAngst"]):
+        for idx, v in enumerate(data["rlnCoordinateX"]):
                 # changes unit from pixel to Angstrom and makes coordinate centered
-
+                print("before")
+                print(data["rlnCoordinateX"][idx])
                 # center coordinate
-                data["rlnCenteredCoordinateXAngst"][idx] = (
-                    data["rlnCenteredCoordinateXAngst"][idx]
+                data["rlnCoordinateX"][idx] = (
+                    data["rlnCoordinateX"][idx]
                 ) - x_center
-                data["rlnCenteredCoordinateYAngst"][idx] = (
-                    data["rlnCenteredCoordinateYAngst"][idx]
+                data["rlnCoordinateY"][idx] = (
+                    data["rlnCoordinateY"][idx]
                 ) - y_center
-                data["rlnCenteredCoordinateZAngst"][idx] = (
-                    data["rlnCenteredCoordinateZAngst"][idx]
+                data["rlnCoordinateZ"][idx] = (
+                    data["rlnCoordinateZ"][idx]
                 ) - z_center
 
                 # convert coordinate unit from pixel to angstrom
-                data["rlnCenteredCoordinateXAngst"][idx] *= self.oripix
-                data["rlnCenteredCoordinateYAngst"][idx] *= self.oripix
-                data["rlnCenteredCoordinateZAngst"][idx] *= self.oripix
+                data["rlnCoordinateX"][idx] *= pixsize
+                data["rlnCoordinateY"][idx] *= pixsize
+                data["rlnCoordinateZ"][idx] *= pixsize
+                print("after")
+
+                print(data["rlnCoordinateX"][idx])
+
+
+        # Renaming the rlnCoordianteX key
+        rel_key_x = 'rlnCoordinateX'
+        rel5_key_x = 'rlnCenteredCoordinateXAngst'
+        data[rel5_key_x] = data.pop(rel_key_x)  # Using pop to remove the old key
+
+        #print("Value at rlnCenteredCoordinateXAngst")
+        #print(data['rlnCenteredCoordinateXAngst'])
+
+        # Renaming the rlnCoordianteY key
+        rel_key_y = 'rlnCoordinateY'
+        rel5_key_y = 'rlnCenteredCoordinateYAngst'
+        data[rel5_key_y] = data.pop(rel_key_y)  # Using pop to remove the old key
+
+        #print("Value at rlnCenteredCoordinateYAngst")
+        #print(data['rlnCenteredCoordinateYAngst'])
+
+        # Renaming the rlnCoordianteZ key
+        rel_key_z = 'rlnCoordinateZ'
+        rel5_key_z = 'rlnCenteredCoordinateZAngst'
+        data[rel5_key_z] = data.pop(rel_key_z)  # Using pop to remove the old key
+
+        #print("Value at rlnCenteredCoordinateZAngst")
+        #print(data['rlnCenteredCoordinateZAngst'])
 
         df = pd.DataFrame(data=data)
 
@@ -647,7 +677,7 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         elif self._keep_name_prefix_edit.text():
             prefix = self._keep_name_prefix_edit.text()
         else:
-            prefix = ""  # Default empty prefix if neither field has input
+            prefix = None  # Default empty prefix if neither field has input
 
         # Suffix (corrected to get from the edit field, not label)
         if self._name_suffix_edit.text():
@@ -660,7 +690,7 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         if self._name_edit.text():
             name_number = self._name_edit.text()
         else:
-            name_number = None
+            name_number = 9999   #if name_number was not supplied during input, set as integer placeholder because None doesnt work
 
         print(f"Name_number:{name_number}")
         txt = f"voldim {x:.3f},{y:.3f},{z:.3f} voxelsize {v:.3f} prefix {prefix} suffix {name_suffix} tomonumber {name_number}"
@@ -695,6 +725,7 @@ class RELION5SaverInfo(ArtiaXSaverInfo):
             format_name=self.name,
             additional_files=[],
             dimensions=voldim,
+            pixelsize = voxelsize,
             prefix=prefix,
             suffix=suffix,
             tomonumber=tomonumber,
