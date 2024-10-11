@@ -65,9 +65,10 @@ class RELION5ParticleData(ParticleData):
         trapix: float = 1,
         additional_files: List[str] = None,
         dimensions: List[float] = None,
-        voxel_size: float = None,
+        voxelsize: float = None,
         prefix: str = None,
         suffix: str = None,
+        volume: Model = None,
     ) -> None:
         self.remaining_loops = {}
         self.remaining_data = {}
@@ -76,10 +77,11 @@ class RELION5ParticleData(ParticleData):
         self.name_leading_zeros = None
 
         self.dimensions = dimensions
-        self.voxel_size = voxel_size
+        self.voxelsize = voxelsize
         self.prefix = prefix
         self.suffix = suffix
         self.oripix = oripix
+        self.volume = volume
 
         super().__init__(
             session,
@@ -92,7 +94,7 @@ class RELION5ParticleData(ParticleData):
 
 
     # reading of Relion5 files is included in Relion.RelionParticleData
-    def read_file(self, oripix = None, dimensions = None, prefix = None, suffix = None) -> None:
+    def read_file(self, voxelsize = None, dimensions = None, prefix = None, suffix = None, volume = None) -> None:
         """Reads RELION5 star file."""
         content = starfile.read(self.file_name, always_dict=True)
 
@@ -109,11 +111,11 @@ class RELION5ParticleData(ParticleData):
             )
 
         #check if necessary info already inputted through command line
-        if self.dimensions is not None and len(self.dimensions) == 3 and self.oripix is not None:
+        if self.dimensions is not None and len(self.dimensions) == 3 and self.voxelsize is not None:
             x_size, y_size, z_size = self.dimensions
             print(f"Using sizes: X: {x_size}, Y: {y_size}, Z: {z_size}")
 
-            pixsize = self.oripix
+            pixsize = self.voxelsize
             print(f"Using pixelsize: {pixsize}")
 
         elif self.dimensions is None:
@@ -159,42 +161,56 @@ class RELION5ParticleData(ParticleData):
 
             # Sanity check names
             first_name = names[0]
+            print(first_name)
 
             # Ensure proper handling of prefix and suffix
-            if first_name.startswith(prefix):
-                if suffix:  # Check if suffix is not empty
+            if prefix:  # Only check if prefix is not None or empty
+                if first_name.startswith(prefix):
+                    if suffix:  # Check if suffix is not empty or None
+                        if first_name.endswith(suffix):
+                            num = first_name[len(prefix): -len(suffix)]
+                        else:
+                            raise UserError('Tomogram number cannot be extracted due to unmatched suffix.')
+                    else:
+                        # If suffix is empty or None, just get the part after the prefix
+                        num = first_name[len(prefix):]
+                else:
+                    raise UserError('Tomogram number cannot be extracted due to unmatched prefix.')
+            else:
+                # No prefix specified, only handle suffix if present
+                if suffix:
                     if first_name.endswith(suffix):
-                        num = first_name[len(prefix): -len(suffix)]
+                        num = first_name[:-len(suffix)]  # Get the part before the suffix
                     else:
                         raise UserError('Tomogram number cannot be extracted due to unmatched suffix.')
                 else:
-                    # If suffix is empty, just get the part after the prefix
-                    num = first_name[len(prefix):]
-            else:
-                raise UserError('Tomogram number cannot be extracted due to unmatched prefix.')
-
-            for n in names:
-                if not (n.startswith(prefix)):
-                    raise UserError('Encountered particle without matching prefix in rlnTomoName. Aborting.')
-
-                # Extract number only once
-                if suffix:
-                    if n.endswith(suffix):
-                        num = n[len(prefix): -len(suffix)]
-                    else:
-                        raise UserError(
-                            'Encountered particle without matching suffix in rlnTomoName. Aborting.')
-                else:
-                    # If suffix is empty, extract part after the prefix
-                    num = n[len(prefix):]
-
-                if num.isdigit():
-                    pass  # Optionally, you can add additional processing here
-                else:
-                    print(f"Encountered particles with inconsistent 'rlnTomoName' prefixes and suffixes in {n}")
+                    print(first_name)
+                    num = first_name  # No prefix or suffix, just use the whole name
+                    print(num)
 
             self.name_prefix = prefix
-            self.name_leading_zeros = len(num)
+            if isinstance(num, int):
+                self.name_leading_zeros = None
+            else:
+                self.name_leading_zeros = len(num)
+
+            # Process the rest of the names
+            for n in names:
+                if prefix and not n.startswith(prefix):
+                    raise UserError('Encountered particle without matching prefix in rlnTomoName. Aborting.')
+
+                if suffix:
+                    if n.endswith(suffix):
+                        num = n[len(prefix): -len(suffix)] if prefix else n[:-len(
+                            suffix)]  # Handle with or without prefix
+                    else:
+                        raise UserError('Encountered particle without matching suffix in rlnTomoName. Aborting.')
+                else:
+                    num = n[len(prefix):] if prefix else n  # Handle the case where there's no suffix
+
+
+
+
             names_present = True
             additional_keys.remove("rlnTomoName")
         else:
@@ -258,19 +274,30 @@ class RELION5ParticleData(ParticleData):
             p = self.new_particle()
 
             # Name
+            # Name
             if names_present:
                 n = row['rlnTomoName']
 
-                if suffix:
+                if suffix:  # Check if suffix is provided
                     if n.endswith(suffix):
-                        num = n[len(prefix): -len(suffix)]
-                        num = float(num)
-                        p['rlnTomoName'] = num
+                        if prefix:  # Check if prefix is provided
+                            num = n[len(prefix): -len(suffix)]  # Extract the part between prefix and suffix
+                        else:
+                            num = n[:-len(suffix)]  # No prefix, extract everything before the suffix
+                    else:
+                        num = None  # Handle the case where the suffix doesn't match
                 else:
-                    # If suffix is empty, extract part after the prefix
-                    num = n[len(prefix):]
+                    if prefix:  # Check if prefix is provided
+                        num = n[len(prefix):]  # Extract the part after the prefix
+                    else:
+                        num = n  # No prefix or suffix, use the full name
+
+                # Attempt to convert num to float and raise error if it fails
+                try:
                     num = float(num)
                     p['rlnTomoName'] = num
+                except ValueError:
+                    raise UserError(f"Tomogram number could not be extracted from {n}, failed to convert to float.")
 
             # Position, recalculate to pixel coordinates not centered
             p["pos_x"] = (row["rlnCenteredCoordinateXAngst"] / pixsize) + x_center
@@ -545,8 +572,12 @@ class RELION5OpenerInfo(ArtiaXOpenerInfo):
 
         if prefix_input is not None:
             prefix = prefix_input
+        else:
+            prefix = None
         if suffix_input is not None:
             suffix = suffix_input
+        else:
+            suffix = None
 
         print("relion5openerinfo is run")
         #Dimensions
@@ -580,7 +611,7 @@ class RELION5OpenerInfo(ArtiaXOpenerInfo):
             x, y, z = volume.data.size
 
         # If neither are present, open the dialog!
-        if dimensions is None and volume is None:
+        if (dimensions is None and volume is None) or voxelsize is None:
             from ...widgets.Relion5ReadAddInfo import CoordInputDialogRead
 
             dialog = CoordInputDialogRead()
