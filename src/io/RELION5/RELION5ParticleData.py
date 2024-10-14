@@ -122,7 +122,7 @@ class RELION5ParticleData(ParticleData):
             print("open pop up")
             from ...widgets.Relion5ReadAddInfo import CoordInputDialogRead
             # get information through widget about tomogram size and pixelsize
-            dialog = CoordInputDialogRead()
+            dialog = CoordInputDialogRead(self.session)
             x_size, y_size, z_size, pixsize, prefix, suffix = dialog.get_info_read()
             print(f"Using sizes: X: {x_size}, Y: {y_size}, Z: {z_size}")
             print(f"Using pixelsize: {pixsize}")
@@ -141,7 +141,7 @@ class RELION5ParticleData(ParticleData):
         x_center = x_size / 2
         y_center = y_size / 2
         z_center = z_size / 2
-        print(x_center)
+        #print(x_center)
 
 
         # Take the good loop, store the rest and the loop name so we can write it out again later on
@@ -161,7 +161,7 @@ class RELION5ParticleData(ParticleData):
 
             # Sanity check names
             first_name = names[0]
-            print(first_name)
+            #print(first_name)
 
             # Ensure proper handling of prefix and suffix
             if prefix:  # Only check if prefix is not None or empty
@@ -312,7 +312,7 @@ class RELION5ParticleData(ParticleData):
 
             # Orientation
             if rot_present and tilt_present and psi_present and tomo_rot_present and tomo_psi_present and tomo_tilt_present:
-                print("Combining rlnTomoSubtomogram and rlnAngle")
+                #print("Combining rlnTomoSubtomogram and rlnAngle")
                 # Box angles in degrees
                 box_angle_rot = row['rlnTomoSubtomogramRot']
                 box_angle_tilt = row['rlnTomoSubtomogramTilt']
@@ -352,14 +352,14 @@ class RELION5ParticleData(ParticleData):
                 p['ang_1'] = row['rlnAngleRot']
                 p['ang_2'] = row['rlnAngleTilt']
                 p['ang_3'] = row['rlnAnglePsi']
-                print("Using rlnAngle")
+                #print("Using rlnAngle")
 
             # if only rlnTomoSubtomogram present
             elif tomo_rot_present and tilt_present and psi_present:
                 p['ang_1'] = row['rlnTomoSubtomogramRot']
                 p['ang_2'] = row['rlnTomoSubtomogramTilt']
                 p['ang_3'] = row['rlnTomoSubtomogramPsi']
-                print("Using rlnTomoSubtomogram")
+                #print("Using rlnTomoSubtomogram")
 
             else:
                 print("Angle Information not complete, default set to 0")
@@ -422,9 +422,19 @@ class RELION5ParticleData(ParticleData):
         data = self.as_dictionary()
 
         # Tomo Name/Number
+        if suffix == "None":
+            suffix = None  # Convert the string "None" back to actual None
+        if prefix == "None":
+            prefix = None  # Convert the string "None" back to actual None
+
         if tomogram_name is not None:  # name/number is being overwritten by what was inputted
             for idx, n in enumerate(data['rlnTomoName']):
-                data['rlnTomoName'][idx] = f"{prefix}{tomogram_name}{suffix}"
+                if suffix is not None and prefix is not None:
+                    data['rlnTomoName'][idx] = f"{prefix}{tomogram_name}{suffix}"
+                elif prefix is not None:
+                    data['rlnTomoName'][idx] = f"{prefix}{tomogram_name}"
+                elif suffix is not None:
+                    data['rlnTomoName'][idx] = f"{suffix}{tomogram_name}"
 
         elif tomogram_name is None:  # no overwriting desired
             # get tomo numbers from internal particle list data
@@ -485,8 +495,8 @@ class RELION5ParticleData(ParticleData):
         #Coordinates
         for idx, v in enumerate(data["rlnCoordinateX"]):
                 # changes unit from pixel to Angstrom and makes coordinate centered
-                print("before")
-                print(data["rlnCoordinateX"][idx])
+                #print("before")
+                #print(data["rlnCoordinateX"][idx])
                 # center coordinate
                 data["rlnCoordinateX"][idx] = (
                     data["rlnCoordinateX"][idx]
@@ -502,9 +512,9 @@ class RELION5ParticleData(ParticleData):
                 data["rlnCoordinateX"][idx] *= pixsize
                 data["rlnCoordinateY"][idx] *= pixsize
                 data["rlnCoordinateZ"][idx] *= pixsize
-                print("after")
+                #print("after")
 
-                print(data["rlnCoordinateX"][idx])
+                #print(data["rlnCoordinateX"][idx])
 
 
         # Renaming the rlnCoordianteX key
@@ -579,23 +589,35 @@ class RELION5OpenerInfo(ArtiaXOpenerInfo):
         else:
             suffix = None
 
-        print("relion5openerinfo is run")
         #Dimensions
         # Users can either:
         # Provide the dimensions explictely (voxel size and binning from the star file)
         dimensions = kwargs.get("voldim", None)
+        #print(f"Dimension: {dimensions}")
 
         # Provide the voxel size explicitely also (overriding the star file)
         voxelsize = kwargs.get("voxelsize", None)
+        #print(f"voxelsize: {voxelsize}")
 
         # Or provide a volume model to get the dimensions from (voxel size from the volume model)
         volume = kwargs.get("volume", None)
+        #print(f"volume: {volume}")
 
-        # Validate input (only one of the two options)
+        #Check for conflicting input options
         if dimensions is not None and volume is not None:
             raise UserError(
-                "Both dimensions and volume model are provided. Please provide only one (explicite dimensions or volume"
+                "Both dimensions and volume model are provided. Please provide only one (explicit dimensions or volume"
                 "to get dimensions from)."
+            )
+        if voxelsize is not None and volume is not None:
+            raise UserError(
+                "Both voxelsize and volume model are provided. Please provide only one (explicit voxelsize or volume"
+                "to get voxelsize from)."
+            )
+        if dimensions is not None and voxelsize is not None and volume is not None:
+            raise UserError(
+                "Dimensions, voxelsize and volume model are provided. Please provide only either explicit voxelsize and dimensions or volume"
+                "to get voxelsize and dimensions from)."
             )
 
         # Get the dimensions if provided
@@ -609,13 +631,20 @@ class RELION5OpenerInfo(ArtiaXOpenerInfo):
                     f"Provided model #{Volume.id_string} is not a Volume model."
                 )
             x, y, z = volume.data.size
+            dim = [x, y, z]
+            dimensions = dim
+            vs = volume.data.step[0]
+            #print(f"Pixsize:{vs}")
+            voxelsize = vs
 
         # If neither are present, open the dialog!
-        if (dimensions is None and volume is None) or voxelsize is None:
+        elif (dimensions is None and volume is None) or (voxelsize is None and volume is None):
             from ...widgets.Relion5ReadAddInfo import CoordInputDialogRead
-
-            dialog = CoordInputDialogRead()
+            print("Information is missing, opening input window")
+            dialog = CoordInputDialogRead(session)
             x, y, z, voxelsize, prefix, suffix = dialog.get_info_read()
+            dimensions = x,y,z
+
 
         # Open list
         from ..io import open_particle_list
@@ -838,9 +867,35 @@ class RELION5SaverInfo(ArtiaXSaverInfo):
         suffix: str = None,
         tomonumber: int = None,
     ) -> None:
-        # No volume dimensions provided
-        if voldim is None:
+        print(f"partlist:{partlist}")
+        print(f"voldim:{voldim}")
+        print(f"voxelsize:{voxelsize}")
+        print(f"volume:{volume}")
+        print(f"prefix:{prefix}")
+        print(f"suffix:{suffix}")
+        print(f"tomonumber:{tomonumber}")
+        # UserErrors for input through command line
+        if voldim is None and volume is None:
             raise UserError("No volume dimensions provided.")
+        if voxelsize is None and volume is None:
+            raise UserError("No voxelsize provided.")
+        if volume is not None and voldim is not None:
+            raise UserError("Please only provide either the dimensions or a volume.")
+
+        # Get the dimensions from the volume model if provided
+        if volume is not None:
+            if not isinstance(volume, Volume):
+                raise UserError(
+                    f"Provided model #{Volume.id_string} is not a Volume model."
+                )
+            x, y, z = volume.data.size
+            dim = [x, y, z]
+            voldim = dim
+            vs = volume.data.step[0]
+            print(f"Pixsize:{vs}")
+            voxelsize = vs
+
+
 
         from ..io import save_particle_list
 

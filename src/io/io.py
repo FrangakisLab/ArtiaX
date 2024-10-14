@@ -49,7 +49,7 @@ def open_particle_list(
     # Read file if possible
     if format_name in formats:
         modelname = os.path.basename(file_name)
-        print(f"{format_name} ")
+        #print(f"{format_name} ")
         if format_name == "RELION STAR file":
             import starfile
             content = starfile.read(file_name, always_dict=True)
@@ -63,7 +63,7 @@ def open_particle_list(
                 else:
                     print(f"The string '{search_string}' was NOT found in the file. Therefore it is old relion")
 
-            print(f"Changed to {format_name} ")
+            #print(f"Changed to {format_name} ")
 
 
         data = formats[format_name].particle_data(
@@ -78,7 +78,7 @@ def open_particle_list(
         from ..particle import ParticleList
         model = ParticleList(modelname, session, data)
 
-        print("io.open_particle_list is being run")
+        #print("io.open_particle_list is being run")
 
     if model is not None:
         status = "Opened Particle list {} with {} particles.".format(
