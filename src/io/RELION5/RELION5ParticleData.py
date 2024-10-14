@@ -695,17 +695,18 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         self._name_prefix_layout.addWidget(self._name_prefix_edit)
 
         # Layout for the suffix input (newly added)
-        self._name_suffix_layout = QHBoxLayout()  # Horizontal layout for suffix
-        self._name_suffix_label = QLabel("Suffix:")  # Label for suffix
-        self._name_suffix_edit = QLineEdit("")  # Text input for suffix
-        self._name_suffix_layout.addWidget(self._name_suffix_label)
-        self._name_suffix_layout.addWidget(self._name_suffix_edit)
+        #self._name_suffix_layout = QHBoxLayout()  # Horizontal layout for suffix
+        #self._name_suffix_label = QLabel("Suffix:")  # Label for suffix
+        #self._name_suffix_edit = QLineEdit("")  # Text input for suffix
+        #self._name_suffix_layout.addWidget(self._name_suffix_label)
+        #self._name_suffix_layout.addWidget(self._name_suffix_edit)
+
 
         # Create a vertical layout to hold both prefix and suffix fields
         self._combined_layout = QVBoxLayout()
         self._combined_layout.addLayout(self._name_layout)  # Add tomo number layout
         self._combined_layout.addLayout(self._name_prefix_layout)  # Add prefix layout
-        self._combined_layout.addLayout(self._name_suffix_layout)  # Add suffix layout
+        #self._combined_layout.addLayout(self._name_suffix_layout)  # Add suffix layout
 
         self._tomoname_group = QGroupBox("Set new TomoNumber (optional, will overwrite existing numbers):")
         self._tomoname_group.setLayout(self._combined_layout)
@@ -721,19 +722,19 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         self._keep_name_prefix_layout.addWidget(self._keep_name_prefix_edit)
 
         # Layout for the suffix input (newly added)
-        self._keep_name_suffix_layout = QHBoxLayout()  # Horizontal layout for suffix
-        self._keep_name_suffix_label = QLabel("Suffix:")  # Label for suffix
-        self._keep_name_suffix_edit = QLineEdit("")  # Text input for suffix
-        self._keep_name_suffix_layout.addWidget(self._keep_name_suffix_label)
-        self._keep_name_suffix_layout.addWidget(self._keep_name_suffix_edit)
+        #self._keep_name_suffix_layout = QHBoxLayout()  # Horizontal layout for suffix
+        #self._keep_name_suffix_label = QLabel("Suffix:")  # Label for suffix
+        #self._keep_name_suffix_edit = QLineEdit("")  # Text input for suffix
+        #self._keep_name_suffix_layout.addWidget(self._keep_name_suffix_label)
+        #self._keep_name_suffix_layout.addWidget(self._keep_name_suffix_edit)
 
         # Create a vertical layout to hold both prefix and suffix fields
         self._keep_combined_layout = QVBoxLayout()
         self._keep_combined_layout.addLayout(self._keep_name_prefix_layout)  # Add prefix layout
-        self._keep_combined_layout.addLayout(self._keep_name_suffix_layout)  # Add suffix layout
+        #self._keep_combined_layout.addLayout(self._keep_name_suffix_layout)  # Add suffix layout
 
         # Create a group box to hold both prefix and suffix inputs
-        self._keep_tomoname_group = QGroupBox("Save existing TomoNumbers with specified prefix and/or suffix:")
+        self._keep_tomoname_group = QGroupBox("Save existing TomoNumbers with specified prefix:")
         self._keep_tomoname_group.setLayout(self._keep_combined_layout)  # Set combined layout to group box
         self._keep_tomoname_group.setCheckable(True)  # Make group box checkable
         self._keep_tomoname_group.setChecked(False)  # Initially unchecked (disabled)
@@ -835,12 +836,13 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
             prefix = None  # Default empty prefix if neither field has input
 
         # Suffix (corrected to get from the edit field, not label)
-        if self._name_suffix_edit.text():
-            name_suffix = self._name_suffix_edit.text()
-        elif self._keep_name_suffix_edit.text():
-            name_suffix = self._keep_name_suffix_edit.text()
-        else:
-            name_suffix = None  # Default empty suffix if neither field has input
+        #if self._name_suffix_edit.text():
+        #    name_suffix = self._name_suffix_edit.text()
+        #elif self._keep_name_suffix_edit.text():
+        #    name_suffix = self._keep_name_suffix_edit.text()
+        #else:
+        #    name_suffix = None  # Default empty suffix if neither field has input
+        name_suffix = None
 
         if self._name_edit.text():
             name_number = self._name_edit.text()

@@ -14,7 +14,7 @@ class CoordInputDialogRead(QDialog):
         self.z_input = None
         self.pixsize_input = None
         self.prefix_input = None
-        self.suffix_input = None
+        #self.suffix_input = None
         self.vol_combobox = None
 
         # Initialize the UI
@@ -52,39 +52,8 @@ class CoordInputDialogRead(QDialog):
         self.z_input = QLineEdit()
         self.pixsize_input = QLineEdit()
         self.prefix_input = QLineEdit()
-        self.suffix_input = QLineEdit()
+        #self.suffix_input = QLineEdit()
 
-        # layout.addWidget(QLabel("Enter size of corresponding tomogram in binned pixels (x):"))
-        # layout.addWidget(self.x_input)
-        # layout.addWidget(QLabel("Enter size of corresponding tomogram in binned pixels (Y):"))
-        # layout.addWidget(self.y_input)
-        # layout.addWidget(QLabel("Enter size of corresponding tomogram in binned pixels (Z):"))
-        # layout.addWidget(self.z_input)
-        # layout.addWidget(QLabel("Enter pixelsize:"))
-        # layout.addWidget(self.pixsize_input)
-        # layout.addWidget(QLabel("Enter Tomogram number prefix in 'rlnTomoName':"))
-        # layout.addWidget(self.prefix_input)
-        # layout.addWidget(QLabel("Enter Tomogram number sufffix in 'rlnTomoName':"))
-        # layout.addWidget(self.suffix_input)
-
-        # # Add tomogram size inputs to the grid layout
-        # grid_layout.addWidget(QLabel("Enter size of corresponding tomogram in binned pixels (X):"), 0, 0)
-        # grid_layout.addWidget(self.x_input, 0, 1)
-        #
-        # grid_layout.addWidget(QLabel("Enter size of corresponding tomogram in binned pixels (Y):"), 1, 0)
-        # grid_layout.addWidget(self.y_input, 1, 1)
-        #
-        # grid_layout.addWidget(QLabel("Enter size of corresponding tomogram in binned pixels (Z):"), 2, 0)
-        # grid_layout.addWidget(self.z_input, 2, 1)
-        #
-        # grid_layout.addWidget(QLabel("Enter voxel size (angstrom):"), 3, 0)
-        # grid_layout.addWidget(self.pixsize_input, 3, 1)
-        #
-        # grid_layout.addWidget(QLabel("Enter Tomogram number prefix in 'rlnTomoName':"), 4, 0)
-        # grid_layout.addWidget(self.prefix_input, 4, 1)
-        #
-        # grid_layout.addWidget(QLabel("Enter Tomogram number suffix in 'rlnTomoName':"), 5, 0)
-        # grid_layout.addWidget(self.suffix_input, 5, 1)
 
         # Horizontal layout for X, Y, Z
         xyz_layout = QHBoxLayout()
@@ -114,8 +83,8 @@ class CoordInputDialogRead(QDialog):
         # Create labels and input fields for prefix and suffix
         layout.addWidget(QLabel("Enter Tomogram number prefix in 'rlnTomoName':"))
         layout.addWidget(self.prefix_input)
-        layout.addWidget(QLabel("Enter Tomogram number suffix in 'rlnTomoName':"))
-        layout.addWidget(self.suffix_input)
+        #layout.addWidget(QLabel("Enter Tomogram number suffix in 'rlnTomoName':"))
+        #layout.addWidget(self.suffix_input)
 
 
 
@@ -155,7 +124,8 @@ class CoordInputDialogRead(QDialog):
             z_size = int(self.z_input.text())
             pixsize = float(self.pixsize_input.text())  # Get the name as a string
             prefix = self.prefix_input.text() or None
-            suffix = self.suffix_input.text() or None
+            #suffix = self.suffix_input.text() or None
+            suffix = None
 
             # Return the values and accept the dialog
             self.accept()
@@ -166,7 +136,7 @@ class CoordInputDialogRead(QDialog):
         except ValueError:
             # If there's a validation error, show a message
             QMessageBox.warning(self, "Input Error", "Please enter valid integer values for X, Y, and Z and for the pixelsize and strings for prefix and suffix.")
-            return None, None, None, None, None, None
+            return None, None, None, None, None, #None
 
     def get_info_read(self):
         """Returns the X, Y, Z coordinates and pixsize if valid, or None if the user cancels the dialog."""
