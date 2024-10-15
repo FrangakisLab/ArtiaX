@@ -59,17 +59,16 @@ def open_particle_list(
             # Check if the string is in the file contents
             for key, val in content.items():
                 if "rlnCenteredCoordinateZAngst" in list(val.keys()):
-                    print(f"The string '{search_string}' was found in the file. Therefore it is relion5")
+                    print(f"Processed as relion5")
                     format_name = "RELION5 STAR file"
                     break
                 else:
-                    print(f"The string '{search_string}' was NOT found in the file. Therefore it is old relion")
+                    print(f"Processed as relion")
 
             #print(f"Changed to {format_name} ")
 
         #Relion5 needs additional informations
         if format_name == 'RELION5 STAR file':
-            print(f"format name : {format_name}")
             #check if information supplied through command line
             voxelsize = kwargs.get('voxelsize')
             dimensions = kwargs.get('dimensions')
@@ -81,7 +80,6 @@ def open_particle_list(
 
             if dimensions is None:
             #infos not supplied, open pop up window to input infos
-                print("open pop up")
                 from ..widgets.Relion5ReadAddInfo import CoordInputDialogRead
                 # get information through widget about tomogram size and pixelsize
                 dialog = CoordInputDialogRead(session)
@@ -157,9 +155,7 @@ def save_particle_list(
             )
             # add info which particle belongs to which tomo number
             all_keys = partlist.get_all_attributes()
-            print(f"all_keys: {all_keys}")
             if 'rlnTomoName' in all_keys or 'tomo_number' in all_keys:  # check if tomo number info is already present
-                print('info present')
 
                 tomo_number_values = None
                 # Get TomoNumber infos
@@ -178,10 +174,7 @@ def save_particle_list(
                         # Check if lengths match
                         if rlnTomoName_count == save_data_count:
                             for index, (_id, p) in enumerate(save_data):  # Using enumerate to get index
-                                print(f"former value: {p['rlnTomoName']}")
                                 p['rlnTomoName'] = tomo_number_values[index]  # Assign the corresponding value
-                                print(f"New value: {p['rlnTomoName']}")
-                                print("values updated")
                         else:
                             print(f"Warning: Length mismatch! rlnTomoName_values ({rlnTomoName_count}) "
                                   f"does not match save_data entries ({save_data_count}).")
@@ -196,11 +189,8 @@ def save_particle_list(
                         # Check if lengths match
                         if tomo_number_count == save_data_count:
                             for index, (_id, p) in enumerate(save_data):  # Using enumerate to get index
-                                print(f"former value: {p['tomo_number']}")
                                 p['tomo_number'] = tomo_number_values[
                                     index]  # Assign the corresponding value
-                                print(f"New value: {p['tomo_number']}")
-                                print("values updated")
                         else:
                             print(f"Warning: Length mismatch! rlnTomoName_values ({tomo_number_count}) "
                                   f"does not match save_data entries ({save_data_count}).")

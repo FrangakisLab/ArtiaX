@@ -458,8 +458,6 @@ class RELION5ParticleData(ParticleData):
                 elif suffix is not None:
                     data['rlnTomoName'][idx] = f"{formatted_num}{suffix}"
 
-        print(f"x_center:{x_center}, y_center:{y_center}, z_center:{z_center}")
-        print(f"pixsize:{pixsize}")
 
         # Angles
         remove_angles = (0, 90, 0)
@@ -874,13 +872,7 @@ class RELION5SaverInfo(ArtiaXSaverInfo):
         suffix: str = None,
         tomonumber: int = None,
     ) -> None:
-        print(f"partlist:{partlist}")
-        print(f"voldim:{voldim}")
-        print(f"voxelsize:{voxelsize}")
-        print(f"volume:{volume}")
-        print(f"prefix:{prefix}")
-        print(f"suffix:{suffix}")
-        print(f"tomonumber:{tomonumber}")
+
         # UserErrors for input through command line
         if voldim is None and volume is None:
             raise UserError("No volume dimensions provided.")
@@ -899,7 +891,6 @@ class RELION5SaverInfo(ArtiaXSaverInfo):
             dim = [x, y, z]
             voldim = dim
             vs = volume.data.step[0]
-            print(f"Pixsize:{vs}")
             voxelsize = vs
 
 
