@@ -96,6 +96,40 @@ class RELION5ParticleData(ParticleData):
     # reading of Relion5 files is included in Relion.RelionParticleData
     def read_file(self, voxelsize = None, dimensions = None, prefix = None, suffix = None, volume = None) -> None:
         """Reads RELION5 star file."""
+
+        ### Collect all necessary information for computation
+        #Validate information
+        if self.prefix is not None:
+            prefix = self.prefix
+            print(f"Using prefix: {prefix}")
+
+        if self.suffix is not None:
+            suffix = self.suffix
+            #print(f"Using suffix: {suffix}")
+
+        #check for dimensions
+        if self.dimensions is not None and len(self.dimensions) == 3 and self.voxelsize is not None:
+            x_size, y_size, z_size = self.dimensions
+            print(f"Using sizes: X: {x_size}, Y: {y_size}, Z: {z_size}")
+            pixsize = self.voxelsize
+            print(f"Using pixelsize: {pixsize}")
+
+        #TODO: can be removed
+        #input not through command line but through opening gui, therefore open additional window
+        elif self.dimensions is None:
+            print("open pop up in read")
+            from ...widgets.Relion5ReadAddInfo import CoordInputDialogRead
+            # get information through widget about tomogram size and pixelsize
+            dialog = CoordInputDialogRead(self.session)
+            x_size, y_size, z_size, pixsize, prefix, suffix = dialog.get_info_read()
+            print(f"Using sizes: X: {x_size}, Y: {y_size}, Z: {z_size}")
+            print(f"Using pixelsize: {pixsize}")
+            print(f"Using prefix: {prefix}")
+            #print(f"Using suffix: {suffix}")
+
+
+        ###Now actual reading of file
+
         content = starfile.read(self.file_name, always_dict=True)
 
         # Identify the loop that contains the data
@@ -109,33 +143,6 @@ class RELION5ParticleData(ParticleData):
             raise UserError(
                 f"rlnCenteredCoordinateZAngst was not found in any loop section of file {self.file_name}."
             )
-
-        #check if necessary info already inputted through command line
-        if self.dimensions is not None and len(self.dimensions) == 3 and self.voxelsize is not None:
-            x_size, y_size, z_size = self.dimensions
-            print(f"Using sizes: X: {x_size}, Y: {y_size}, Z: {z_size}")
-
-            pixsize = self.voxelsize
-            print(f"Using pixelsize: {pixsize}")
-
-        elif self.dimensions is None:
-            print("open pop up")
-            from ...widgets.Relion5ReadAddInfo import CoordInputDialogRead
-            # get information through widget about tomogram size and pixelsize
-            dialog = CoordInputDialogRead(self.session)
-            x_size, y_size, z_size, pixsize, prefix, suffix = dialog.get_info_read()
-            print(f"Using sizes: X: {x_size}, Y: {y_size}, Z: {z_size}")
-            print(f"Using pixelsize: {pixsize}")
-
-
-        if self.prefix is not None:
-            prefix = self.prefix
-            print(f"Using prefix: {prefix}")
-
-        if self.suffix is not None:
-            suffix = self.suffix
-            print(f"Using suffix: {suffix}")
-
 
         # calculate center of corresponding tomogram
         x_center = x_size / 2
@@ -216,7 +223,6 @@ class RELION5ParticleData(ParticleData):
         else:
             self._data_keys.pop("rlnTomoName")
 
-        # TODO: what about rlnTomoSubtomogramRot/Tilt/Psi? Disregard it for now.
 
         # If angles are not there, take note
         rot_present = False
@@ -273,7 +279,6 @@ class RELION5ParticleData(ParticleData):
 
             p = self.new_particle()
 
-            # Name
             # Name
             if names_present:
                 n = row['rlnTomoName']
@@ -721,7 +726,7 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         self._keep_name_prefix_layout.addWidget(self._keep_name_prefix_label)
         self._keep_name_prefix_layout.addWidget(self._keep_name_prefix_edit)
 
-        # Layout for the suffix input (newly added)
+        # Layout for the suffix input
         #self._keep_name_suffix_layout = QHBoxLayout()  # Horizontal layout for suffix
         #self._keep_name_suffix_label = QLabel("Suffix:")  # Label for suffix
         #self._keep_name_suffix_edit = QLineEdit("")  # Text input for suffix

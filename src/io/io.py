@@ -9,7 +9,6 @@ import numpy as np
 from chimerax.core.errors import UserError
 from chimerax.core.session import Session
 from chimerax.core.models import Model
-from pexpect import searcher_string
 
 
 # This package
@@ -25,6 +24,9 @@ def open_particle_list(
     additional_files: List[str] = None,
     **kwargs,
 ) -> Tuple[List[Model], str]:
+
+    #default oripix
+    oripix = 1
 
     if format_name is None:
         raise UserError("open_particle_list: Format name must be set.")
@@ -65,11 +67,42 @@ def open_particle_list(
 
             #print(f"Changed to {format_name} ")
 
+        #Relion5 needs additional informations
+        if format_name == 'RELION5 STAR file':
+            print(f"format name : {format_name}")
+            #check if information supplied through command line
+            voxelsize = kwargs.get('voxelsize')
+            dimensions = kwargs.get('dimensions')
+            prefix = kwargs.get('prefix')
+            suffix = kwargs.get('suffix')
+
+            #set oripix with value of voxelsize so that imported particles are directly shown with correct pixelsize
+            oripix = voxelsize
+
+            if dimensions is None:
+            #infos not supplied, open pop up window to input infos
+                print("open pop up")
+                from ..widgets.Relion5ReadAddInfo import CoordInputDialogRead
+                # get information through widget about tomogram size and pixelsize
+                dialog = CoordInputDialogRead(session)
+                x_size, y_size, z_size, pixsize, prefix, suffix = dialog.get_info_read()
+                # Update the dimensions and voxelsize based on user input
+                dimensions = x_size, y_size, z_size
+                voxelsize = pixsize
+
+                # After modifying the variables, update kwargs with the new values
+                kwargs['dimensions'] = dimensions
+                kwargs['voxelsize'] = voxelsize
+                kwargs['prefix'] = prefix
+                kwargs['suffix'] = suffix
+                oripix = voxelsize
+
+
 
         data = formats[format_name].particle_data(
             session,
             file_name,
-            oripix=1,
+            oripix=oripix,
             trapix=1,
             additional_files=additional_files,
             **kwargs,

@@ -94,7 +94,7 @@ will be displayed without the ChimeraX- prefix.
     <Provider name="RELION5 STAR file"
               suffixes=".star"
               category="particle list"
-              nicknames="star, relion5"
+              nicknames="star,relion5"
               reference_url="https://relion.readthedocs.io/en/latest/Reference/STA/Datatypes/particle_set.html#sec-sta-particle-set"
               synopsis="RELION5 star files"/>
 
