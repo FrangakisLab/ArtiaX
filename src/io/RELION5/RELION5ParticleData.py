@@ -6,6 +6,7 @@ import numpy as np
 import starfile
 import pandas as pd
 from scipy.spatial.transform import Rotation as R
+import os
 
 # Chimerax
 import chimerax
@@ -33,6 +34,9 @@ class RELION5ParticleData(ParticleData):
         "rlnCoordinateX": [],
         "rlnCoordinateY": [],
         "rlnCoordinateZ": [],
+        "rlnOriginX":[],
+        "rlnOriginY": [],
+        "rlnOriginZ": [],
         "rlnTomoSubtomogramRot": [],
         "rlnTomoSubtomogramTilt": [],
         "rlnTomoSubtomogramPsi": [],
@@ -102,6 +106,15 @@ class RELION5ParticleData(ParticleData):
         if self.prefix is not None:
             prefix = self.prefix
             print(f"Using prefix: {prefix}")
+            #Save prefix from import to later input as default in saving widget
+            model_name = os.path.basename(self.file_name)
+            # Add to the dictionary instead of overwriting it
+            if not hasattr(self.session, 'rel5_import_prefix'):
+                self.session.rel5_import_prefix = {}  # Initialize the dictionary if it doesn't exist
+
+            # Set or update the prefix for the current model
+            self.session.rel5_import_prefix[model_name] = prefix
+            print(self.session.rel5_import_prefix[model_name])
 
         if self.suffix is not None:
             suffix = self.suffix
@@ -496,6 +509,23 @@ class RELION5ParticleData(ParticleData):
             data['rlnAnglePsiPrior'] = remove_angles[2]
 
         #Coordinates
+        #combine shift und pos since rlnOrigin no longer in relion5
+        for idx, v in enumerate(data["rlnCoordinateX"]):
+                data["rlnCoordinateX"][idx] = (data["rlnOriginX"][idx] + data["rlnCoordinateX"][idx])
+                data["rlnCoordinateY"][idx] = (data["rlnOriginY"][idx] + data["rlnCoordinateY"][idx])
+                data["rlnCoordinateZ"][idx] = (data["rlnOriginZ"][idx] + data["rlnCoordinateZ"][idx])
+
+        #removing rlnOrigin
+        # Remove key 'key2'
+        if 'rlnOriginX' in data:
+            del data['rlnOriginX']
+        if 'rlnOriginY' in data:
+            del data['rlnOriginY']
+        if 'rlnOriginZ' in data:
+            del data['rlnOriginZ']
+
+
+
         for idx, v in enumerate(data["rlnCoordinateX"]):
                 # changes unit from pixel to Angstrom and makes coordinate centered
                 #print("before")
@@ -525,24 +555,18 @@ class RELION5ParticleData(ParticleData):
         rel5_key_x = 'rlnCenteredCoordinateXAngst'
         data[rel5_key_x] = data.pop(rel_key_x)  # Using pop to remove the old key
 
-        #print("Value at rlnCenteredCoordinateXAngst")
-        #print(data['rlnCenteredCoordinateXAngst'])
-
         # Renaming the rlnCoordianteY key
         rel_key_y = 'rlnCoordinateY'
         rel5_key_y = 'rlnCenteredCoordinateYAngst'
         data[rel5_key_y] = data.pop(rel_key_y)  # Using pop to remove the old key
-
-        #print("Value at rlnCenteredCoordinateYAngst")
-        #print(data['rlnCenteredCoordinateYAngst'])
 
         # Renaming the rlnCoordianteZ key
         rel_key_z = 'rlnCoordinateZ'
         rel5_key_z = 'rlnCenteredCoordinateZAngst'
         data[rel5_key_z] = data.pop(rel_key_z)  # Using pop to remove the old key
 
-        #print("Value at rlnCenteredCoordinateZAngst")
-        #print(data['rlnCenteredCoordinateZAngst'])
+
+
 
         df = pd.DataFrame(data=data)
 
@@ -678,6 +702,13 @@ class RELION5OpenerInfo(ArtiaXOpenerInfo):
 
 class RELION5SaveArgsWidget(SaveArgsWidget):
 
+    def __init__(self, session, category="particle list", parent=None):
+        super().__init__(session, category, parent)
+
+        # Add the combo box and connect the signal
+        self.model_combo.currentIndexChanged.connect(self.update_prefix)
+
+
     def additional_content(
         self,
     ):
@@ -699,6 +730,7 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         self._name_prefix_edit = QLineEdit("")  # Text input for prefix
         self._name_prefix_layout.addWidget(self._name_prefix_label)
         self._name_prefix_layout.addWidget(self._name_prefix_edit)
+
 
         # Layout for the suffix input (newly added)
         #self._name_suffix_layout = QHBoxLayout()  # Horizontal layout for suffix
@@ -723,9 +755,17 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         # Layout for the prefix input
         self._keep_name_prefix_layout = QHBoxLayout()  # Horizontal layout for prefix
         self._keep_name_prefix_label = QLabel("Prefix:")  # Label for prefix
+        # Retrieve the default prefix from the session dictionary (if it exists)
+        # Retrieve the selected model name
+        # selected_model_text = self.model_combo.currentText()  # Get the current text from the combo box
+        # model_name = selected_model_text.split(" - ")[1] if selected_model_text else ""  # Extract the model name
+        # default_prefix = self.session.rel5_import_prefix.get(model_name, "")  # Get prefix or empty string
+        # self._keep_name_prefix_edit = QLineEdit(default_prefix)  # Text input for prefix
         self._keep_name_prefix_edit = QLineEdit("")  # Text input for prefix
         self._keep_name_prefix_layout.addWidget(self._keep_name_prefix_label)
         self._keep_name_prefix_layout.addWidget(self._keep_name_prefix_edit)
+        # Set the initial prefix value when the widget is first loaded
+        self.update_prefix()
 
         # Layout for the suffix input
         #self._keep_name_suffix_layout = QHBoxLayout()  # Horizontal layout for suffix
@@ -803,6 +843,16 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         from Qt.QtCore import Qt
 
         return [self._main], []
+
+    def update_prefix(self):
+        # Get the selected model name from the combo box
+        selected_model_text = self.model_combo.currentText()  # Get the current text from the combo box
+        model_name = selected_model_text.split(" - ")[1] if selected_model_text else ""  # Extract the model name
+        default_prefix = self.session.rel5_import_prefix.get(model_name, "")  # Get prefix or empty string
+        print(f"Model Name: {model_name}, Prefix: {self.session.rel5_import_prefix.get(model_name, 'Not Found')}")
+
+        # Update the QLineEdit with the new prefix
+        self._keep_name_prefix_edit.setText(default_prefix)
 
     def _on_vol_combobox(self, idx) -> None:
         vol = self._vol_combobox.itemData(idx)
