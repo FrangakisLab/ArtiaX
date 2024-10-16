@@ -122,11 +122,10 @@ or derivations thereof.=== UCSF ChimeraX Copyright ===-->
           <td style="text-align: left;">
             <div>RELION 5 STAR files. For multi-section star files, the
               first loop containing rlnCoordinateZ will be read. If rlnTomoName
-              is present, names are expected to contain 1 underscore, and follow
-              the RELION 4 tutorial <a href="https://relion.readthedocs.io/en/release-4.0/Reference/STA/Programs/import_tomograms.html#program-tomo-import-tomograms">guidelines</a>.
+              is present, the correct reading of the names requires the input of the prefix that precedes the tomogram number.
             </div>
             <br>
-            rlnCenteredCoordinateX/Y/ZAngst must be present. Angles (rlnAngleRot/Tilt/Psi) are optional and read if
+            rlnCenteredCoordinateX/Y/ZAngst must be present. Angles (rlnAngleRot/Tilt/Psi and rlnTomoSubtomogramRot/Tilt/Psi) are optional and read if
             present.</td>
         </tr>
       </tbody>

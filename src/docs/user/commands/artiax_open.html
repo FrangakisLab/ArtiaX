@@ -1,0 +1,90 @@
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=windows-1252">
+    <link rel="stylesheet" type="text/css" href="../userdocs.css">
+    <title>Command: artiax open</title>
+  </head>
+  <body>
+    <a name="top"></a>
+    <a href="../artiax_index.html">
+      <img src="../ArtiaX-docs-icon.svg" alt="ArtiaX docs icon" class="clRight" title="User Guide Index" width="60px">
+    </a>
+
+    <h3><a href="../artiax_index.html#commands">Command</a>: artiax open</h3>
+    <h3 class="usage">
+      <a href="usageconventions.html">Usage</a>: <br>
+      <b>open</b> <strong>filename</strong> <i>path</i> [<strong>format</strong> <i>type</i>] <strong>volume</strong> <i><a href="atomspec.html#hierarchy"><i>model-spec</i></a></i> | (<strong>voldim</strong> <i>dimensions</i> <strong>voxelsize</strong> <i>size</i>) [<strong>prefix</strong> <i>string</i>]
+    </h3>
+
+    <p>The <b>open</b> command is based on ChimeraX’s open command. It allows you to load various files (such as particle lists, geomodels, etc.) into ArtiaX. You can specify the file, format, and additional options to customize the import process. For further information regarding the underlying structure, check the chimeraX save command documentation.</p>
+
+    <table border="1">
+      <tbody>
+        <tr>
+          <td style="text-align: center; width: 130px;"><em><strong>property</strong></em></td>
+          <td style="text-align: center; width: 250px;"><em><strong>meaning</strong></em></td>
+          <td style="text-align: center; width: 170px;"><em><strong>expected value type</strong></em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>filename</strong></td>
+          <td>Specifies the path to the file that will be imported</td>
+          <td style="text-align: center;"><em>string</em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>format</strong></td>
+          <td>Specifies the file format to import (e.g., <i>motl</i>, <i>relion</i>, <i>peet</i>)</td>
+          <td style="text-align: center;"><em>string</em></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p> Examples: </p>
+    <blockquote>
+      <b>open filename /path/to/particles format relion<br>
+      open filename /path/to/model format peet<br></b>
+    </blockquote>
+
+    <p>Opening a particle list in RELION 5 format requires additional arguments. To compute the coordinates, the dimensions and pixel size of the corresponding tomogram are needed. This information can either be extracted from a tomogram volume that is already loaded in ArtiaX or specified manually. Additionally, to correctly read the 'rlnTomoName' column in the star file, the desired prefix preceding the tomogram number must be specified. </p>
+
+    <table border="1">
+      <tbody>
+        <tr>
+          <td style="text-align: center; width: 130px;"><em><strong>property</strong></em></td>
+          <td style="text-align: center; width: 250px;"><em><strong>meaning</strong></em></td>
+          <td style="text-align: center; width: 170px;"><em><strong>expected value type</strong></em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>volume</strong></td>
+          <td>Specifies the volume from which tomogram dimensions and pixelsize will be extracted (e.g., <i>#1.1.1</i>)</td>
+          <td style="text-align: center;"><em><a href="atomspec.html#hierarchy"><i>model-spec</i></a></em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>voldim</strong></td>
+          <td>Specifies volume dimensions (e.g., <i>500,500,1000</i>). Alternativly, specify volume </td>
+          <td style="text-align: center;"><em>List of 3 floats</em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>voxelsize</strong></td>
+          <td>Specifies volume voxelsize (e.g., <i>8.73</i>). Alternativly, specify volume</td>
+          <td style="text-align: center;"><em>float</em></td>
+        </tr>
+        <tr>
+          <td style="text-align: center;"><strong>prefix</strong></td>
+          <td>Specifies prefix before tomogram number in 'rlnTomoName' (e.g., <i>TS_</i>, <i>tomo</i>).</td>
+          <td style="text-align: center;"><em>string</em></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p> Examples: </p>
+    <blockquote>
+      <b>open filename /path/to/output format relion5 voldim 896,696,250 voxelsize 11.52 prefix tomo<br>
+      open filename /path/to/output format relion5 volume #1.1.1 prefix tomo<br>
+      </b>
+    </blockquote>
+
+
+    <hr>
+    <address>BMLS Frangakis Group / October 2024</address>
+  </body>
+</html>

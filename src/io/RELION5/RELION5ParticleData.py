@@ -644,6 +644,9 @@ class RELION5OpenerInfo(ArtiaXOpenerInfo):
         elif (dimensions is None and volume is None) or (voxelsize is None and volume is None):
             from ...widgets.Relion5ReadAddInfo import CoordInputDialogRead
             print("Information is missing, opening input window")
+            print("Example for expected Syntax: open /your/path/relion5_file.star format relion5 voldim 896,696,250 voxelsize 11.52 prefix TS_ ")
+            print("Example for expected Syntax: open /your/path/relion5_file.star format relion5 volume #1.1.1 prefix tomo ")
+            print("Please provide either a volume or the volume dimensions and pixelsize of your tomogram. To correctly read the column 'rlnTomoName' in the star file, the desired prefix that preceeds the tomogram number can be specified")
             dialog = CoordInputDialogRead(session)
             x, y, z, voxelsize, prefix, suffix = dialog.get_info_read()
             dimensions = x,y,z
@@ -875,11 +878,21 @@ class RELION5SaverInfo(ArtiaXSaverInfo):
 
         # UserErrors for input through command line
         if voldim is None and volume is None:
+            print("Example for expected Syntax: save /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 volume #1.1.1 prefix tomo_ tomonumber 17")
+            print("Example for expected Syntax: open /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 voldim 896,696,250 voxelsize 11.52 prefix tomo_ tomonumber 17 ")
+            print("Please provide either a volume or the volume dimensions and pixelsize of your tomogram. To correctly populate the column 'rlnTomoName' in the star file, the desired prefix that preceeds the tomogram number can be specified, as well as a fixed tomogram number.")
             raise UserError("No volume dimensions provided.")
         if voxelsize is None and volume is None:
+            print("Example for expected Syntax: save /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 volume #1.1.1 prefix tomo_ tomonumber 17")
+            print("Example for expected Syntax: open /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 voldim 896,696,250 voxelsize 11.52 prefix tomo_ tomonumber 17 ")
+            print("Please provide either a volume or the volume dimensions and pixelsize of your tomogram. To correctly populate the column 'rlnTomoName' in the star file, the desired prefix that preceeds the tomogram number can be specified, as well as a fixed tomogram number.")
             raise UserError("No voxelsize provided.")
         if volume is not None and voldim is not None:
+            print("Example for expected Syntax: save /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 volume #1.1.1 prefix tomo_ tomonumber 17")
+            print("Example for expected Syntax: open /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 voldim 896,696,250 voxelsize 11.52 prefix tomo_ tomonumber 17 ")
+            print("Please provide either a volume or the volume dimensions and pixelsize of your tomogram. To correctly populate the column 'rlnTomoName' in the star file, the desired prefix that preceeds the tomogram number can be specified, as well as a fixed tomogram number.")
             raise UserError("Please only provide either the dimensions or a volume.")
+
 
         # Get the dimensions from the volume model if provided
         if volume is not None:
