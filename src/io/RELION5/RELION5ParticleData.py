@@ -236,6 +236,12 @@ class RELION5ParticleData(ParticleData):
         else:
             self._data_keys.pop("rlnTomoName")
 
+        #check if origin there
+        origin_present = False
+        if "rlnOriginXAngst" in df_keys:
+            origin_present = True
+            additional_keys.remove("rlnOriginXAngst")
+
 
         # If angles are not there, take note
         rot_present = False
@@ -317,10 +323,19 @@ class RELION5ParticleData(ParticleData):
                 except ValueError:
                     raise UserError(f"Tomogram number could not be extracted from {n}, failed to convert to float.")
 
-            # Position, recalculate to pixel coordinates not centered
-            p["pos_x"] = (row["rlnCenteredCoordinateXAngst"] / pixsize) + x_center
-            p["pos_y"] = (row["rlnCenteredCoordinateYAngst"] / pixsize) + y_center
-            p["pos_z"] = (row["rlnCenteredCoordinateZAngst"] / pixsize) + z_center
+
+            #Coordinates
+            if origin_present == True:
+                # Position, recalculate to pixel coordinates not centered
+                p["pos_x"] = ((row["rlnCenteredCoordinateXAngst"] + row["rlnOriginXAngst"])/ pixsize) + x_center
+                p["pos_y"] = ((row["rlnCenteredCoordinateYAngst"] + row["rlnOriginYAngst"])/ pixsize) + y_center
+                p["pos_z"] = ((row["rlnCenteredCoordinateZAngst"] + row["rlnOriginZAngst"])/ pixsize) + z_center
+
+            else:
+                # Position, recalculate to pixel coordinates not centered
+                p["pos_x"] = (row["rlnCenteredCoordinateXAngst"] / pixsize) + x_center
+                p["pos_y"] = (row["rlnCenteredCoordinateYAngst"] / pixsize) + y_center
+                p["pos_z"] = (row["rlnCenteredCoordinateZAngst"] / pixsize) + z_center
 
 
             # Shift, rlnOriginX/Y/Z no longer in relion5 format, therefore 0
@@ -447,12 +462,35 @@ class RELION5ParticleData(ParticleData):
 
         if tomogram_name is not None:  # name/number is being overwritten by what was inputted
             for idx, n in enumerate(data['rlnTomoName']):
+                num = int(float(n))
+
+                # Ensure self.name_leading_zeros has a default value if it's None
+                leading_zeros = self.name_leading_zeros if self.name_leading_zeros is not None else 0
+                # Zero-pad the number based on the leading zeros
+                formatted_num = f"{num:0{leading_zeros}d}"
                 if suffix is not None and prefix is not None:
-                    data['rlnTomoName'][idx] = f"{prefix}{tomogram_name}{suffix}"
+                    print("a")
+                    print(formatted_num)
+                    if int(formatted_num) == 0:
+                        data['rlnTomoName'][idx] = f"{prefix}{tomogram_name}{suffix}"
+                    else:
+                        data['rlnTomoName'][idx] = f"{prefix}{formatted_num}{suffix}"
                 elif prefix is not None:
-                    data['rlnTomoName'][idx] = f"{prefix}{tomogram_name}"
+                    print("b")
+                    print(formatted_num)
+                    print(prefix)
+                    if int(formatted_num) == 0:
+                        print("i am here")
+                        data['rlnTomoName'][idx] = f"{prefix}{tomogram_name}"
+                    else:
+                        data['rlnTomoName'][idx] = f"{prefix}{formatted_num}"
                 elif suffix is not None:
-                    data['rlnTomoName'][idx] = f"{suffix}{tomogram_name}"
+                    print("c")
+                    print(formatted_num)
+                    if int(formatted_num) == 0:
+                        data['rlnTomoName'][idx] = f"{tomogram_name}{suffix}"
+                    else:
+                        data['rlnTomoName'][idx] = f"{formatted_num}{suffix}"
 
         elif tomogram_name is None:  # no overwriting desired
             # get tomo numbers from internal particle list data
@@ -778,7 +816,7 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         self._combined_layout.addLayout(self._name_prefix_layout)  # Add prefix layout
         #self._combined_layout.addLayout(self._name_suffix_layout)  # Add suffix layout
 
-        self._tomoname_group = QGroupBox("Set new TomoNumber (optional, will overwrite existing numbers):")
+        self._tomoname_group = QGroupBox("Set new TomoNumber (optional input for newly created particles):")
         self._tomoname_group.setLayout(self._combined_layout)
         self._tomoname_group.setCheckable(True)
         self._tomoname_group.setChecked(False)
