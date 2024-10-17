@@ -6,6 +6,7 @@ from typing import List, Optional, Union
 
 # ChimeraX
 from chimerax.core import errors
+from chimerax.core.errors import UserError
 from chimerax.map import Volume
 import numpy as np
 from chimerax.core.models import Model
@@ -1550,6 +1551,18 @@ def artiax_invert(session: Session, models: Optional[List[Model]] = None):
 
     invert_contrast(session, models)
 
+def artiax_open(session: Session):
+    if not hasattr(session, "ArtiaX"):
+        session.logger.warning("ArtiaX is not currently running.")
+        return
+    raise UserError("Opening particle lists and geomodels is based on ChimeraX open command, therefore necessary command is 'open' without artiax prefix! For further informations type 'help artiax open'.")
+
+def artiax_save(session: Session):
+    if not hasattr(session, "ArtiaX"):
+        session.logger.warning("ArtiaX is not currently running.")
+        return
+    raise UserError("Saving particle lists and geomodels is based on ChimeraX save command, therefore necessary command is 'save' without artiax prefix! For further informations type 'help artiax save'.")
+
 
 def register_artiax(logger):
     """Register all commands with ChimeraX, and specify expected arguments."""
@@ -1957,6 +1970,20 @@ def register_artiax(logger):
         )
         register("artiax invert", desc, artiax_invert)
 
+    def register_artiax_open():
+        desc = CmdDesc(
+            synopsis="Open a particle list or geomodel.",
+            url="help:user/commands/artiax_open.html",
+        )
+        register("artiax open", desc, artiax_open)
+
+    def register_artiax_save():
+        desc = CmdDesc(
+            synopsis="Save a particle list or model.",
+            url="help:user/commands/artiax_save.html",
+        )
+        register("artiax save", desc, artiax_save)
+
     register_artiax_start()
     register_artiax_open_tomo()
     register_artiax_add_tomo()
@@ -1996,6 +2023,8 @@ def register_artiax(logger):
     register_artiax_clip()
     register_artiax_cap()
     register_artiax_invert()
+    register_artiax_open()
+    register_artiax_save()
 
 
 # Possible styles

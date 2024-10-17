@@ -550,22 +550,54 @@ class RELION5ParticleData(ParticleData):
                 #print(data["rlnCoordinateX"][idx])
 
 
-        # Renaming the rlnCoordianteX key
-        rel_key_x = 'rlnCoordinateX'
-        rel5_key_x = 'rlnCenteredCoordinateXAngst'
-        data[rel5_key_x] = data.pop(rel_key_x)  # Using pop to remove the old key
+        # # Renaming the rlnCoordianteX key
+        # rel_key_x = 'rlnCoordinateX'
+        # rel5_key_x = 'rlnCenteredCoordinateXAngst'
+        # #data[rel5_key_x] = data.pop(rel_key_x)  # Using pop to remove the old key
+        # # Create a new dictionary with the same order as before
+        # for key in list(data.keys()):
+        #     if key == rel_key_x:
+        #         data[rel5_key_x] = data.pop(rel_key_x)
+        #         break  # Exit the loop as soon as the key is renamed
+        #
+        # # Renaming the rlnCoordianteY key
+        # rel_key_y = 'rlnCoordinateY'
+        # rel5_key_y = 'rlnCenteredCoordinateYAngst'
+        # #data[rel5_key_y] = data.pop(rel_key_y)  # Using pop to remove the old key
+        # # Create a new dictionary with the same order as before
+        # for key in list(data.keys()):
+        #     if key == rel_key_y:
+        #         data[rel5_key_y] = data.pop(rel_key_y)
+        #         break  # Exit the loop as soon as the key is renamed
+        #
+        # # Renaming the rlnCoordianteZ key
+        # rel_key_z = 'rlnCoordinateZ'
+        # rel5_key_z = 'rlnCenteredCoordinateZAngst'
+        # #data[rel5_key_z] = data.pop(rel_key_z)  # Using pop to remove the old key
+        # # Create a new dictionary with the same order as before
+        # for key in list(data.keys()):
+        #     if key == rel_key_z:
+        #         data[rel5_key_z] = data.pop(rel_key_z)
+        #         break  # Exit the loop as soon as the key is renamed
+        #
 
-        # Renaming the rlnCoordianteY key
-        rel_key_y = 'rlnCoordinateY'
-        rel5_key_y = 'rlnCenteredCoordinateYAngst'
-        data[rel5_key_y] = data.pop(rel_key_y)  # Using pop to remove the old key
+        # Define the old-to-new key mapping
+        rename_keys = {
+            'rlnCoordinateZ': 'rlnCenteredCoordinateZAngst',
+            'rlnCoordinateX': 'rlnCenteredCoordinateXAngst',
+            'rlnCoordinateY': 'rlnCenteredCoordinateYAngst'
+        }
 
-        # Renaming the rlnCoordianteZ key
-        rel_key_z = 'rlnCoordinateZ'
-        rel5_key_z = 'rlnCenteredCoordinateZAngst'
-        data[rel5_key_z] = data.pop(rel_key_z)  # Using pop to remove the old key
+        # Create a new dictionary to store the updated key order
+        new_data = {}
 
+        # Iterate over the original dictionary and rename the keys
+        for key, value in data.items():
+            # If the key needs to be renamed, use the new key
+            new_data[rename_keys.get(key, key)] = value
 
+        # Replace the old dictionary with the new one
+        data = new_data
 
 
         df = pd.DataFrame(data=data)
