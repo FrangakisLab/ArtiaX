@@ -13,8 +13,7 @@ from chimerax.core.errors import UserError
 # This package
 from ..formats import ArtiaXFormat
 from ..ParticleData import ParticleData, EulerRotation
-from ...widgets.RelionAddInfo import CoordInputDialog
-from ...widgets.Relion5ReadAddInfo import CoordInputDialogRead
+
 
 EPSILON = np.finfo(np.float32).eps
 EPSILON16 = 16 * EPSILON
