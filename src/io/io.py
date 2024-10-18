@@ -25,8 +25,9 @@ def open_particle_list(
     **kwargs,
 ) -> Tuple[List[Model], str]:
 
-    #default oripix
+    #default oripix and trapix
     oripix = 1
+    trapix = 1
 
     if format_name is None:
         raise UserError("open_particle_list: Format name must be set.")
@@ -77,6 +78,7 @@ def open_particle_list(
 
             #set oripix with value of voxelsize so that imported particles are directly shown with correct pixelsize
             oripix = voxelsize
+            trapix = voxelsize
 
             if dimensions is None:
             #infos not supplied, open pop up window to input infos
@@ -87,6 +89,7 @@ def open_particle_list(
                 # Update the dimensions and voxelsize based on user input
                 dimensions = x_size, y_size, z_size
                 voxelsize = pixsize
+                trapix = voxelsize
 
                 # After modifying the variables, update kwargs with the new values
                 kwargs['dimensions'] = dimensions
@@ -94,6 +97,7 @@ def open_particle_list(
                 kwargs['prefix'] = prefix
                 kwargs['suffix'] = suffix
                 oripix = voxelsize
+                trapix = voxelsize
 
 
 

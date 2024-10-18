@@ -25,7 +25,7 @@ class CoordInputDialogRead(QDialog):
 
         # Create a dropdown for tomogram selection
         self.vol_combobox = QComboBox()
-        layout.addWidget(QLabel("Select tomogram to get dimensions and voxel size in binned pixels (or leave as 'Custom')"))
+        layout.addWidget(QLabel("Select tomogram to get dimensions and voxel size in binned pixels (or leave as 'Custom' to enter values manually)"))
         layout.addWidget(self.vol_combobox)
 
         # Populate the combobox with tomograms and a 'Custom' option

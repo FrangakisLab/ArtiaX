@@ -1551,17 +1551,23 @@ def artiax_invert(session: Session, models: Optional[List[Model]] = None):
 
     invert_contrast(session, models)
 
-def artiax_open(session: Session):
+def artiax_open(session: Session, *args, **kwargs):
     if not hasattr(session, "ArtiaX"):
         session.logger.warning("ArtiaX is not currently running.")
         return
     raise UserError("Opening particle lists and geomodels is based on ChimeraX open command, therefore necessary command is 'open' without artiax prefix! For further informations type 'help artiax open'.")
 
-def artiax_save(session: Session):
+def artiax_save(session: Session, *args, **kwargs):
     if not hasattr(session, "ArtiaX"):
         session.logger.warning("ArtiaX is not currently running.")
         return
     raise UserError("Saving particle lists and geomodels is based on ChimeraX save command, therefore necessary command is 'save' without artiax prefix! For further informations type 'help artiax save'.")
+
+def artiax_user_guide(session:Session):
+    if not hasattr(session, "ArtiaX"):
+        session.logger.warning("ArtiaX is not currently running.")
+    raise UserError(
+        "To open artiax user guide, type 'help artiax user guide'.")
 
 
 def register_artiax(logger):
@@ -1984,6 +1990,14 @@ def register_artiax(logger):
         )
         register("artiax save", desc, artiax_save)
 
+    def register_artiax_user_guide():
+        desc = CmdDesc(
+            synopsis="Open ArtiaX User Guide",
+            url="help:user/artiax_index.html",
+        )
+        register("artiax user guide", desc, artiax_user_guide)
+
+
     register_artiax_start()
     register_artiax_open_tomo()
     register_artiax_add_tomo()
@@ -2025,6 +2039,7 @@ def register_artiax(logger):
     register_artiax_invert()
     register_artiax_open()
     register_artiax_save()
+    register_artiax_user_guide()
 
 
 # Possible styles

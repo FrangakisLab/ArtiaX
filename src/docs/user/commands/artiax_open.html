@@ -16,7 +16,7 @@
       <b>open</b> <strong>filename</strong> <i>path</i> [<strong>format</strong> <i>type</i>] <strong>volume</strong> <i><a href="atomspec.html#hierarchy"><i>model-spec</i></a></i> | (<strong>voldim</strong> <i>dimensions</i> <strong>voxelsize</strong> <i>size</i>) [<strong>prefix</strong> <i>string</i>]
     </h3>
 
-    <p>The <b>open</b> command is based on ChimeraX’s open command. It allows you to load various files (such as particle lists, geomodels, etc.) into ArtiaX. You can specify the file, format, and additional options to customize the import process. For further information regarding the underlying structure, check the chimeraX save command documentation.</p>
+    <p>The <b>open</b> command is based on ChimeraX’s open command. It allows you to load particle lists or geomodels into ArtiaX. You can specify the file, format, and additional options to customize the import process. For further information regarding the underlying structure, check the ChimeraX save command documentation.</p>
 
     <table border="1">
       <tbody>
@@ -44,7 +44,7 @@
       open filename /path/to/model format peet<br></b>
     </blockquote>
 
-    <p>Opening a particle list in RELION 5 format requires additional arguments. To compute the coordinates, the dimensions and pixel size of the corresponding tomogram are needed. This information can either be extracted from a tomogram volume that is already loaded in ArtiaX or specified manually. Additionally, to correctly read the 'rlnTomoName' column in the star file, the desired prefix preceding the tomogram number must be specified. </p>
+    <p>Opening a particle list in RELION 5 format requires additional arguments. To compute the coordinates, the dimensions and pixel size of the corresponding tomogram are needed. This information can either be extracted from a tomogram volume that is already loaded in ArtiaX or specified manually. Additionally, to correctly read the 'rlnTomoName' column in the star file, the prefix preceding the tomogram number must be specified. </p>
 
     <table border="1">
       <tbody>
@@ -60,12 +60,12 @@
         </tr>
         <tr>
           <td style="text-align: center;"><strong>voldim</strong></td>
-          <td>Specifies volume dimensions (e.g., <i>500,500,1000</i>). Alternativly, specify volume </td>
+          <td>Specifies volume dimensions (e.g., <i>500,500,1000</i>). Alternatively, specify volume </td>
           <td style="text-align: center;"><em>List of 3 floats</em></td>
         </tr>
         <tr>
           <td style="text-align: center;"><strong>voxelsize</strong></td>
-          <td>Specifies volume voxelsize (e.g., <i>8.73</i>). Alternativly, specify volume</td>
+          <td>Specifies volume voxelsize (e.g., <i>8.73</i>). Alternatively, specify volume</td>
           <td style="text-align: center;"><em>float</em></td>
         </tr>
         <tr>

@@ -105,7 +105,7 @@ class RELION5ParticleData(ParticleData):
         #Validate information
         if self.prefix is not None:
             prefix = self.prefix
-            print(f"Using prefix: {prefix}")
+            #print(f"Using prefix: {prefix}")
             #Save prefix from import to later input as default in saving widget
             model_name = os.path.basename(self.file_name)
             # Add to the dictionary instead of overwriting it
@@ -114,7 +114,7 @@ class RELION5ParticleData(ParticleData):
 
             # Set or update the prefix for the current model
             self.session.rel5_import_prefix[model_name] = prefix
-            print(self.session.rel5_import_prefix[model_name])
+            #print(self.session.rel5_import_prefix[model_name])
 
         if self.suffix is not None:
             suffix = self.suffix
@@ -130,14 +130,14 @@ class RELION5ParticleData(ParticleData):
         #TODO: can be removed
         #input not through command line but through opening gui, therefore open additional window
         elif self.dimensions is None:
-            print("open pop up in read")
+            #print("open pop up in read")
             from ...widgets.Relion5ReadAddInfo import CoordInputDialogRead
             # get information through widget about tomogram size and pixelsize
             dialog = CoordInputDialogRead(self.session)
             x_size, y_size, z_size, pixsize, prefix, suffix = dialog.get_info_read()
             print(f"Using sizes: X: {x_size}, Y: {y_size}, Z: {z_size}")
             print(f"Using pixelsize: {pixsize}")
-            print(f"Using prefix: {prefix}")
+            #print(f"Using prefix: {prefix}")
             #print(f"Using suffix: {suffix}")
 
 
@@ -204,9 +204,7 @@ class RELION5ParticleData(ParticleData):
                     else:
                         raise UserError('Tomogram number cannot be extracted due to unmatched suffix.')
                 else:
-                    print(first_name)
                     num = first_name  # No prefix or suffix, just use the whole name
-                    print(num)
 
             self.name_prefix = prefix
             if isinstance(num, int):
@@ -324,28 +322,24 @@ class RELION5ParticleData(ParticleData):
                     raise UserError(f"Tomogram number could not be extracted from {n}, failed to convert to float.")
 
 
-            #Coordinates
+            #Coordinate
+            p["pos_x"] = (row["rlnCenteredCoordinateXAngst"] / pixsize) + x_center
+            p["pos_y"] = (row["rlnCenteredCoordinateYAngst"] / pixsize) + y_center
+            p["pos_z"] = (row["rlnCenteredCoordinateZAngst"] / pixsize) + z_center
+
+            # Shift
             if origin_present == True:
-                # Position, recalculate to pixel coordinates not centered
-                p["pos_x"] = ((row["rlnCenteredCoordinateXAngst"] + row["rlnOriginXAngst"])/ pixsize) + x_center
-                p["pos_y"] = ((row["rlnCenteredCoordinateYAngst"] + row["rlnOriginYAngst"])/ pixsize) + y_center
-                p["pos_z"] = ((row["rlnCenteredCoordinateZAngst"] + row["rlnOriginZAngst"])/ pixsize) + z_center
-
+                p["shift_x"] = -row["rlnOriginXAngst"]
+                p["shift_y"] = -row["rlnOriginYAngst"]
+                p["shift_z"] = -row["rlnOriginZAngst"]
             else:
-                # Position, recalculate to pixel coordinates not centered
-                p["pos_x"] = (row["rlnCenteredCoordinateXAngst"] / pixsize) + x_center
-                p["pos_y"] = (row["rlnCenteredCoordinateYAngst"] / pixsize) + y_center
-                p["pos_z"] = (row["rlnCenteredCoordinateZAngst"] / pixsize) + z_center
+                p["shift_x"] = 0
+                p["shift_y"] = 0
+                p["shift_z"] = 0
 
-
-            # Shift, rlnOriginX/Y/Z no longer in relion5 format, therefore 0
-            p["shift_x"] = 0
-            p["shift_y"] = 0
-            p["shift_z"] = 0
 
             # Orientation
             if rot_present and tilt_present and psi_present and tomo_rot_present and tomo_psi_present and tomo_tilt_present:
-                #print("Combining rlnTomoSubtomogram and rlnAngle")
                 # Box angles in degrees
                 box_angle_rot = row['rlnTomoSubtomogramRot']
                 box_angle_tilt = row['rlnTomoSubtomogramTilt']
@@ -385,14 +379,12 @@ class RELION5ParticleData(ParticleData):
                 p['ang_1'] = row['rlnAngleRot']
                 p['ang_2'] = row['rlnAngleTilt']
                 p['ang_3'] = row['rlnAnglePsi']
-                #print("Using rlnAngle")
 
             # if only rlnTomoSubtomogram present
             elif tomo_rot_present and tilt_present and psi_present:
                 p['ang_1'] = row['rlnTomoSubtomogramRot']
                 p['ang_2'] = row['rlnTomoSubtomogramTilt']
                 p['ang_3'] = row['rlnTomoSubtomogramPsi']
-                #print("Using rlnTomoSubtomogram")
 
             else:
                 print("Angle Information not complete, default set to 0")
@@ -421,10 +413,6 @@ class RELION5ParticleData(ParticleData):
         self.tomonumber = tomonumber
         self.pixelsize = pixelsize
 
-        print(f"Dimensions:{self.dimensions}")
-        print(f"Prefix:{self.prefix}")
-        print(f"Suffix:{self.suffix}")
-        print(f"Tomonumber:{self.tomonumber}")
 
         x_size, y_size, z_size, name = 0, 0, 0, ""
 
@@ -432,17 +420,18 @@ class RELION5ParticleData(ParticleData):
             x_size, y_size, z_size = self.dimensions
             print(f"Using sizes: X: {x_size}, Y: {y_size}, Z: {z_size}")
 
-        if self.tomonumber != 9999:  #None was not possible for placeholder signaling no user input, therefore 9999
-            tomogram_name = self.tomonumber
-            print(f"Corresponding tomogram number: {tomogram_name}")
-        else:
-            tomogram_name = None
-
         if x_size is not None and y_size is not None and z_size is not None:
             print(f"Using sizes: X: {x_size}, Y: {y_size}, Z: {z_size}")
         if self.pixelsize is not None:
             print(f"Using pixelsize: {self.pixelsize}")
             pixsize = self.pixelsize
+
+        if self.tomonumber != 9999:  #None was not possible for placeholder signaling no user input, therefore 9999
+            tomogram_name = self.tomonumber
+            #print(f"Corresponding tomogram number: {tomogram_name}")
+        else:
+            tomogram_name = None
+
 
         # calculate center in pixel
         x_center = x_size / 2
@@ -583,42 +572,9 @@ class RELION5ParticleData(ParticleData):
                 data["rlnCoordinateX"][idx] *= pixsize
                 data["rlnCoordinateY"][idx] *= pixsize
                 data["rlnCoordinateZ"][idx] *= pixsize
-                #print("after")
-
-                #print(data["rlnCoordinateX"][idx])
 
 
-        # # Renaming the rlnCoordianteX key
-        # rel_key_x = 'rlnCoordinateX'
-        # rel5_key_x = 'rlnCenteredCoordinateXAngst'
-        # #data[rel5_key_x] = data.pop(rel_key_x)  # Using pop to remove the old key
-        # # Create a new dictionary with the same order as before
-        # for key in list(data.keys()):
-        #     if key == rel_key_x:
-        #         data[rel5_key_x] = data.pop(rel_key_x)
-        #         break  # Exit the loop as soon as the key is renamed
-        #
-        # # Renaming the rlnCoordianteY key
-        # rel_key_y = 'rlnCoordinateY'
-        # rel5_key_y = 'rlnCenteredCoordinateYAngst'
-        # #data[rel5_key_y] = data.pop(rel_key_y)  # Using pop to remove the old key
-        # # Create a new dictionary with the same order as before
-        # for key in list(data.keys()):
-        #     if key == rel_key_y:
-        #         data[rel5_key_y] = data.pop(rel_key_y)
-        #         break  # Exit the loop as soon as the key is renamed
-        #
-        # # Renaming the rlnCoordianteZ key
-        # rel_key_z = 'rlnCoordinateZ'
-        # rel5_key_z = 'rlnCenteredCoordinateZAngst'
-        # #data[rel5_key_z] = data.pop(rel_key_z)  # Using pop to remove the old key
-        # # Create a new dictionary with the same order as before
-        # for key in list(data.keys()):
-        #     if key == rel_key_z:
-        #         data[rel5_key_z] = data.pop(rel_key_z)
-        #         break  # Exit the loop as soon as the key is renamed
-        #
-
+        #Change coordinates column names
         # Define the old-to-new key mapping
         rename_keys = {
             'rlnCoordinateZ': 'rlnCenteredCoordinateZAngst',
@@ -690,15 +646,12 @@ class RELION5OpenerInfo(ArtiaXOpenerInfo):
         # Users can either:
         # Provide the dimensions explictely (voxel size and binning from the star file)
         dimensions = kwargs.get("voldim", None)
-        #print(f"Dimension: {dimensions}")
 
         # Provide the voxel size explicitely also (overriding the star file)
         voxelsize = kwargs.get("voxelsize", None)
-        #print(f"voxelsize: {voxelsize}")
 
         # Or provide a volume model to get the dimensions from (voxel size from the volume model)
         volume = kwargs.get("volume", None)
-        #print(f"volume: {volume}")
 
         #Check for conflicting input options
         if dimensions is not None and volume is not None:
@@ -731,7 +684,6 @@ class RELION5OpenerInfo(ArtiaXOpenerInfo):
             dim = [x, y, z]
             dimensions = dim
             vs = volume.data.step[0]
-            #print(f"Pixsize:{vs}")
             voxelsize = vs
 
         # If neither are present, open the dialog!
@@ -775,7 +727,7 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
     def __init__(self, session, category="particle list", parent=None):
         super().__init__(session, category, parent)
 
-        # Add the combo box and connect the signal
+        # Add the combo box and connect the signal for changing of particle list selection so that prefix default is adjusted
         self.model_combo.currentIndexChanged.connect(self.update_prefix)
 
 
@@ -786,51 +738,11 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         from ...widgets.NLabelValue import NLabelValue
         from ...widgets.IgnorantComboBox import IgnorantComboBox
 
-        #Use new tomogram number with specified prefix and suffix
-        # Choose single tomogram number
-        self._name_layout = QHBoxLayout()
-        self._name_label = QLabel("TomoNumber:")
-        self._name_edit = QLineEdit("")
-        self._name_layout.addWidget(self._name_label)
-        self._name_layout.addWidget(self._name_edit)
 
-        # Layout for the prefix input
-        self._name_prefix_layout = QHBoxLayout()  # Horizontal layout for prefix
-        self._name_prefix_label = QLabel("Prefix:")  # Label for prefix
-        self._name_prefix_edit = QLineEdit("")  # Text input for prefix
-        self._name_prefix_layout.addWidget(self._name_prefix_label)
-        self._name_prefix_layout.addWidget(self._name_prefix_edit)
-
-
-        # Layout for the suffix input (newly added)
-        #self._name_suffix_layout = QHBoxLayout()  # Horizontal layout for suffix
-        #self._name_suffix_label = QLabel("Suffix:")  # Label for suffix
-        #self._name_suffix_edit = QLineEdit("")  # Text input for suffix
-        #self._name_suffix_layout.addWidget(self._name_suffix_label)
-        #self._name_suffix_layout.addWidget(self._name_suffix_edit)
-
-
-        # Create a vertical layout to hold both prefix and suffix fields
-        self._combined_layout = QVBoxLayout()
-        self._combined_layout.addLayout(self._name_layout)  # Add tomo number layout
-        self._combined_layout.addLayout(self._name_prefix_layout)  # Add prefix layout
-        #self._combined_layout.addLayout(self._name_suffix_layout)  # Add suffix layout
-
-        self._tomoname_group = QGroupBox("Set new TomoNumber (optional input for newly created particles):")
-        self._tomoname_group.setLayout(self._combined_layout)
-        self._tomoname_group.setCheckable(True)
-        self._tomoname_group.setChecked(False)
-
-        #Use existing tomonumbers
+        #Prefix and suffix for rlnTomoName, suffix part is commented
         # Layout for the prefix input
         self._keep_name_prefix_layout = QHBoxLayout()  # Horizontal layout for prefix
         self._keep_name_prefix_label = QLabel("Prefix:")  # Label for prefix
-        # Retrieve the default prefix from the session dictionary (if it exists)
-        # Retrieve the selected model name
-        # selected_model_text = self.model_combo.currentText()  # Get the current text from the combo box
-        # model_name = selected_model_text.split(" - ")[1] if selected_model_text else ""  # Extract the model name
-        # default_prefix = self.session.rel5_import_prefix.get(model_name, "")  # Get prefix or empty string
-        # self._keep_name_prefix_edit = QLineEdit(default_prefix)  # Text input for prefix
         self._keep_name_prefix_edit = QLineEdit("")  # Text input for prefix
         self._keep_name_prefix_layout.addWidget(self._keep_name_prefix_label)
         self._keep_name_prefix_layout.addWidget(self._keep_name_prefix_edit)
@@ -850,10 +762,28 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         #self._keep_combined_layout.addLayout(self._keep_name_suffix_layout)  # Add suffix layout
 
         # Create a group box to hold both prefix and suffix inputs
-        self._keep_tomoname_group = QGroupBox("Save existing TomoNumbers with specified prefix:")
+        self._keep_tomoname_group = QGroupBox("Prefix preceeding tomogram number in 'rlnTomoName':")
         self._keep_tomoname_group.setLayout(self._keep_combined_layout)  # Set combined layout to group box
-        self._keep_tomoname_group.setCheckable(True)  # Make group box checkable
-        self._keep_tomoname_group.setChecked(False)  # Initially unchecked (disabled)
+        #self._keep_tomoname_group.setCheckable(True)  # Make group box checkable
+        #self._keep_tomoname_group.setChecked(False)  # Initially unchecked (disabled)
+
+        #New tomogram number, to be used for newly created particles
+        # Choose single tomogram number
+        self._name_layout = QHBoxLayout()
+        self._name_label = QLabel("TomoNumber:")
+        self._name_edit = QLineEdit("")
+        self._name_layout.addWidget(self._name_label)
+        self._name_layout.addWidget(self._name_edit)
+
+        # Create a vertical layout
+        self._combined_layout = QVBoxLayout()
+        self._combined_layout.addLayout(self._name_layout)  # Add tomo number layout
+
+        self._tomoname_group = QGroupBox("Set new TomoNumber (Required input for newly created particles or if assignment of tomogram number doesnt't exist yet):")
+        self._tomoname_group.setLayout(self._combined_layout)
+        self._tomoname_group.setCheckable(True)
+        self._tomoname_group.setChecked(True)
+
 
 
         # Choose dimensions / voxel size
@@ -918,6 +848,9 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         # Get the selected model name from the combo box
         selected_model_text = self.model_combo.currentText()  # Get the current text from the combo box
         model_name = selected_model_text.split(" - ")[1] if selected_model_text else ""  # Extract the model name
+
+        if not hasattr(self.session, 'rel5_import_prefix'):
+            self.session.rel5_import_prefix = {}  # Initialize the dictionary if it doesn't exist, e.g. when read as relion or em
         default_prefix = self.session.rel5_import_prefix.get(model_name, "")  # Get prefix or empty string
         print(f"Model Name: {model_name}, Prefix: {self.session.rel5_import_prefix.get(model_name, 'Not Found')}")
 
@@ -954,20 +887,16 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         v = float(self._vs_edit.text())
 
         # Prefix (get text from the QLineEdit)
-        if self._name_prefix_edit.text():  # Check if it has input
-            prefix = self._name_prefix_edit.text()
-        elif self._keep_name_prefix_edit.text():
+        if self._keep_name_prefix_edit.text():
             prefix = self._keep_name_prefix_edit.text()
         else:
-            prefix = None  # Default empty prefix if neither field has input
+            prefix = None  # Default empty prefix if field has no input
 
         # Suffix (corrected to get from the edit field, not label)
-        #if self._name_suffix_edit.text():
-        #    name_suffix = self._name_suffix_edit.text()
-        #elif self._keep_name_suffix_edit.text():
+        #if self._keep_name_suffix_edit.text():
         #    name_suffix = self._keep_name_suffix_edit.text()
         #else:
-        #    name_suffix = None  # Default empty suffix if neither field has input
+        #    name_suffix = None  # Default empty suffix if field has no input
         name_suffix = None
 
         if self._name_edit.text():
