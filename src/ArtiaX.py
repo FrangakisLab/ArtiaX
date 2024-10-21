@@ -316,6 +316,7 @@ class ArtiaX(Model):
         self.selected_partlist = model.id
         self.options_partlist = model.id
         run(self.session, "artiax clip off")
+        print("add_particlelist is being run")
 
     def add_geomodel(self, model):
         """Add a geometric model."""
