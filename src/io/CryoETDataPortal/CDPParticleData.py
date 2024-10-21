@@ -29,12 +29,12 @@ class CDPLocation(BaseModel):
 
 
 class CDPPoint(BaseModel):
-    type: str = "Point"
+    type: str = "point"
     location: CDPLocation
 
 
 class CDPOrientedPoint(CDPPoint):
-    type: str = "OrientedPoint"
+    type: str = "orientedPoint"
     xyz_rotation_matrix: List[List[float]] = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
 
 
@@ -44,14 +44,14 @@ class CDPInstancePoint(CDPPoint):
 
 
 class CDPGenericPoint(BaseModel):
-    type: Literal["Point", "orientedPoint", "instancePoint"]
+    type: Literal["point", "orientedPoint", "instancePoint"]
     location: CDPLocation
     xyz_rotation_matrix: Optional[List[List[float]]] = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
     instance_id: Optional[int] = 0
 
 
 point_factory = {
-    "Point": CDPPoint,
+    "point": CDPPoint,
     "orientedPoint": CDPOrientedPoint,
     "instancePoint": CDPInstancePoint,
 }
