@@ -6,7 +6,7 @@ will be displayed without the ChimeraX- prefix.
 -->
 
 <BundleInfo name="ChimeraX-ArtiaX"
-	    version="0.4.10" package="chimerax.artiax"
+	    version="0.5.0" package="chimerax.artiax"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
