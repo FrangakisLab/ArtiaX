@@ -6,7 +6,7 @@ will be displayed without the ChimeraX- prefix.
 -->
 
 <BundleInfo name="ChimeraX-ArtiaX"
-	    version="0.4.9" package="chimerax.artiax"
+	    version="0.5.0" package="chimerax.artiax"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -91,6 +91,13 @@ will be displayed without the ChimeraX- prefix.
               reference_url="https://relion.readthedocs.io/en/release-3.1/Reference/Conventions.html"
               synopsis="RELION star files"/>
 
+    <Provider name="RELION5 STAR file"
+              suffixes=".star"
+              category="particle list"
+              nicknames="star,relion5"
+              reference_url="https://relion.readthedocs.io/en/latest/Reference/STA/Datatypes/particle_set.html#sec-sta-particle-set"
+              synopsis="RELION5 star files"/>
+
     <Provider name="cryoET Data Portal"
               suffixes=".ndjson"
               category="particle list"
@@ -132,6 +139,7 @@ will be displayed without the ChimeraX- prefix.
     <Provider name="Generic Particle List" want_path="true"/>
     <Provider name="Dynamo Table" want_path="true"/>
     <Provider name="RELION STAR file" want_path="true"/>
+    <Provider name="RELION5 STAR file" want_path="true"/>
     <Provider name="cryoET Data Portal" want_path="true"/>
     <Provider name="Coords file" want_path="true"/>
     <Provider name="Copick Picks file" want_path="true" is_default="false"/>
@@ -144,6 +152,7 @@ will be displayed without the ChimeraX- prefix.
     <Provider name="Generic Particle List" />
     <Provider name="Dynamo Table" />
     <Provider name="RELION STAR file" />
+    <Provider name="RELION5 STAR file" />
     <Provider name="cryoET Data Portal"/>
     <Provider name="Coords file"/>
     <Provider name="Copick Picks file"/>

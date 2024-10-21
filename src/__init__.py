@@ -49,6 +49,7 @@ class _MyAPI(BundleAPI):
         from .io.Generic.GenericParticleData import GenericParticleData
         from .io.PEET.PEETParticleData import PEETParticleData
         from .io.RELION.RELIONParticleData import RELIONParticleData
+        from .io.RELION5.RELION5ParticleData import RELION5ParticleData
         from .io.Copick.CopickParticleData import CopickParticleData
         from .io.CryoETDataPortal.CDPParticleData import CDPParticleData
         from .volume import VolumePlus, Tomogram, ProcessableTomogram
@@ -83,6 +84,7 @@ class _MyAPI(BundleAPI):
             "GenericParticleData": GenericParticleData,
             "PEETParticleData": PEETParticleData,
             "RELIONParticleData": RELIONParticleData,
+            "RELION5ParticleData": RELION5ParticleData,
             "CopickParticleData": CopickParticleData,
             "CDPParticleData": CDPParticleData,
             # Geomodels

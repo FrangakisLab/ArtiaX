@@ -1,9 +1,11 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+
 # General
 import numpy as np
 import starfile
 import pandas as pd
+from Cython.Compiler.Visitor import PrintTree
 
 # Chimerax
 from chimerax.core.errors import UserError
@@ -12,13 +14,17 @@ from chimerax.core.errors import UserError
 from ..formats import ArtiaXFormat
 from ..ParticleData import ParticleData, EulerRotation
 
+
 EPSILON = np.finfo(np.float32).eps
 EPSILON16 = 16 * EPSILON
+
 
 class RELIONEulerRotation(EulerRotation):
 
     def __init__(self):
-        super().__init__(axis_1=(0, 0, 1), axis_2=(0, 1, 0), axis_3=(0, 0, 1), invert_dir=True)
+        super().__init__(
+            axis_1=(0, 0, 1), axis_2=(0, 1, 0), axis_3=(0, 0, 1), invert_dir=True
+        )
 
     def rot1_from_matrix(self, matrix):
         """rlnAngleRot -- Phi"""
@@ -74,38 +80,38 @@ class RELIONEulerRotation(EulerRotation):
         if np.abs(np.sin(rot3)) < EPSILON:
             sign_sb = np.sign(-matrix[0, 2] / np.cos(rot3))
         else:
-            sign_sb = np.sign(matrix[1, 2]) if (np.sin(rot3) > 0) else -np.sign(matrix[1, 2])
+            sign_sb = (
+                np.sign(matrix[1, 2]) if (np.sin(rot3) > 0) else -np.sign(matrix[1, 2])
+            )
 
         return sign_sb
-
-
 
 
 class RELIONParticleData(ParticleData):
 
     DATA_KEYS = {
-        'rlnTomoName': [],
-        'rlnCoordinateX': [],
-        'rlnCoordinateY': [],
-        'rlnCoordinateZ': [],
-        'rlnOriginX': [],
-        'rlnOriginY': [],
-        'rlnOriginZ': [],
-        'rlnAngleRot': [],
-        'rlnAngleTilt': [],
-        'rlnAnglePsi': []
+        "rlnTomoName": [],
+        "rlnCoordinateX": [],
+        "rlnCoordinateY": [],
+        "rlnCoordinateZ": [],
+        "rlnOriginX": [],
+        "rlnOriginY": [],
+        "rlnOriginZ": [],
+        "rlnAngleRot": [],
+        "rlnAngleTilt": [],
+        "rlnAnglePsi": [],
     }
 
     DEFAULT_PARAMS = {
-        'pos_x': 'rlnCoordinateX',
-        'pos_y': 'rlnCoordinateY',
-        'pos_z': 'rlnCoordinateZ',
-        'shift_x': 'rlnOriginX',
-        'shift_y': 'rlnOriginY',
-        'shift_z': 'rlnOriginZ',
-        'ang_1': 'rlnAngleRot',
-        'ang_2': 'rlnAngleTilt',
-        'ang_3': 'rlnAnglePsi'
+        "pos_x": "rlnCoordinateX",
+        "pos_y": "rlnCoordinateY",
+        "pos_z": "rlnCoordinateZ",
+        "shift_x": "rlnOriginX",
+        "shift_y": "rlnOriginY",
+        "shift_z": "rlnOriginZ",
+        "ang_1": "rlnAngleRot",
+        "ang_2": "rlnAngleTilt",
+        "ang_3": "rlnAnglePsi",
     }
 
     ROT = RELIONEulerRotation
@@ -117,21 +123,30 @@ class RELIONParticleData(ParticleData):
         self.name_prefix = None
         self.name_leading_zeros = None
 
-        super().__init__(session, file_name, oripix=oripix, trapix=trapix, additional_files=additional_files)
+        super().__init__(
+            session,
+            file_name,
+            oripix=oripix,
+            trapix=trapix,
+            additional_files=additional_files,
+        )
 
     def read_file(self):
+        """Reads RELION 3, 3.1 or 4 star file."""
         content = starfile.read(self.file_name, always_dict=True)
 
         # Identify the loop that contains the data
         data_loop = None
         for key, val in content.items():
-            if 'rlnCoordinateZ' in list(val.keys()):
+            if "rlnCoordinateZ" in list(val.keys()):
                 data_loop = key
                 break
 
         # Abort if none found
         if data_loop is None:
-            raise UserError('rlnCoordinateZ was not found in any loop section of file {}.'.format(self.file_name))
+            raise UserError(
+                f"rlnCoordinateZ was not found in any loop section of file {self.file_name}."
+            )
 
         # Take the good one, store the rest and the loop name so we can write it out again later on
         df = content[data_loop]
@@ -145,84 +160,91 @@ class RELIONParticleData(ParticleData):
 
         # Do we have tomo names?
         names_present = False
-        if 'rlnTomoName' in df_keys:
-            names = list(df['rlnTomoName'])
+        if "rlnTomoName" in df_keys:
+            names = list(df["rlnTomoName"])
 
             # Sanity check names
             first_name = names[0]
-            if '_' not in first_name:
-                raise UserError('Encountered particle without "_" in rlnTomoName. Aborting.')
+            if "_" not in first_name:
+                raise UserError(
+                    'Encountered particle without "_" in rlnTomoName. Aborting.'
+                )
 
-            full = first_name.split('_')
-            prefix_guess = ''.join(full[0:-1])
+            full = first_name.split("_")
+            prefix_guess = "".join(full[0:-1])
             num_guess = full[-1]
 
             for n in names:
-                if '_' not in n:
-                    raise UserError('Encountered particle without "_" in rlnTomoName. Aborting.')
+                if "_" not in n:
+                    raise UserError(
+                        'Encountered particle without "_" in rlnTomoName. Aborting.'
+                    )
 
-                full = n.split('_')
-                prefix_test = ''.join(full[0:-1])
+                full = n.split("_")
+                prefix_test = "".join(full[0:-1])
 
                 if prefix_test != prefix_guess:
                     raise UserError(
-                        'Encountered particles with inconsistent '
-                        'rlnTomoName prefixes {} and {}. Aborting.'.format(prefix_test, prefix_guess))
+                        "Encountered particles with inconsistent "
+                        "rlnTomoName prefixes {} and {}. Aborting.".format(
+                            prefix_test, prefix_guess
+                        )
+                    )
 
             self.name_prefix = prefix_guess
             self.name_leading_zeros = len(num_guess)
             names_present = True
-            additional_keys.remove('rlnTomoName')
+            additional_keys.remove("rlnTomoName")
         else:
-            self._data_keys.pop('rlnTomoName')
+            self._data_keys.pop("rlnTomoName")
 
         # If we have shifts in Angstrom, use those instead of the pixel shifts, remodel the format definition
         origin_present = False
         origin_angstrom = False
-        if 'rlnOriginZ' in df_keys:
+        if "rlnOriginZ" in df_keys:
             origin_present = True
 
-            additional_keys.remove('rlnOriginX')
-            additional_keys.remove('rlnOriginY')
-            additional_keys.remove('rlnOriginZ')
+            additional_keys.remove("rlnOriginX")
+            additional_keys.remove("rlnOriginY")
+            additional_keys.remove("rlnOriginZ")
 
-        elif 'rlnOriginZAngst' in df_keys:
+        elif "rlnOriginZAngst" in df_keys:
             origin_present = True
             origin_angstrom = True
 
-            self._data_keys.pop('rlnOriginX')
-            self._data_keys.pop('rlnOriginY')
-            self._data_keys.pop('rlnOriginZ')
+            self._data_keys.pop("rlnOriginX")
+            self._data_keys.pop("rlnOriginY")
+            self._data_keys.pop("rlnOriginZ")
 
-            self._data_keys['rlnOriginXAngst'] = []
-            self._data_keys['rlnOriginYAngst'] = []
-            self._data_keys['rlnOriginZAngst'] = []
+            self._data_keys["rlnOriginXAngst"] = []
+            self._data_keys["rlnOriginYAngst"] = []
+            self._data_keys["rlnOriginZAngst"] = []
 
-            self._default_params['shift_x'] = 'rlnOriginXAngst'
-            self._default_params['shift_y'] = 'rlnOriginYAngst'
-            self._default_params['shift_z'] = 'rlnOriginZAngst'
+            self._default_params["shift_x"] = "rlnOriginXAngst"
+            self._default_params["shift_y"] = "rlnOriginYAngst"
+            self._default_params["shift_z"] = "rlnOriginZAngst"
 
-            additional_keys.remove('rlnOriginXAngst')
-            additional_keys.remove('rlnOriginYAngst')
-            additional_keys.remove('rlnOriginZAngst')
+            additional_keys.remove("rlnOriginXAngst")
+            additional_keys.remove("rlnOriginYAngst")
+            additional_keys.remove("rlnOriginZAngst")
 
-        #TODO: what about rlnTomoSubtomogramRot/Tilt/Psi? Disregard it for now.
+        # TODO: what about rlnTomoSubtomogramRot/Tilt/Psi? Disregard it for now.
 
         # If angles are not there, take note
         rot_present = False
-        if 'rlnAngleRot' in df_keys:
+        if "rlnAngleRot" in df_keys:
             rot_present = True
-            additional_keys.remove('rlnAngleRot')
+            additional_keys.remove("rlnAngleRot")
 
         tilt_present = False
-        if 'rlnAngleTilt' in df_keys:
+        if "rlnAngleTilt" in df_keys:
             tilt_present = True
-            additional_keys.remove('rlnAngleTilt')
+            additional_keys.remove("rlnAngleTilt")
 
         psi_present = False
-        if 'rlnAnglePsi' in df_keys:
+        if "rlnAnglePsi" in df_keys:
             psi_present = True
-            additional_keys.remove('rlnAnglePsi')
+            additional_keys.remove("rlnAnglePsi")
 
         # Additional data (everything that is a number)
         additional_entries = []
@@ -232,7 +254,6 @@ class RELIONParticleData(ParticleData):
                 self._data_keys[key] = []
             else:
                 self.remaining_data[key] = df[key]
-
 
         # Store everything
         self._register_keys()
@@ -244,78 +265,88 @@ class RELIONParticleData(ParticleData):
 
             # Name
             if names_present:
-                n = row['rlnTomoName'].split('_')
+                n = row["rlnTomoName"].split("_")
                 num = int(n[-1])
-                p['rlnTomoName'] = num
+                p["rlnTomoName"] = num
 
             # Position
-            p['pos_x'] = row['rlnCoordinateX']
-            p['pos_y'] = row['rlnCoordinateY']
-            p['pos_z'] = row['rlnCoordinateZ']
+            p["pos_x"] = row["rlnCoordinateX"]
+            p["pos_y"] = row["rlnCoordinateY"]
+            p["pos_z"] = row["rlnCoordinateZ"]
 
             # Shift
             if origin_present:
                 if origin_angstrom:
                     # Note negation due to convention
-                    p['shift_x'] = - row['rlnOriginXAngst']
-                    p['shift_y'] = - row['rlnOriginYAngst']
-                    p['shift_z'] = - row['rlnOriginZAngst']
+                    p["shift_x"] = -row["rlnOriginXAngst"]
+                    p["shift_y"] = -row["rlnOriginYAngst"]
+                    p["shift_z"] = -row["rlnOriginZAngst"]
                 else:
                     # Note negation due to convention
-                    p['shift_x'] = - row['rlnOriginX']
-                    p['shift_y'] = - row['rlnOriginY']
-                    p['shift_z'] = - row['rlnOriginZ']
+                    p["shift_x"] = -row["rlnOriginX"]
+                    p["shift_y"] = -row["rlnOriginY"]
+                    p["shift_z"] = -row["rlnOriginZ"]
             else:
-                p['shift_x'] = 0
-                p['shift_y'] = 0
-                p['shift_z'] = 0
+                p["shift_x"] = 0
+                p["shift_y"] = 0
+                p["shift_z"] = 0
 
             # Orientation
             if rot_present:
-                p['ang_1'] = row['rlnAngleRot']
+                p["ang_1"] = row["rlnAngleRot"]
             else:
-                p['ang_1'] = 0
+                p["ang_1"] = 0
 
             if tilt_present:
-                p['ang_2'] = row['rlnAngleTilt']
+                p["ang_2"] = row["rlnAngleTilt"]
             else:
-                p['ang_2'] = 0
+                p["ang_2"] = 0
 
             if psi_present:
-                p['ang_3'] = row['rlnAnglePsi']
+                p["ang_3"] = row["rlnAnglePsi"]
             else:
-                p['ang_3'] = 0
+                p["ang_3"] = 0
 
             # Everything else
             for attr in additional_entries:
                 p[attr] = float(row[attr])
 
-
     def write_file(self, file_name=None, additional_files=None):
+        """writing file in regular relion format"""
+
+        # Get the corresponding tomogram name from widget
+        # dialog = CoordInputDialog()
+        # tomogram_name = dialog.get_info()
+
         if file_name is None:
             file_name = self.file_name
 
         data = self.as_dictionary()
 
         # Convert shifts back to their convention
-        if 'rlnOriginXAngst' in self._data_keys.keys():
-            for idx, v in enumerate(data['rlnOriginXAngst']):
-                data['rlnOriginXAngst'][idx] *= -1
-                data['rlnOriginYAngst'][idx] *= -1
-                data['rlnOriginZAngst'][idx] *= -1
+        if "rlnOriginXAngst" in self._data_keys.keys():
+            for idx, v in enumerate(data["rlnOriginXAngst"]):
+                data["rlnOriginXAngst"][idx] *= -1
+                data["rlnOriginYAngst"][idx] *= -1
+                data["rlnOriginZAngst"][idx] *= -1
         else:
-            for idx, v in enumerate(data['rlnOriginX']):
-                data['rlnOriginX'][idx] *= -1
-                data['rlnOriginY'][idx] *= -1
-                data['rlnOriginZ'][idx] *= -1
+            for idx, v in enumerate(data["rlnOriginX"]):
+                data["rlnOriginX"][idx] *= -1
+                data["rlnOriginY"][idx] *= -1
+                data["rlnOriginZ"][idx] *= -1
 
         if self.name_prefix is not None:
-            for idx, n in enumerate(data['rlnTomoName']):
-                fmt = '{{}}_{{:0{}d}}'.format(self.name_leading_zeros)
-                data['rlnTomoName'][idx] = fmt.format(self.name_prefix, data['rlnTomoName'][idx])
+            for idx, n in enumerate(data["rlnTomoName"]):
+                fmt = "{{}}_{{:0{}d}}".format(self.name_leading_zeros)
+                data["rlnTomoName"][idx] = fmt.format(
+                    self.name_prefix, data["rlnTomoName"][idx]
+                )
         else:
-            if 'rlnTomoName' in data.keys():
-                data.pop('rlnTomoName')
+            # for manually adding name for column rlnTomoName
+            # for idx, n in enumerate(data['rlnTomoName']):
+            #    data['rlnTomoName'][idx] = tomogram_name
+            if "rlnTomoName" in data.keys():
+                data.pop("rlnTomoName")
 
         df = pd.DataFrame(data=data)
 
@@ -324,6 +355,7 @@ class RELIONParticleData(ParticleData):
 
         starfile.write(full_dict, file_name, overwrite=True)
 
-RELION_FORMAT = ArtiaXFormat(name='RELION STAR file',
-                             nicks=['star', 'relion'],
-                             particle_data=RELIONParticleData)
+
+RELION_FORMAT = ArtiaXFormat(
+    name="RELION STAR file", nicks=["star", "relion"], particle_data=RELIONParticleData
+)
