@@ -4,12 +4,14 @@
 from functools import partial
 from pathlib import Path
 from sys import platform
+import numpy as np
 
 # ChimeraX
 from chimerax.core.commands import run
 from chimerax.core.errors import UserError
 from chimerax.core.tools import ToolInstance
-from chimerax.map import open_map
+from chimerax.map import open_map, Volume
+from chimerax.geometry import find_closest_points
 
 # Qt
 from Qt.QtCore import Qt, QSize
@@ -487,6 +489,14 @@ class OptionsWindow(ToolInstance):
         group_slices.setLayout(group_slices_layout)
         #### Slice Box ####
 
+        ###Split Tomogram###
+        # Create the "Split Tomogram" button
+        self.split_tomogram_button = QPushButton("Split Tomogram")
+        self.split_tomogram_button.setToolTip("Split the tomogram into separate parts")
+
+        # Optionally connect the button to a method
+        self.split_tomogram_button.clicked.connect(self.split_volume_by_connected_colors)
+
         # Add groups to layout
         tomo_layout.addWidget(group_current_tomo)
         tomo_layout.addWidget(group_pixelsize)
@@ -495,6 +505,7 @@ class OptionsWindow(ToolInstance):
         tomo_layout.addWidget(group_orthoplanes)
         tomo_layout.addWidget(group_process)
         #tomo_layout.addWidget(group_fourier_transform)
+        tomo_layout.addWidget(self.split_tomogram_button)
 
         # And finally set the layout of the widget
         self.tomo_widget = QWidget()
@@ -920,7 +931,376 @@ class OptionsWindow(ToolInstance):
         command = "volume fourier #{} phase true".format(id)
         run(self.session, command)
 
-# ==============================================================================
+
+    def split_volume_by_connected_colors(self):
+        """
+        Create new volumes for each connected colored region in the surface.
+
+        Args:
+            surface: The surface object containing triangle and vertex color data.
+        Returns:
+            A list of new volumes split by color.
+        """
+        artia = self.session.ArtiaX
+        tomo = artia.tomograms.get(artia.options_tomogram)
+        volume=tomo
+        print("Split Tomogram button clicked!")
+
+        #surface=Volume.VolumeSurface
+
+        # Get the number of surfaces in the volume
+        num_surfaces = len(volume.surfaces)
+
+        # Print the number of surfaces
+        print(f"There are {num_surfaces} surfaces in the volume.")
+
+        surface = volume.surfaces[0]
+
+        if hasattr(surface, 'triangles'):
+            triangles = surface.triangles
+            print("Triangles:", triangles)
+
+        if hasattr(surface, 'vertex_colors'):
+            vertex_colors = surface.vertex_colors
+            print("Vertex Colors:", vertex_colors)
+
+        if hasattr(surface, 'vertices'):
+            vertices = surface.vertices
+            print("Vertices:", vertices)
+
+        # # Check all attributes and methods of the volume object
+        # print(dir(volume))
+        #
+        # # Check for surface-related attributes in the volume
+        # if hasattr(volume, "surface"):
+        #     print(volume.surface)  # Inspect the surface object
+        # elif hasattr(volume, "surfaces"):
+        #     print(volume.surfaces)  # If there are multiple surfaces
+        # else:
+        #     print("No surface attribute found.")
+        #
+        # # Check for child objects of the volume (e.g., surfaces or related models)
+        # if hasattr(volume, "children"):
+        #     for child in volume.children:
+        #         print(child)
+        #
+        # # Print the type of the volume to understand what class it belongs to
+        # print(type(volume))
+        #
+        # help(volume)  # Show detailed help for the volume object (if it's a class with docstrings)
+
+        if surface == None:
+            raise UserError("No surface found")
+
+        from chimerax.surface import connected_triangles
+
+        if surface.vertex_colors is None:
+            raise ValueError("Surface does not have vertex colors assigned.")
+
+        # Step 1: Group triangles by connected colors
+        unique_colors = np.unique(surface.vertex_colors, axis=0)
+        color_to_triangles = {}
+
+        for color in unique_colors:
+            # Find all triangles with this color
+            color_indices = np.where((surface.vertex_colors == color).all(axis=1))[0]
+            #print(f"Color type: {type(color)}, Color: {color}")
+            #print(f"Color Indices: {color_indices}")
+
+            # Store the triangles for each color in the dictionary
+            color_to_triangles[tuple(color)] = color_indices
+
+        # Step 2: Generate masked grid data for each color group
+        grids = []
+
+        print(f"color to triangles{color_to_triangles}")
+        num_surfaces = len(color_to_triangles)
+
+        # Print the number of surfaces
+        #print(f"There are {num_surfaces} entries in color_to_triangles.")
+
+        for color, triangle_indices in color_to_triangles.items():
+            # Mask triangles not belonging to this color group
+            masked_triangles = np.isin(np.arange(len(surface.triangles)), triangle_indices)
+            grid = self._create_grid_for_masked_triangles(volume, masked_triangles)
+            grid.zone_color = color  # Assign the color to the grid
+            grids.append(grid)
+
+        # Step 3: Create new volumes from grids
+
+        print("grids are done")
+        for i, grid in enumerate(grids):
+            print(f"Grid {i}: Name={grid.name}, Dimensions={grid.size}")
+
+        from chimerax.map import volume_from_grid_data
+
+        new_volumes = [volume_from_grid_data(g, self.session, open_model=False) for g in grids]
+        for v in new_volumes:
+            v.copy_settings_from(volume, copy_region=False)
+            rgba = tuple(c / 255 for c in v.data.zone_color)
+            v.set_parameters(surface_colors=[rgba] * len(v.surfaces))
+            v.display = True
+
+        # Step 4: Handle model hierarchy and visibility
+        volume.display = False
+        if len(new_volumes) == 1:
+            self.session.models.add(new_volumes)
+        else:
+            self.session.models.add_group(new_volumes, name=f"{volume.name} split")
+
+        return new_volumes
+
+    def _create_grid_for_masked_triangles(self, volume, masked_triangles):
+        # """
+        #     Generate grid data for a subset of triangles in the volume.
+        #
+        #     Args:
+        #         volume: The volume object.
+        #         masked_triangles: A boolean mask for triangles to include in the grid.
+        #     Returns:
+        #         A grid object with only the specified triangles.
+        #     """
+        # ijk_min, ijk_max, ijk_step = volume.region
+        # from chimerax.map_data import GridSubregion
+        # sg = GridSubregion(volume.data, ijk_min, ijk_max)
+        # print(f"Subregion dimensions (ijk_min to ijk_max): {ijk_min} to {ijk_max}, ijk_step={ijk_step}")
+        # print(f"Grid shape (sg): {sg.size}")  # Assuming GridSubregion has a data attribute.
+        # pixsize=sg.step[0]
+        #
+        #
+        # # Ensure that surface vertices are passed as zone_points
+        # from chimerax.map_data import zone_mask, masked_grid_data
+        #
+        # vertices = volume.surfaces[0].vertices
+        # # Create a mask for the vertices corresponding to the selected triangles
+        # vertex_mask = np.zeros(len(vertices), dtype=bool)
+        #
+        # # Use masked_triangles to set the mask for the corresponding vertices
+        # for i, triangle_indices in enumerate(volume.surfaces[0].triangles):
+        #     if masked_triangles[i]:  # If the triangle is selected
+        #         vertex_mask[triangle_indices] = True  # Mark the corresponding vertices
+        #
+        # print(f"vertex_mask{vertex_mask}")
+        # num_surfaces = len(vertex_mask)
+        #
+        # # Print the number of surfaces
+        # print(f"There are {num_surfaces} entries in vertex_mask.")
+        #
+        # # Extract only the selected vertices
+        # selected_vertices = vertices[vertex_mask]
+        #
+        # # Print diagnostic info
+        # print(f"Selected vertices: {selected_vertices}")
+        # print(f"Total vertices: {len(vertices)}")
+        # print(f"Selected vertices: {len(selected_vertices)}")
+        # print(f"Selected percentage: {len(selected_vertices) / len(vertices) * 100:.2f}%")
+        #
+        # print(f"pixsize: {pixsize}")
+        # # Use only the selected vertices as zone_points
+        # selected_vertices_scaled = selected_vertices / pixsize
+        # print(f"Number of scaled selected vertices: {len(selected_vertices_scaled)}")
+        # print(f"Scaled selected vertices: {selected_vertices_scaled}")
+        # print(f"Scaled vertices min: {selected_vertices_scaled.min(axis=0)}")
+        # print(f"Scaled vertices max: {selected_vertices_scaled.max(axis=0)}")
+        # print(f"Grid size: {sg.size}")
+        # grid_shape = np.array(sg.size)  # (1024, 1440, 800)
+        # zone_radius=1000
+        # voxel_radius = zone_radius / pixsize
+        # print(f"Voxel_radius {voxel_radius}")
+        # print(f"Scaled vertices within bounds: {np.all((selected_vertices_scaled >= 0) & (selected_vertices_scaled < grid_shape))}")
+        # mask = self.custom_zone_mask(sg, selected_vertices_scaled, zone_radius=voxel_radius, invert_mask=False)
+        # print(f"Zone mask shape: {mask.shape}")
+        # #mask = np.transpose(mask, (2, 1, 0))
+        # # Replace the mask with one that is fully True
+        # #mask = np.ones(sg.size, dtype=bool)
+        # print(f"Transposed mask shape: {mask.shape}")
+        # print(np.unique(mask))
+        # print(f"Mask filled with True: {np.sum(mask)} out of {mask.size}")
+        # indices = np.argwhere(mask)
+        # min_coords = indices.min(axis=0)
+        # max_coords = indices.max(axis=0)
+        # print(f"Bounding box: Min {min_coords}, Max {max_coords}")
+        #
+        #
+        #
+        #
+        # # Pass the actual surface vertices as zone_points
+        # #mask = zone_mask(sg, vertices, zone_radius=1, invert_mask=False, zone_point_mask_values=vertex_mask)
+        #
+        # # Create the masked grid
+        # grid = masked_grid_data(sg, mask, 1)  # '1' is used to select the region
+        # grid.name = f"{volume.data.name}_{np.sum(masked_triangles)}triangles"
+        # #print(dir(grid))
+        # #print(dir(grid.data))
+        # print(f"Grid size: {grid.size}")
+        # if hasattr(grid, 'array'):
+        #     print(f"Grid array shape: {grid.array.shape}")
+        # else:
+        #     print("Grid does not have an array attribute.")
+        # if hasattr(grid, 'matrix'):
+        #     print(f"Grid matrix shape: {grid.matrix().shape}")  # Use method call if `matrix` is callable
+        # elif hasattr(grid, 'full_matrix'):
+        #     print(f"Grid full matrix shape: {grid.full_matrix().shape}")
+        # else:
+        #     print("Grid has no matrix or full_matrix attributes.")
+        # if hasattr(grid, 'submatrix'):
+        #     submat = grid.submatrix((0, 0, 0), (1, 1, 1))  # Try with a minimal slice
+        #     print(f"Submatrix slice shape: {submat.shape}")
+        # print(f"Origin: {grid.origin}")  # May provide grid origin
+        # print(f"Step size: {grid.step}")  # Spacing between voxels
+        # print(f"Masked grid data name: {grid.name}, Masked grid size: {grid.size}")
+        # print(f"Mask shape: {mask.shape}, Expected shape: {grid.size}")
+        #
+        # return grid
+
+        """
+            Generate grid data for a subset of triangles in the volume.
+
+            Args:
+                volume: The volume object.
+                masked_triangles: A boolean mask for triangles to include in the grid.
+            Returns:
+                A grid object with only the specified triangles.
+            """
+        ijk_min, ijk_max, ijk_step = volume.region
+        from chimerax.map_data import GridSubregion
+        sg = GridSubregion(volume.data, ijk_min, ijk_max)
+        pixsize = sg.step[0]
+
+        # Ensure that surface vertices are passed as zone_points
+        vertices = volume.surfaces[0].vertices
+        vertex_mask = np.zeros(len(vertices), dtype=bool)
+
+        # Use masked_triangles to set the mask for the corresponding vertices
+        for i, triangle_indices in enumerate(volume.surfaces[0].triangles):
+            if masked_triangles[i]:
+                vertex_mask[triangle_indices] = True  # Mark the corresponding vertices
+
+        # Extract only the selected vertices
+        selected_vertices = vertices[vertex_mask]
+
+        # Scale selected vertices by the pixel size (voxel units)
+        selected_vertices_scaled = selected_vertices / pixsize
+
+        # Initialize the mask array (e.g., with the same shape as the grid)
+        grid_shape = np.array(sg.size)  # (1024, 1440, 800)
+        mask = np.zeros(grid_shape, dtype=bool)
+
+        # Iterate through the selected vertices and mark the corresponding entries in the mask
+        for vertex in selected_vertices_scaled:
+            # Round the scaled vertex coordinates to nearest integers (voxel indices)
+            voxel_coords = np.round(vertex).astype(int)
+
+            # Check if the voxel coordinates are within the bounds of the grid
+            if np.all(voxel_coords >= 0) and np.all(voxel_coords < grid_shape):
+                mask[tuple(voxel_coords)] = True
+
+        # Final mask status
+        print(f"Mask shape: {mask.shape}")
+        print(f"Mask filled with True: {np.sum(mask)} out of {mask.size}")
+
+        # Create the masked grid
+        from chimerax.map_data import masked_grid_data
+        grid = masked_grid_data(sg, mask, 1)
+        grid.name = f"{volume.data.name}_{np.sum(masked_triangles)}triangles"
+
+        print(f"Grid size: {grid.size}")
+        if hasattr(grid, 'array'):
+            print(f"Grid array shape: {grid.array.shape}")
+        else:
+            print("Grid does not have an array attribute.")
+        if hasattr(grid, 'matrix'):
+            print(f"Grid matrix shape: {grid.matrix().shape}")
+        elif hasattr(grid, 'full_matrix'):
+            print(f"Grid full matrix shape: {grid.full_matrix().shape}")
+        else:
+            print("Grid has no matrix or full_matrix attributes.")
+        if hasattr(grid, 'submatrix'):
+            submat = grid.submatrix((0, 0, 0), (1, 1, 1))  # Try with a minimal slice
+            print(f"Submatrix slice shape: {submat.shape}")
+        print(f"Origin: {grid.origin}")  # May provide grid origin
+        print(f"Step size: {grid.step}")  # Spacing between voxels
+        print(f"Masked grid data name: {grid.name}, Masked grid size: {grid.size}")
+
+        return grid
+
+
+    def custom_zone_mask(self, grid_data, zone_points, zone_radius, invert_mask=False, zone_point_mask_values=None):
+        """
+        Custom version of the zone_mask function with debugging output.
+        """
+
+        # Convert zone_points to a numpy array (ensure it's in float64)
+        zone_points = np.array(zone_points, dtype=np.float64)
+
+        # Initialize mask
+        shape = tuple(reversed(grid_data.size))
+        mask_3d = np.zeros(shape, dtype=np.int8)
+        mask_1d = mask_3d.ravel()
+
+        # Debugging: Show the initial mask state
+        print("Initial mask state:", mask_3d.shape)
+
+        # If zone_point_mask_values are not provided, set the mask value
+        if zone_point_mask_values is None:
+            mask_value = 1 if not invert_mask else 0
+        else:
+            mask_value = 1
+
+        # Check for grid size limit and process the grid efficiently
+        size_limit = 2 ** 22  # limit to avoid too large arrays
+        if mask_3d.size > size_limit:
+            xsize, ysize, zsize = grid_data.size
+            grid_points = np.indices((xsize, ysize, 1), dtype=np.float64)  # Convert to float64
+
+            # Reshape grid_points to be a 2D array where each row is a (x, y, z) point
+            grid_points = grid_points.reshape(3, -1).T  # Reshape to (n_points, 3)
+
+            grid_data.ijk_to_xyz_transform.transform_points(grid_points, in_place=True)
+            zstep = [grid_data.ijk_to_xyz_transform.matrix[a][2] for a in range(3)]
+
+            for z in range(zsize):
+                i1, i2, n1 = find_closest_points(grid_points, zone_points, zone_radius)
+                print(f"i1:{i1}, i2:{i2}, n1:{n1}")
+                offset = xsize * ysize * z
+
+                if zone_point_mask_values is None:
+                    mask_1d[i1 + offset] = mask_value
+                else:
+                    mask_1d[i1 + offset] = zone_point_mask_values[n1]
+
+                # Debugging: Show how points are marked
+                print(f"Layer {z}: Marked grid points within zone_radius")
+                print(f"Marked grid points indices in this layer: {i1 + offset}")
+
+        else:
+            grid_points = np.indices(grid_data.size, dtype=np.float64)  # Convert to float64
+
+            # Reshape grid_points to be a 2D array where each row is a (x, y, z) point
+            grid_points = grid_points.reshape(3, -1).T  # Reshape to (n_points, 3)
+
+            grid_data.ijk_to_xyz_transform.transform_points(grid_points, in_place=True)
+            i1, i2, n1 = find_closest_points(grid_points, zone_points, zone_radius)
+
+            # Debugging: Show which grid points are affected by each zone_point
+            print(f"Processing zone_points: {len(zone_points)} points within {zone_radius} radius.")
+            for idx, zone_point in enumerate(zone_points):
+                print(f"Zone Point {idx}: {zone_point}")
+
+            # Show the indices of the grid points being marked
+            print(f"Indices of grid points marked within radius: {i1}")
+
+            if zone_point_mask_values is None:
+                mask_1d[i1] = mask_value
+            else:
+                mask_1d[i1] = zone_point_mask_values[n1]
+
+        # Final mask status
+        print(f"Final mask has {np.sum(mask_1d)} marked points (True values) out of {mask_3d.size}.")
+
+        # Return the 3D mask
+        return mask_3d
+    # ==============================================================================
 # Options Menus for Motivelists =================================================
 # ==============================================================================
 
