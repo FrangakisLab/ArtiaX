@@ -495,7 +495,8 @@ class OptionsWindow(ToolInstance):
         self.split_tomogram_button.setToolTip("Split the tomogram into separate parts")
 
         # Optionally connect the button to a method
-        self.split_tomogram_button.clicked.connect(self.split_volume_by_connected_colors)
+        #self.split_tomogram_button.clicked.connect(self.split_volume_by_connected_colors)
+        self.split_tomogram_button.clicked.connect(self.color_like_segmentation)
 
         # Add groups to layout
         tomo_layout.addWidget(group_current_tomo)
@@ -1300,7 +1301,31 @@ class OptionsWindow(ToolInstance):
 
         # Return the 3D mask
         return mask_3d
-    # ==============================================================================
+
+    def color_like_segmentation(self):
+        artia = self.session.ArtiaX
+        tomo = artia.tomograms.get(artia.options_tomogram)
+        volume = tomo
+        print("Split Tomogram button clicked!")
+
+        # surface=Volume.VolumeSurface
+
+        # Get the number of surfaces in the volume
+        num_surfaces = len(volume.surfaces)
+
+        # Print the number of surfaces
+        print(f"There are {num_surfaces} surfaces in the volume.")
+
+        surface = volume.surfaces[0]
+
+        segm=artia.tomogram[1]
+        print(segm)
+
+
+
+
+
+# ==============================================================================
 # Options Menus for Motivelists =================================================
 # ==============================================================================
 
