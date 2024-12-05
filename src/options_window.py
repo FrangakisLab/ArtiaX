@@ -32,7 +32,8 @@ from Qt.QtWidgets import (
     QLayout,
     QWidget,
     QStackedLayout,
-    QStackedWidget
+    QStackedWidget,
+    QListWidget,
 )
 
 # This package
@@ -498,6 +499,19 @@ class OptionsWindow(ToolInstance):
         #self.split_tomogram_button.clicked.connect(self.split_volume_by_connected_colors)
         self.split_tomogram_button.clicked.connect(self.color_like_segmentation)
 
+        #### Section: "Select Tomogram to Compare" ####
+        self.select_tomogram_group = QGroupBox("Select Segmentation")
+        self.select_tomogram_group.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum))
+
+
+        # Tomogram selection list
+        self.tomogram_list_widget = QListWidget()
+        #self.populate_tomogram_list()
+
+
+
+
+
         # Add groups to layout
         tomo_layout.addWidget(group_current_tomo)
         tomo_layout.addWidget(group_pixelsize)
@@ -507,6 +521,9 @@ class OptionsWindow(ToolInstance):
         tomo_layout.addWidget(group_process)
         #tomo_layout.addWidget(group_fourier_transform)
         tomo_layout.addWidget(self.split_tomogram_button)
+        tomo_layout.addWidget(self.select_tomogram_group)
+        tomo_layout.addLayout(self.tomogram_list_widget)
+
 
         # And finally set the layout of the widget
         self.tomo_widget = QWidget()
