@@ -1338,7 +1338,44 @@ class OptionsWindow(ToolInstance):
         segm=artia.tomogram[1]
         print(segm)
 
+    def populate_tomogram_list(self):
+        # Clear the current items
+        self.tomogram_list_widget.clear()
 
+        # Retrieve current selected tomogram for reference
+        #current_tomogram = self.session.ArtiaX.selected_tomogram
+        artia = self.session.ArtiaX
+        current_tomogram = artia.tomograms.get(artia.options_tomogram)
+
+        # Iterate through the available tomograms
+        for vol in self.session.ArtiaX.tomograms.iter():
+            # Try to retrieve id_string and name attributes
+            vol_id = getattr(vol, 'id_string', None)
+            vol_name = getattr(vol, 'name', None)
+
+            # Debug print to confirm values are correct
+            #print(f"Adding tomogram: id_string = {vol_id}, name = {vol_name}")
+
+            # Check if both id_string and name are found; handle missing values
+            if vol_id is None:
+                vol_id = 'Unknown ID'
+            if vol_name is None:
+                vol_name = 'Unnamed Tomogram'
+
+            # Combine id and name for the display text
+            item_text = f"#{vol_id} - {vol_name}"
+
+            # Create the list widget item with the display text
+            item = QListWidgetItem(item_text)
+            item.setCheckState(Qt.Unchecked)  # Unchecked by default
+            item.setData(Qt.UserRole, vol)  # Store the volume object in the item for later access
+
+            # Optionally, check if this is the currently selected tomogram
+            if vol == current_tomogram:
+                item.setCheckState(Qt.Checked)
+
+            # Add the item to the list widget
+            self.tomogram_list_widget.addItem(item)
 
 
 
