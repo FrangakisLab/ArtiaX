@@ -241,6 +241,7 @@ class RELION5ParticleData(ParticleData):
             additional_keys.remove("rlnOriginXAngst")
 
 
+
         # If angles are not there, take note
         rot_present = False
         if "rlnAngleRot" in df_keys:

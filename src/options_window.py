@@ -38,6 +38,7 @@ from Qt.QtWidgets import (
     QListWidgetItem,
 
 )
+from chimerax.surface.texture import color_image
 
 # This package
 from .volume.Tomogram import orthoplane_cmd
@@ -502,16 +503,6 @@ class OptionsWindow(ToolInstance):
         # Create a layout for the group box
         coloring_layout = QVBoxLayout()
 
-        # Create the "Color Tomogram" button
-        self.color_tomogram_button = QPushButton("Color Tomogram")
-        self.color_tomogram_button.setToolTip("Color the tomogram according to segmentation")
-
-        # Connect the button to the method
-        self.color_tomogram_button.clicked.connect(self.color_like_segmentation)
-
-        # Add the button to the coloring layout
-        coloring_layout.addWidget(self.color_tomogram_button)
-
         # Section: "Select Tomogram"
         self.select_tomogram_group = QGroupBox("Select Segmentation")
         self.select_tomogram_group.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum))
@@ -532,10 +523,27 @@ class OptionsWindow(ToolInstance):
         # Add the "Select Tomogram" group to the coloring layout
         coloring_layout.addWidget(self.select_tomogram_group)
 
+        # Add "Radius" input field
+        radius_layout = QHBoxLayout()  # Use a horizontal layout for label and input field
+        radius_label = QLabel("Radius:")
+        self.radius_input = QLineEdit()
+        self.radius_input.setPlaceholderText("Enter radius (e.g., 50.0)")
+        radius_layout.addWidget(radius_label)
+        radius_layout.addWidget(self.radius_input)
+        coloring_layout.addLayout(radius_layout)
+
+        # Create the "Color Tomogram" button
+        self.color_tomogram_button = QPushButton("Color Tomogram")
+        self.color_tomogram_button.setToolTip("Color the tomogram according to segmentation")
+
+        # Connect the button to the method
+        self.color_tomogram_button.clicked.connect(self.color_like_segmentation)
+
+        # Add the button to the coloring layout (at the end)
+        coloring_layout.addWidget(self.color_tomogram_button)
+
         # Set the layout for the coloring group box
         self.color_tomogram_group.setLayout(coloring_layout)
-
-
 
 
         # Add groups to layout
@@ -1013,26 +1021,6 @@ class OptionsWindow(ToolInstance):
             vertices = surface.vertices
             print("Vertices:", vertices)
 
-        # # Check all attributes and methods of the volume object
-        # print(dir(volume))
-        #
-        # # Check for surface-related attributes in the volume
-        # if hasattr(volume, "surface"):
-        #     print(volume.surface)  # Inspect the surface object
-        # elif hasattr(volume, "surfaces"):
-        #     print(volume.surfaces)  # If there are multiple surfaces
-        # else:
-        #     print("No surface attribute found.")
-        #
-        # # Check for child objects of the volume (e.g., surfaces or related models)
-        # if hasattr(volume, "children"):
-        #     for child in volume.children:
-        #         print(child)
-        #
-        # # Print the type of the volume to understand what class it belongs to
-        # print(type(volume))
-        #
-        # help(volume)  # Show detailed help for the volume object (if it's a class with docstrings)
 
         if surface == None:
             raise UserError("No surface found")
@@ -1042,18 +1030,8 @@ class OptionsWindow(ToolInstance):
         if surface.vertex_colors is None:
             raise ValueError("Surface does not have vertex colors assigned.")
 
-        # Step 1: Group triangles by connected colors
-        unique_colors = np.unique(surface.vertex_colors, axis=0)
-        color_to_triangles = {}
-
-        for color in unique_colors:
-            # Find all triangles with this color
-            color_indices = np.where((surface.vertex_colors == color).all(axis=1))[0]
-            #print(f"Color type: {type(color)}, Color: {color}")
-            #print(f"Color Indices: {color_indices}")
-
-            # Store the triangles for each color in the dictionary
-            color_to_triangles[tuple(color)] = color_indices
+        # Step 1: Group triangles by colors
+        color_to_triangles=self.group_triangles_by_color(surface)
 
         # Step 2: Generate masked grid data for each color group
         grids = []
@@ -1062,7 +1040,7 @@ class OptionsWindow(ToolInstance):
         num_surfaces = len(color_to_triangles)
 
         # Print the number of surfaces
-        #print(f"There are {num_surfaces} entries in color_to_triangles.")
+        print(f"There are {num_surfaces} entries in color_to_triangles.")
 
         for color, triangle_indices in color_to_triangles.items():
             # Mask triangles not belonging to this color group
@@ -1094,6 +1072,42 @@ class OptionsWindow(ToolInstance):
             self.session.models.add_group(new_volumes, name=f"{volume.name} split")
 
         return new_volumes
+
+    def group_triangles_by_color(self, surface):
+        """
+            Groups the triangles of a surface based on their vertex colors.
+
+            Parameters:
+            ----------
+            surface : Surface
+                The surface object containing information about vertices, triangles,
+                and their associated colors. The `surface` object should have:
+                - `vertex_colors`: A numpy array of shape (N, 4) where N is the number
+                  of vertices. Each row represents the RGBA color of a vertex.
+
+            Returns:
+            -------
+            color_to_triangles : dict
+                A dictionary where the keys are tuples representing unique RGBA colors
+                (e.g., `(R, G, B, A)`), and the values are arrays of indices pointing
+                to triangles that have vertices of the corresponding color.
+
+            Notes:
+            -----
+            - Triangles are grouped by the vertex color. If a vertex is shared by multiple
+              triangles, all those triangles will be included in the corresponding group.
+            """
+        # Step 1: Identify unique colors from the surface's vertex colors
+        unique_colors = np.unique(surface.vertex_colors, axis=0)
+        color_to_triangles = {}
+
+        # Step 2: Group triangles by their vertex colors
+        for color in unique_colors:
+            # Find all indices where the vertex color matches this unique color
+            color_indices = np.where((surface.vertex_colors == color).all(axis=1))[0]
+            color_to_triangles[tuple(color)] = color_indices
+
+        return color_to_triangles
 
     def _create_grid_for_masked_triangles(self, volume, masked_triangles):
         # """
@@ -1347,47 +1361,264 @@ class OptionsWindow(ToolInstance):
         return mask_3d
 
     def color_like_segmentation(self):
+
+        # Get the radius from the input field
+        try:
+            radius = float(self.radius_input.text())
+            if radius <= 0:
+                raise ValueError("Radius must be greater than 0.")
+        except ValueError as e:
+            print(f"Invalid radius input: {e}")
+            raise UserError("Please enter a valid positive number for the radius.")
+
+
+
+        # Get current tomogram
         artia = self.session.ArtiaX
         tomo = artia.tomograms.get(artia.options_tomogram)
         volume = tomo
         print("Split Tomogram button clicked!")
-
-        # surface=Volume.VolumeSurface
-
-        # Get the number of surfaces in the volume
-        num_surfaces = len(volume.surfaces)
-
-        # Print the number of surfaces
-        print(f"There are {num_surfaces} surfaces in the volume.")
-
         surface = volume.surfaces[0]
 
-        segm=self.get_selected_tomograms()
-        print(segm)
+
+        # Get selected segmentation/tomogram
+        selected_tomograms = self.get_selected_tomograms()
+
+        # Loop through selected tomograms
+        for tomo_id_string in selected_tomograms:
+            selected_tomo = None
+            for tomo in self.session.ArtiaX.tomograms.iter():
+                if f"#{tomo.id_string} - {tomo.name}" == tomo_id_string:
+                    selected_tomo = tomo
+                    break
+
+        # Ensure a segmentation is selected
+        if not selected_tomo:
+            print("No valid segmentation selected.")
+            return
+
+        # Get surface of selected tomogram/segmentation
+        segm = selected_tomo.surfaces[0]
+
+        # Sort triangles of segmentation by color
+        triangles_per_color = self.group_triangles_by_color(surface=segm)
+        print(f"triangles per color dict: {triangles_per_color}")
+
+        # Prepare arguments for the color_zone function
+        points = []
+        point_colors = []
+
+        for color, triangle_indices in triangles_per_color.items():
+            print(f"Processing color: {color}, triangle indices: {triangle_indices}")
+
+            # Calculate centroids for all triangles of this color
+            for tri_idx in triangle_indices:
+                triangle = segm.vertices[segm.triangles[tri_idx]]  # Get the 3 vertices of the triangle
+                print(f"Triangle vertices for index {tri_idx}: {triangle}")
+
+                # Compute centroid of the triangle
+                centroid = triangle.mean(axis=0)
+                print(f"Centroid of triangle {tri_idx}: {centroid}")
+
+                # Add this centroid and its associated color
+                points.append(centroid)
+                point_colors.append(color)
+
+        # Convert lists to numpy arrays for compatibility
+        points = np.array(points)  # Shape (N, 3), where N is the total number of triangles
+        point_colors = np.array(point_colors, dtype=np.uint8)  # Shape (N, 4)
+        print(f"points shape: {points.shape}")
+        print(f"points: {points}")
+        print(f"point_colors shape: {point_colors.shape}")
+        print(f"point_colors: {point_colors}")
+
+        # Define the radius for the color zone
+        radius = 20.0
+
+        from chimerax.surface.colorzone import color_zone
+
+        # Apply the color zoning to the surface
+        color_zone(surface=surface,points=points,point_colors=point_colors,distance=radius,sharp_edges=False,far_color=None,auto_update=True)
+
+        print("Surface coloring completed!")
+
+        self.color_image(triangles_per_color=triangles_per_color, segm=segm, volume=volume)
+
+    import numpy as np
+
+    def color_image(self, segm, triangles_per_color, volume):
+
+
+        # Create the 3D segmentation map
+        segmentation_map = self.create_3d_segmentation_map(segm, triangles_per_color, volume)
+
+        # Get the shape of the array
+        shape = segmentation_map.shape
+
+        # Print lengths in each dimension
+        x_length, y_length, z_length = shape
+        print(f"Length in X (rows): {x_length}")
+        print(f"Length in Y (columns): {y_length}")
+        print(f"Length in Z (depth): {z_length}")
+
+        # For completeness, show size and count of non-zeros as before
+        total_size = segmentation_map.size
+        non_zero_count = np.count_nonzero(segmentation_map)
+
+        print(f"Total size of the array: {total_size}")
+        print(f"Number of non-zero entries: {non_zero_count}")
+
+        # Convert the 3D segmentation map to a ChimeraX-compatible format
+        #segmentation = self.create_segmentation_from_map(segmentation_map)
+
+        # Use the segmentation_colors function for the volume display
+        from chimerax.segment.segment import segmentation_colors
+        segmentation_colors(session=self.session, segmentations=segmentation_map, color=None, map=volume)
+
+    def create_3d_segmentation_map(self, segm, triangles_per_color, volume):
+        """
+        Create a 3D segmentation map where each voxel corresponds to a segment ID.
+
+        Parameters:
+        segm: The segmentation surface model (contains vertices and triangles).
+        triangles_per_color: Dictionary mapping colors to triangle indices of the segm.
+        volume: tomogram volume which is supposed to be colored
+
+        Returns:
+        segmentation_map: 3D numpy array representing the segmentation volume.
+        """
+        grid_size=volume.size
+        # Initialize a 3D array for the segmentation map
+        segmentation_map = np.zeros(grid_size, dtype=int)
+
+        # Map colors to segment IDs
+        color_to_segment_id = {}
+        segment_counter = 1
+        for color in triangles_per_color.keys():
+            color_to_segment_id[color] = segment_counter
+            segment_counter += 1
+
+        #reduced version for debugging
+        # Loop through colors and their associated triangle indices
+        # for color, triangle_indices in triangles_per_color.items():
+        #     segment_id = color_to_segment_id[color]
+        #     print(f"Now processing color: {color}")
+        #
+        #     # Limit to the first 5 triangles (or less if fewer exist)
+        #     limited_triangle_indices = triangle_indices[:5]
+        #
+        #     for tri_idx in limited_triangle_indices:
+        #         # Get the triangle vertices
+        #         vertices = segm.vertices[segm.triangles[tri_idx]]
+        #         print(f"Triangle vertices: {vertices}")
+        #
+        #         # Calculate the bounding box of the triangle in the 3D grid
+        #         min_coords = np.floor(vertices.min(axis=0)).astype(int)
+        #         max_coords = np.ceil(vertices.max(axis=0)).astype(int)
+        #         print(f"Bounding box - min_coords: {min_coords}, max_coords: {max_coords}")
+        #
+        #         # Iterate over voxels within the bounding box
+        #         for x in range(min_coords[0], max_coords[0] + 1):
+        #             for y in range(min_coords[1], max_coords[1] + 1):
+        #                 for z in range(min_coords[2], max_coords[2] + 1):
+        #                     # Check if the voxel lies within the triangle
+        #                     voxel_center = np.array([x + 0.5, y + 0.5, z + 0.5])
+        #                     print(f"Voxel center: {voxel_center}")
+        #                     if self.is_point_in_triangle(voxel_center, vertices):
+        #                         segmentation_map[x, y, z] = segment_id
+        #                         print(f"Marked voxel ({x}, {y}, {z}) with segment ID {segment_id}")
+
+
+        #Old version
+        # Iterate through each color and its associated triangles
+        for color, triangle_indices in triangles_per_color.items():
+            segment_id = color_to_segment_id[color]
+            print(f"now color:{color}")
+
+            for tri_idx in triangle_indices:
+                # Get the triangle vertices
+                vertices = segm.vertices[segm.triangles[tri_idx]]
+                print(f"vertices: {vertices}")
+
+                # Calculate the bounding box of the triangle in the 3D grid
+                min_coords = np.floor(vertices.min(axis=0)).astype(int)
+                max_coords = np.ceil(vertices.max(axis=0)).astype(int)
+                print(f"min_coords: {min_coords}, max_coords: {max_coords}")
+
+                # Iterate over voxels within the bounding box
+                for x in range(min_coords[0], max_coords[0] + 1):
+                    for y in range(min_coords[1], max_coords[1] + 1):
+                        for z in range(min_coords[2], max_coords[2] + 1):
+                            # Check if the voxel lies within the triangle
+                            voxel_center = np.array([x + 0.5, y + 0.5, z + 0.5])
+                            print(f"voxel_center: {voxel_center}")
+                            if self.is_point_in_triangle(voxel_center, vertices):
+                                segmentation_map[x, y, z] = segment_id
+                                print(f"marked {x},{y},{z} with {segment_id}")
+
+        return segmentation_map
+
+    def is_point_in_triangle(self, point, triangle_vertices):
+        """
+        Check if a point lies within a triangle in 3D space using barycentric coordinates.
+
+        Parameters:
+        point: The 3D coordinates of the point.
+        triangle_vertices: The 3 vertices of the triangle.
+
+        Returns:
+        True if the point is inside the triangle; False otherwise.
+        """
+        # Unpack the triangle vertices
+        v0, v1, v2 = triangle_vertices
+
+        # Calculate the vectors relative to the first vertex
+        v0v1 = v1 - v0
+        v0v2 = v2 - v0
+        v0p = point - v0
+
+        # Compute dot products
+        dot00 = np.dot(v0v2, v0v2)
+        dot01 = np.dot(v0v2, v0v1)
+        dot02 = np.dot(v0v2, v0p)
+        dot11 = np.dot(v0v1, v0v1)
+        dot12 = np.dot(v0v1, v0p)
+
+        # Compute barycentric coordinates
+        denom = dot00 * dot11 - dot01 * dot01
+        if denom == 0:
+            print("Degenerate triangle")
+            return False  # Degenerate triangle
+
+        u = (dot11 * dot02 - dot01 * dot12) / denom
+        v = (dot00 * dot12 - dot01 * dot02) / denom
+
+        # Check if point is in triangle
+        inside = (u >= 0) and (v >= 0) and (u + v <= 1)
+        if inside:
+            print("is in triangle")
+        else:
+            print("not in triangle")
+        return inside
+
 
     def populate_tomogram_list(self):
         # Clear the current items
         self.tomogram_list_widget.clear()
 
-        # Retrieve current selected tomogram for reference
-        #current_tomogram = self.session.ArtiaX.selected_tomogram
+        # Retrieve the currently selected tomogram
         artia = self.session.ArtiaX
         current_tomogram = artia.tomograms.get(artia.options_tomogram)
 
         # Iterate through the available tomograms
         for vol in self.session.ArtiaX.tomograms.iter():
-            # Try to retrieve id_string and name attributes
-            vol_id = getattr(vol, 'id_string', None)
-            vol_name = getattr(vol, 'name', None)
+            # Skip the current tomogram to avoid adding it to the list
+            if vol == current_tomogram:
+                continue
 
-            # Debug print to confirm values are correct
-            #print(f"Adding tomogram: id_string = {vol_id}, name = {vol_name}")
-
-            # Check if both id_string and name are found; handle missing values
-            if vol_id is None:
-                vol_id = 'Unknown ID'
-            if vol_name is None:
-                vol_name = 'Unnamed Tomogram'
+            # Retrieve id_string and name attributes
+            vol_id = getattr(vol, 'id_string', 'Unknown ID')  # Default to 'Unknown ID' if missing
+            vol_name = getattr(vol, 'name', 'Unnamed Tomogram')  # Default to 'Unnamed Tomogram' if missing
 
             # Combine id and name for the display text
             item_text = f"#{vol_id} - {vol_name}"
@@ -1396,10 +1627,6 @@ class OptionsWindow(ToolInstance):
             item = QListWidgetItem(item_text)
             item.setCheckState(Qt.Unchecked)  # Unchecked by default
             item.setData(Qt.UserRole, vol)  # Store the volume object in the item for later access
-
-            # Optionally, check if this is the currently selected tomogram
-            if vol == current_tomogram:
-                item.setCheckState(Qt.Checked)
 
             # Add the item to the list widget
             self.tomogram_list_widget.addItem(item)
