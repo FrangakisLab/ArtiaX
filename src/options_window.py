@@ -691,6 +691,7 @@ class OptionsWindow(ToolInstance):
     def _update_tomo_ui(self):
         self._update_tomo_sliders()
         self._update_pixelsize_edit()
+        self._update_analysis()
 
     def _models_changed(self, name, model):
         artia = self.session.ArtiaX
@@ -1412,6 +1413,10 @@ class OptionsWindow(ToolInstance):
                 selected_tomograms.append(item.data(0))  # Access stored volume object
         print(selected_tomograms)
         return selected_tomograms
+
+    def _update_analysis(self):
+        self.populate_tomogram_list()
+
 
 
 
