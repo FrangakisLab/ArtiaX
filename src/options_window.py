@@ -5,6 +5,7 @@ from functools import partial
 from pathlib import Path
 from sys import platform
 import numpy as np
+from PyQt6.QtWidgets import QButtonGroup
 
 # ChimeraX
 from chimerax.core.commands import run
@@ -34,6 +35,8 @@ from Qt.QtWidgets import (
     QStackedLayout,
     QStackedWidget,
     QListWidget,
+    QListWidgetItem,
+
 )
 
 # This package
@@ -490,24 +493,47 @@ class OptionsWindow(ToolInstance):
         group_slices.setLayout(group_slices_layout)
         #### Slice Box ####
 
-        ###Split Tomogram###
-        # Create the "Split Tomogram" button
-        self.split_tomogram_button = QPushButton("Split Tomogram")
-        self.split_tomogram_button.setToolTip("Split the tomogram into separate parts")
+        ### Coloring Tomogram ###
 
-        # Optionally connect the button to a method
-        #self.split_tomogram_button.clicked.connect(self.split_volume_by_connected_colors)
-        self.split_tomogram_button.clicked.connect(self.color_like_segmentation)
+        # Create a group box to hold the coloring-related widgets
+        self.color_tomogram_group = QGroupBox("Coloring Tomogram")
+        self.color_tomogram_group.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum))
 
-        #### Section: "Select Tomogram to Compare" ####
+        # Create a layout for the group box
+        coloring_layout = QVBoxLayout()
+
+        # Create the "Color Tomogram" button
+        self.color_tomogram_button = QPushButton("Color Tomogram")
+        self.color_tomogram_button.setToolTip("Color the tomogram according to segmentation")
+
+        # Connect the button to the method
+        self.color_tomogram_button.clicked.connect(self.color_like_segmentation)
+
+        # Add the button to the coloring layout
+        coloring_layout.addWidget(self.color_tomogram_button)
+
+        # Section: "Select Tomogram"
         self.select_tomogram_group = QGroupBox("Select Segmentation")
         self.select_tomogram_group.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum))
 
+        # Create a layout for the "Select Tomogram" group
+        select_tomogram_layout = QVBoxLayout()
 
         # Tomogram selection list
         self.tomogram_list_widget = QListWidget()
-        #self.populate_tomogram_list()
+        self.populate_tomogram_list()
 
+        # Add the list widget to the selection layout
+        select_tomogram_layout.addWidget(self.tomogram_list_widget)
+
+        # Set the layout for the "Select Tomogram" group
+        self.select_tomogram_group.setLayout(select_tomogram_layout)
+
+        # Add the "Select Tomogram" group to the coloring layout
+        coloring_layout.addWidget(self.select_tomogram_group)
+
+        # Set the layout for the coloring group box
+        self.color_tomogram_group.setLayout(coloring_layout)
 
 
 
@@ -515,14 +541,14 @@ class OptionsWindow(ToolInstance):
         # Add groups to layout
         tomo_layout.addWidget(group_current_tomo)
         tomo_layout.addWidget(group_pixelsize)
+        tomo_layout.addWidget(self.color_tomogram_group)
         tomo_layout.addWidget(group_contrast)
         tomo_layout.addWidget(group_slices)
         tomo_layout.addWidget(group_orthoplanes)
         tomo_layout.addWidget(group_process)
         #tomo_layout.addWidget(group_fourier_transform)
-        tomo_layout.addWidget(self.split_tomogram_button)
-        tomo_layout.addWidget(self.select_tomogram_group)
-        tomo_layout.addLayout(self.tomogram_list_widget)
+
+
 
 
         # And finally set the layout of the widget
@@ -1335,7 +1361,7 @@ class OptionsWindow(ToolInstance):
 
         surface = volume.surfaces[0]
 
-        segm=artia.tomogram[1]
+        segm=self.get_selected_tomograms()
         print(segm)
 
     def populate_tomogram_list(self):
@@ -1376,6 +1402,16 @@ class OptionsWindow(ToolInstance):
 
             # Add the item to the list widget
             self.tomogram_list_widget.addItem(item)
+
+    def get_selected_tomograms(self):
+        #collect checked tomograms
+        selected_tomograms = []
+        for index in range(self.tomogram_list_widget.count()):
+            item = self.tomogram_list_widget.item(index)
+            if item.checkState() == Qt.Checked:
+                selected_tomograms.append(item.data(0))  # Access stored volume object
+        print(selected_tomograms)
+        return selected_tomograms
 
 
 
