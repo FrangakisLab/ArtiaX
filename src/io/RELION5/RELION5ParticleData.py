@@ -51,9 +51,9 @@ class RELION5ParticleData(ParticleData):
         "pos_x": "rlnCoordinateX",
         "pos_y": "rlnCoordinateY",
         "pos_z": "rlnCoordinateZ",
-        "shift_x": "rlnOriginXAngst",
-        "shift_y": "rlnOriginYAngst",
-        "shift_z": "rlnOriginZAngst",
+        "shift_x": "rlnOriginX",
+        "shift_y": "rlnOriginY",
+        "shift_z": "rlnOriginZ",
         "ang_1": "rlnTomoSubtomogramRot",
         "ang_2": "rlnTomoSubtomogramTilt",
         "ang_3": "rlnTomoSubtomogramPsi",
@@ -236,11 +236,39 @@ class RELION5ParticleData(ParticleData):
 
         #check if origin there
         origin_present = False
-        if "rlnOriginXAngst" in df_keys:
-            origin_present = True
+        origin_angstrom=False
+        #if "rlnOriginXAngst" in df_keys:
+            #originAngst_present = True
             #additional_keys.remove("rlnOriginXAngst")
             #additional_keys.remove("rlnOriginYAngst")
             #additional_keys.remove("rlnOriginZAngst")
+
+        if "rlnOriginZ" in df_keys:
+            origin_present = True
+
+            additional_keys.remove("rlnOriginX")
+            additional_keys.remove("rlnOriginY")
+            additional_keys.remove("rlnOriginZ")
+
+        elif "rlnOriginZAngst" in df_keys:
+            origin_present = True
+            origin_angstrom = True
+
+            #self._data_keys.pop("rlnOriginX")
+            #self._data_keys.pop("rlnOriginY")
+            #self._data_keys.pop("rlnOriginZ")
+
+            self._data_keys["rlnOriginXAngst"] = []
+            self._data_keys["rlnOriginYAngst"] = []
+            self._data_keys["rlnOriginZAngst"] = []
+
+            self._default_params["shift_x"] = "rlnOriginXAngst"
+            self._default_params["shift_y"] = "rlnOriginYAngst"
+            self._default_params["shift_z"] = "rlnOriginZAngst"
+
+            additional_keys.remove("rlnOriginXAngst")
+            additional_keys.remove("rlnOriginYAngst")
+            additional_keys.remove("rlnOriginZAngst")
 
 
 
@@ -332,10 +360,26 @@ class RELION5ParticleData(ParticleData):
             p["pos_z"] = (row["rlnCenteredCoordinateZAngst"] / pixsize) + z_center
 
             # Shift
-            if origin_present == True:
-                p["shift_x"] = -row["rlnOriginXAngst"]
-                p["shift_y"] = -row["rlnOriginYAngst"]
-                p["shift_z"] = -row["rlnOriginZAngst"]
+            # if origin_present == True:
+            #     p["shift_x"] = -row["rlnOriginXAngst"]
+            #     p["shift_y"] = -row["rlnOriginYAngst"]
+            #     p["shift_z"] = -row["rlnOriginZAngst"]
+            # else:
+            #     p["shift_x"] = 0
+            #     p["shift_y"] = 0
+            #     p["shift_z"] = 0
+
+            if origin_present:
+                if origin_angstrom:
+                    # Note negation due to convention
+                    p["shift_x"] = -row["rlnOriginXAngst"]
+                    p["shift_y"] = -row["rlnOriginYAngst"]
+                    p["shift_z"] = -row["rlnOriginZAngst"]
+                else:
+                    # Note negation due to convention
+                    p["shift_x"] = -row["rlnOriginX"]
+                    p["shift_y"] = -row["rlnOriginY"]
+                    p["shift_z"] = -row["rlnOriginZ"]
             else:
                 p["shift_x"] = 0
                 p["shift_y"] = 0
@@ -541,23 +585,43 @@ class RELION5ParticleData(ParticleData):
 
         #Coordinates
         #combine shift in rlnOriginX,Y,Z und pos since rlnOrigin no longer in relion5
-        if "rlnOriginX" in data:
-            for idx, v in enumerate(data["rlnCoordinateX"]):
-                    print(data["rlnOriginX"][idx])
-                    data["rlnCoordinateX"][idx] = (data["rlnOriginX"][idx] + data["rlnCoordinateX"][idx])
-                    data["rlnCoordinateY"][idx] = (data["rlnOriginY"][idx] + data["rlnCoordinateY"][idx])
-                    data["rlnCoordinateZ"][idx] = (data["rlnOriginZ"][idx] + data["rlnCoordinateZ"][idx])
-                    #removing rlnOrigin
-                    del data['rlnOriginX']
-                    del data['rlnOriginY']
-                    del data['rlnOriginZ']
-        #else dont change pos since shift will be written out as rlnOriginXAngst,...
+        # if "rlnOriginX" in data:
+        #     for idx, v in enumerate(data["rlnCoordinateX"]):
+        #             print(data["rlnOriginX"][idx])
+        #             data["rlnCoordinateX"][idx] = (data["rlnOriginX"][idx] + data["rlnCoordinateX"][idx])
+        #             data["rlnCoordinateY"][idx] = (data["rlnOriginY"][idx] + data["rlnCoordinateY"][idx])
+        #             data["rlnCoordinateZ"][idx] = (data["rlnOriginZ"][idx] + data["rlnCoordinateZ"][idx])
+        #             #removing rlnOrigin
+        #             del data['rlnOriginX']
+        #             del data['rlnOriginY']
+        #             del data['rlnOriginZ']
+        # #else dont change pos since shift will be written out as rlnOriginXAngst,...
+
+            # Convert shifts back to their convention
+        if "rlnOriginXAngst" in self._data_keys.keys():
+            for idx, v in enumerate(data["rlnOriginXAngst"]):
+                data["rlnOriginXAngst"][idx] *= -1
+                data["rlnOriginYAngst"][idx] *= -1
+                data["rlnOriginZAngst"][idx] *= -1
+        else:
+            for idx, v in enumerate(data["rlnOriginX"]):
+                print(f"shift{data['rlnOriginX'][idx]} is being subtracted from pos {data['rlnCoordinateX'][idx]}")
+                data["rlnOriginX"][idx] *= -1
+                data["rlnOriginY"][idx] *= -1
+                data["rlnOriginZ"][idx] *= -1
+                data["rlnCoordinateX"][idx] = (data["rlnOriginX"][idx] + data["rlnCoordinateX"][idx])
+                data["rlnCoordinateY"][idx] = (data["rlnOriginY"][idx] + data["rlnCoordinateY"][idx])
+                data["rlnCoordinateZ"][idx] = (data["rlnOriginZ"][idx] + data["rlnCoordinateZ"][idx])
+            #removing rlnOrigin column
+            del data['rlnOriginX']
+            del data['rlnOriginY']
+            del data['rlnOriginZ']
 
 
         for idx, v in enumerate(data["rlnCoordinateX"]):
                 # changes unit from pixel to Angstrom and makes coordinate centered
-                #print("before")
-                #print(data["rlnCoordinateX"][idx])
+                print("before")
+                print(data["rlnCoordinateX"][idx])
                 # center coordinate
                 data["rlnCoordinateX"][idx] = (
                     data["rlnCoordinateX"][idx]
