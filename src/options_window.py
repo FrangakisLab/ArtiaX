@@ -542,6 +542,16 @@ class OptionsWindow(ToolInstance):
         # Add the button to the coloring layout (at the end)
         coloring_layout.addWidget(self.color_tomogram_button)
 
+        # Create the "Color Tomogram" button
+        self.color_segm_button = QPushButton("Color Segmentation")
+        self.color_tomogram_button.setToolTip("Color the segmentation")
+
+        # Connect the button to the method
+        self.color_tomogram_button.clicked.connect(self.color_segm)
+
+        # Add the button to the coloring layout (at the end)
+        coloring_layout.addWidget(self.color_segm_button)
+
         # Set the layout for the coloring group box
         self.color_tomogram_group.setLayout(coloring_layout)
 
@@ -1442,7 +1452,7 @@ class OptionsWindow(ToolInstance):
 
         print("Surface coloring completed!")
 
-        self.color_image(triangles_per_color=triangles_per_color, segm=segm, volume=volume)
+        #self.color_image(triangles_per_color=triangles_per_color, segm=segm, volume=volume)
 
     import numpy as np
 
@@ -1600,6 +1610,12 @@ class OptionsWindow(ToolInstance):
         else:
             print("not in triangle")
         return inside
+
+    def color_segm(self):
+        # Retrieve the currently selected tomogram
+        artia = self.session.ArtiaX
+        tomo = artia.tomograms.get(artia.options_tomogram)
+
 
 
     def populate_tomogram_list(self):
