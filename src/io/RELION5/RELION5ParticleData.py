@@ -34,9 +34,9 @@ class RELION5ParticleData(ParticleData):
         "rlnCoordinateX": [],
         "rlnCoordinateY": [],
         "rlnCoordinateZ": [],
-        "rlnOriginX":[],
-        "rlnOriginY": [],
-        "rlnOriginZ": [],
+        "rlnOriginXAngst":[],
+        "rlnOriginYAngst": [],
+        "rlnOriginZAngst": [],
         "rlnTomoSubtomogramRot": [],
         "rlnTomoSubtomogramTilt": [],
         "rlnTomoSubtomogramPsi": [],
@@ -51,9 +51,9 @@ class RELION5ParticleData(ParticleData):
         "pos_x": "rlnCoordinateX",
         "pos_y": "rlnCoordinateY",
         "pos_z": "rlnCoordinateZ",
-        "shift_x": "rlnOriginX",
-        "shift_y": "rlnOriginY",
-        "shift_z": "rlnOriginZ",
+        "shift_x": "rlnOriginXAngst",
+        "shift_y": "rlnOriginYAngst",
+        "shift_z": "rlnOriginZAngst",
         "ang_1": "rlnTomoSubtomogramRot",
         "ang_2": "rlnTomoSubtomogramTilt",
         "ang_3": "rlnTomoSubtomogramPsi",
@@ -238,7 +238,11 @@ class RELION5ParticleData(ParticleData):
         origin_present = False
         if "rlnOriginXAngst" in df_keys:
             origin_present = True
-            additional_keys.remove("rlnOriginXAngst")
+            #additional_keys.remove("rlnOriginXAngst")
+            #additional_keys.remove("rlnOriginYAngst")
+            #additional_keys.remove("rlnOriginZAngst")
+
+
 
 
         # If angles are not there, take note
@@ -536,21 +540,18 @@ class RELION5ParticleData(ParticleData):
             data['rlnAnglePsiPrior'] = remove_angles[2]
 
         #Coordinates
-        #combine shift und pos since rlnOrigin no longer in relion5
-        for idx, v in enumerate(data["rlnCoordinateX"]):
-                data["rlnCoordinateX"][idx] = (data["rlnOriginX"][idx] + data["rlnCoordinateX"][idx])
-                data["rlnCoordinateY"][idx] = (data["rlnOriginY"][idx] + data["rlnCoordinateY"][idx])
-                data["rlnCoordinateZ"][idx] = (data["rlnOriginZ"][idx] + data["rlnCoordinateZ"][idx])
-
-        #removing rlnOrigin
-        # Remove key 'key2'
-        if 'rlnOriginX' in data:
-            del data['rlnOriginX']
-        if 'rlnOriginY' in data:
-            del data['rlnOriginY']
-        if 'rlnOriginZ' in data:
-            del data['rlnOriginZ']
-
+        #combine shift in rlnOriginX,Y,Z und pos since rlnOrigin no longer in relion5
+        if "rlnOriginX" in data:
+            for idx, v in enumerate(data["rlnCoordinateX"]):
+                    print(data["rlnOriginX"][idx])
+                    data["rlnCoordinateX"][idx] = (data["rlnOriginX"][idx] + data["rlnCoordinateX"][idx])
+                    data["rlnCoordinateY"][idx] = (data["rlnOriginY"][idx] + data["rlnCoordinateY"][idx])
+                    data["rlnCoordinateZ"][idx] = (data["rlnOriginZ"][idx] + data["rlnCoordinateZ"][idx])
+                    #removing rlnOrigin
+                    del data['rlnOriginX']
+                    del data['rlnOriginY']
+                    del data['rlnOriginZ']
+        #else dont change pos since shift will be written out as rlnOriginXAngst,...
 
 
         for idx, v in enumerate(data["rlnCoordinateX"]):
