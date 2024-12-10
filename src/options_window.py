@@ -547,7 +547,7 @@ class OptionsWindow(ToolInstance):
         self.color_tomogram_button.setToolTip("Color the segmentation")
 
         # Connect the button to the method
-        self.color_tomogram_button.clicked.connect(self.color_segm)
+        self.color_segm_button.clicked.connect(self.color_segm)
 
         # Add the button to the coloring layout (at the end)
         coloring_layout.addWidget(self.color_segm_button)
@@ -1615,8 +1615,34 @@ class OptionsWindow(ToolInstance):
         # Retrieve the currently selected tomogram
         artia = self.session.ArtiaX
         tomo = artia.tomograms.get(artia.options_tomogram)
+        matrix = tomo.data.matrix()
+        print("Array Excerpt (first 5 elements):")
+        print(matrix.ravel()[:5])  # Flatten the array and print the first 5 elements
 
+        print("\nBasic Information:")
+        print(f"Shape: {matrix.shape}")
+        print(f"Data type: {matrix.dtype}")
+        print(f"Size (number of elements): {matrix.size}")
+        print(f"Memory (bytes): {matrix.nbytes}")
+        print(f"Max value: {matrix.max()}")
+        print(f"Min value: {matrix.min()}")
 
+        # Compute and print histogram (value distribution)
+        # print("\nExact Value Distribution:")
+        # unique, counts = np.unique(matrix, return_counts=True)
+        # for value, count in zip(unique, counts):
+        #     print(f"Value {value}: {count}")
+        print("\nValue Distribution (Histogram):")
+        hist, edges = np.histogram(matrix, bins=10)
+        for i in range(len(hist)):
+            print(f"Range {edges[i]:.2f} - {edges[i + 1]:.2f}: {hist[i]}")
+
+        #vertex=tomo.surfaces[0].vertex_colors
+        #print("First 5 entries:")
+        #for i, (key, value) in enumerate(vertex.items()):
+        #    print(f"{key}: {value}")
+        #    if i == 4:  # Stop after the 5th entry
+        #        break
 
     def populate_tomogram_list(self):
         # Clear the current items
