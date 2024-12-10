@@ -760,6 +760,9 @@ class ParticleList(Model):
         # Do it this way, because deleting atoms happens all at once, so we cannot individually set masks
         from numpy import zeros, logical_not, logical_or
 
+        #find index of
+        print(f"deleting particle {particle_ids}")
+
         mask = zeros((self.size,), dtype=bool)
         prev_ids = self._data.particle_ids
 

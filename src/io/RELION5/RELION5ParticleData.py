@@ -100,7 +100,7 @@ class RELION5ParticleData(ParticleData):
     # reading of Relion5 files is included in Relion.RelionParticleData
     def read_file(self, voxelsize = None, dimensions = None, prefix = None, suffix = None, volume = None) -> None:
         """Reads RELION5 star file."""
-
+        print("import as relion5")
         ### Collect all necessary information for computation
         #Validate information
         if self.prefix is not None:
@@ -277,17 +277,17 @@ class RELION5ParticleData(ParticleData):
         rot_present = False
         if "rlnAngleRot" in df_keys:
             rot_present = True
-            additional_keys.remove("rlnAngleRot")
+            #additional_keys.remove("rlnAngleRot")
 
         tilt_present = False
         if "rlnAngleTilt" in df_keys:
             tilt_present = True
-            additional_keys.remove("rlnAngleTilt")
+            #additional_keys.remove("rlnAngleTilt")
 
         psi_present = False
         if "rlnAnglePsi" in df_keys:
             psi_present = True
-            additional_keys.remove("rlnAnglePsi")
+            #additional_keys.remove("rlnAnglePsi")
 
         tomo_rot_present = False
         if 'rlnTomoSubtomogramRot' in df_keys:
@@ -313,9 +313,11 @@ class RELION5ParticleData(ParticleData):
         for key in additional_keys:
             if np.issubdtype(df.dtypes[key], np.number):
                 additional_entries.append(key)
+                print(f"additional entries key:{key}")
                 self._data_keys[key] = []
             else:
                 self.remaining_data[key] = df[key]
+                print(f"remaining data key:{key}")
 
 
         # Store everything
@@ -385,18 +387,23 @@ class RELION5ParticleData(ParticleData):
                 p["shift_y"] = 0
                 p["shift_z"] = 0
 
-
+            self.read_rel5_and_combined=False
             # Orientation
+            #print(f"rot_present:{rot_present}, tilt_present:{tilt_present}, psi_present:{psi_present}, tomo_rot_present:{tomo_rot_present}, tomo_psi_present:{tomo_psi_present}, tomo_tilt_present:{tomo_tilt_present}")
             if rot_present and tilt_present and psi_present and tomo_rot_present and tomo_psi_present and tomo_tilt_present:
+                self.read_rel5_and_combined=True
+                #print(f"read rel5 and combined: {self.read_rel5_and_combined}")
+
                 # Box angles in degrees
+
                 box_angle_rot = row['rlnTomoSubtomogramRot']
                 box_angle_tilt = row['rlnTomoSubtomogramTilt']
                 box_angle_psi = row['rlnTomoSubtomogramPsi']
 
                 # Particle angles in degrees
-                particle_angle_rot = row['rlnAngleRot']
-                particle_angle_tilt = row['rlnAngleTilt']
-                particle_angle_psi = row['rlnAnglePsi']
+                self.particle_angle_rot = row['rlnAngleRot']
+                self.particle_angle_tilt = row['rlnAngleTilt']
+                self.particle_angle_psi = row['rlnAnglePsi']
 
                 # Convert box angles to a rotation matrix (ZYZ convention, lowercase extrinsic)
                 box_rotation = R.from_euler('zyz', [box_angle_rot, box_angle_tilt, box_angle_psi],
@@ -404,8 +411,8 @@ class RELION5ParticleData(ParticleData):
 
                 # Convert particle angles to a rotation matrix (ZYZ convention, uppercase intrinsic)
                 particle_rotation = R.from_euler('ZYZ',
-                                                 [particle_angle_rot, particle_angle_tilt,
-                                                  particle_angle_psi],
+                                                 [self.particle_angle_rot, self.particle_angle_tilt,
+                                                  self.particle_angle_psi],
                                                  degrees=True).as_matrix()
 
                 # Combine rotations by multiplying the matrices (box followed by particle)
@@ -419,8 +426,11 @@ class RELION5ParticleData(ParticleData):
 
                 # Store the combined Euler angles in the p dictionary
                 p['ang_1'] = combined_euler_angles[0]  # Combined rot
+                self.combined_angles_rot = combined_euler_angles[0]
                 p['ang_2'] = combined_euler_angles[1]  # Combined tilt
+                self.combined_angles_tilt = combined_euler_angles[1]
                 p['ang_3'] = combined_euler_angles[2]  # Combined psi
+                self.combined_angles_psi = combined_euler_angles[2]
 
             # if only rlnAngle present
             elif rot_present and tilt_present and psi_present:
@@ -548,7 +558,12 @@ class RELION5ParticleData(ParticleData):
 
 
         # Angles
-        remove_angles = (0, 90, 0)
+        remove_angles = [0, 90, 0]
+        #print(f"all keys{self._data_keys.keys()}")
+        print(f"Type of remove_angles before loop: {type(remove_angles)}")  # Debug
+        saved_rlnAngles_Rot=data['rlnAngleRot']
+        saved_rlnAngles_Tilt=data['rlnAngleTilt']
+        saved_rlnAngles_Psi=data['rlnAnglePsi']
 
         for idx in range(len(data['rlnTomoSubtomogramRot'])):
             # Extract the original rlnTomoSubtomogram angles
@@ -556,11 +571,26 @@ class RELION5ParticleData(ParticleData):
             tomo_tilt = data['rlnTomoSubtomogramTilt'][idx]
             tomo_psi = data['rlnTomoSubtomogramPsi'][idx]
 
+            #print(f"read rel5 and combined: {self.read_rel5_and_combined}")
+            # Find corresponding entry in the rlnAngle list if particle list was already read in as relion5
+            #print(f"Type of remove_angles inside loop before modification: {type(remove_angles)}")  # Debug
+            if self.read_rel5_and_combined == True:
+            #    for index, value1 in enumerate(self.combined_angles_rot):  # Iterate directly over the list
+            #        if value1 == tomo_rot:
+            #            print(f"Match found for idx {idx} (tomo_rot={tomo_rot}): value1={value1}, at index {index}")
+            #            break
+                #print(f"Type of data['rlnAngleRot']: {saved_rlnAngles_Rot}")
+                #print(f"Value of data['rlnAngleRot']: {saved_rlnAngles_Rot}")
+                remove_angles[0]= saved_rlnAngles_Rot[idx]
+                remove_angles[1]= saved_rlnAngles_Tilt[idx]
+                remove_angles[2]= saved_rlnAngles_Psi[idx]
+                #print(f"remove angles {remove_angles}")
+
             # Convert rlnTomoSubtomogram angles to rotation matrix
             rotation_matrix = R.from_euler('zyz', [tomo_rot, tomo_tilt, tomo_psi], degrees=True).as_matrix()
 
             # Create a new rotation matrix for the angles to remove
-            remove_rotation_matrix = R.from_euler('zyz', remove_angles, degrees=True).as_matrix()
+            remove_rotation_matrix = R.from_euler('ZYZ', remove_angles, degrees=True).as_matrix()
 
             # Combine the two rotations: original rotation minus the removal rotation
             # Inverting the remove_rotation to effectively "remove" it
@@ -575,13 +605,16 @@ class RELION5ParticleData(ParticleData):
             data['rlnTomoSubtomogramPsi'][idx] = combined_euler_angles[2]
 
             # Also create rlnAngle with (0, 90, 0)
-            data['rlnAngleRot'] = remove_angles[0]
-            data['rlnAngleTilt'] = remove_angles[1]
-            data['rlnAnglePsi'] = remove_angles[2]
+            data['rlnAngleRot'][idx] = remove_angles[0]
+            #print(f"value in rlnAngleRot: {data['rlnAngleRot']}")
+            data['rlnAngleTilt'][idx] = remove_angles[1]
+            #print(f"value in rlnAngleTilt: {data['rlnAngleTilt']}")
+            data['rlnAnglePsi'][idx] = remove_angles[2]
+            #print(f"value in rlnAnglePsi: {data['rlnAnglePsi']}")
 
             # Also create rlnAngle with (0, 90, 0)
-            data['rlnAngleTiltPrior'] = remove_angles[1]
-            data['rlnAnglePsiPrior'] = remove_angles[2]
+            data['rlnAngleTiltPrior'] = 90
+            data['rlnAnglePsiPrior'] = 0
 
         #Coordinates
         #combine shift in rlnOriginX,Y,Z und pos since rlnOrigin no longer in relion5
@@ -620,8 +653,8 @@ class RELION5ParticleData(ParticleData):
 
         for idx, v in enumerate(data["rlnCoordinateX"]):
                 # changes unit from pixel to Angstrom and makes coordinate centered
-                print("before")
-                print(data["rlnCoordinateX"][idx])
+                #print("before")
+                #print(data["rlnCoordinateX"][idx])
                 # center coordinate
                 data["rlnCoordinateX"][idx] = (
                     data["rlnCoordinateX"][idx]
@@ -658,6 +691,8 @@ class RELION5ParticleData(ParticleData):
         # Replace the old dictionary with the new one
         data = new_data
 
+        #add columns in remaining_data
+        data.update(self.remaining_data)
 
         df = pd.DataFrame(data=data)
 
