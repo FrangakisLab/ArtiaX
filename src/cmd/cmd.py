@@ -283,7 +283,7 @@ def artiax_triangles_from_links(session):
     surface_from_links(session)
 
 
-def artiax_flip(session, axis=None):
+def artiax_flip(session, axis=None, angle=180):
     if not hasattr(session, "ArtiaX"):
         session.logger.warning(
             "ArtiaX is not currently running, so no particles can be reoriented."
@@ -303,7 +303,7 @@ def artiax_flip(session, axis=None):
 
     for particle in particles:
         external_axis = particle.rotation.transform_vector(axis)
-        particle.rotation = rotation(external_axis, 180) * particle.rotation
+        particle.rotation = rotation(external_axis, angle) * particle.rotation
 
     for particle_list in session.ArtiaX.partlists.iter():
         particle_list.update_places()
@@ -1735,8 +1735,8 @@ def register_artiax(logger):
 
     def register_artiax_flip():
         desc = CmdDesc(
-            optional=[("axis", AxisArg)],
-            synopsis="Rotates the selected particles 180 degrees around their y-axis.",
+            optional=[("axis", AxisArg), ("angle", FloatArg)],
+            synopsis="Rotates the selected particles. Specify the axis and degree",
             url="help:user/commands/artiax_flip.html",
         )
         register("artiax flip", desc, artiax_flip)

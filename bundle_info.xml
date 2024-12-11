@@ -438,7 +438,7 @@ will be displayed without the ChimeraX- prefix.
       Creates a triangle surface between all particles marked by links.</ChimeraXClassifier>
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax flip :: General ::
-     Rotates the selected particles 180 degrees around the given axis.</ChimeraXClassifier>
+     Rotates the selected particles 180 degrees around the given axis. Default degree is 180. </ChimeraXClassifier>
 
     <ChimeraXClassifier>ChimeraX :: Command :: artiax select inside surface :: General ::
      Selects all shown particles inside the selected surface.</ChimeraXClassifier>

@@ -515,7 +515,7 @@ class RELION5ParticleData(ParticleData):
                     # print(formatted_num)
                     # print(prefix)
                     if int(formatted_num) == 0:
-                        print("i am here")
+                        #print("i am here")
                         data['rlnTomoName'][idx] = f"{prefix}{tomogram_name}"
                     else:
                         data['rlnTomoName'][idx] = f"{prefix}{formatted_num}"
@@ -559,6 +559,7 @@ class RELION5ParticleData(ParticleData):
             tomo_rot = data['rlnTomoSubtomogramRot'][idx]
             tomo_tilt = data['rlnTomoSubtomogramTilt'][idx]
             tomo_psi = data['rlnTomoSubtomogramPsi'][idx]
+            print(f"rot:{tomo_rot}, tilt:{tomo_tilt}, psi:{tomo_psi}")
 
             # if particle list was already read in as relion5, replace remove_angles with actual rlnAngle values
             if hasattr(self, 'read_rel5_and_combined') and self.read_rel5_and_combined:
