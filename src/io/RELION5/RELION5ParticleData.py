@@ -318,6 +318,8 @@ class RELION5ParticleData(ParticleData):
             else:
                 self.remaining_data[key] = df[key]
                 print(f"remaining data key:{key}")
+                additional_entries.append(key)
+                self._data_keys[key] = []
 
 
         # Store everything
@@ -450,9 +452,38 @@ class RELION5ParticleData(ParticleData):
                 p['ang_2'] = 0
                 p['ang_3'] = 0
 
-            # Everything else
+            # Everything else that is a number
             for attr in additional_entries:
-                p[attr] = float(row[attr])
+                if attr in self.remaining_data:
+                    p[attr] = str(row[attr])
+                else:
+                    p[attr] = float(row[attr])
+
+            #for attr in self.remaining_data:
+
+
+            # #store all attributes in remaining_data
+            # from chimerax.core.commands import run
+            # from chimerax.atomic import Atom
+            # from chimerax.core.attributes import type_attrs
+            #
+            # # Register each attribute in `attr_type_map` directly
+            # for attr_name in self.remaining_data.keys():
+            #     # Check if the attribute has already been registered for the Atom class
+            #     if attr_name not in type_attrs(Atom):
+            #         # Register the attribute with the type specified in `attr_type_map`
+            #         Atom.register_attr(self.session, attr_name, "artiax", attr_type=string)
+            #
+            #     for attr_name, attr_value in self.remaining_data.items():
+            #         # Call set_attr for each key-value pair in the dictionary
+            #         try:
+            #             target = "a"
+            #             objects = f"#{identifier}"
+            #             command = f"setattr {objects} {target} {attr_name} {attr_value} create true type string"
+            #             run(self.session, command)
+            #             self.session.logger.status(f"Attribute '{attr_name}' set to '{attr_value}' on {identifier}.")
+            #         except Exception as e:
+            #             print(f"Failed to set attribute '{attr_name}': {e}")
 
     def write_file(
         self,
@@ -692,7 +723,7 @@ class RELION5ParticleData(ParticleData):
         data = new_data
 
         #add columns in remaining_data
-        data.update(self.remaining_data)
+        #data.update(self.remaining_data)
 
         df = pd.DataFrame(data=data)
 
