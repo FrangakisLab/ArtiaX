@@ -97,7 +97,6 @@ class RELION5ParticleData(ParticleData):
 
 
 
-    # reading of Relion5 files is included in Relion.RelionParticleData
     def read_file(self, voxelsize = None, dimensions = None, prefix = None, suffix = None, volume = None) -> None:
         """Reads RELION5 star file."""
         print("import as relion5")
@@ -227,8 +226,6 @@ class RELION5ParticleData(ParticleData):
                     num = n[len(prefix):] if prefix else n  # Handle the case where there's no suffix
 
 
-
-
             names_present = True
             additional_keys.remove("rlnTomoName")
         else:
@@ -237,11 +234,6 @@ class RELION5ParticleData(ParticleData):
         #check if origin there
         origin_present = False
         origin_angstrom=False
-        #if "rlnOriginXAngst" in df_keys:
-            #originAngst_present = True
-            #additional_keys.remove("rlnOriginXAngst")
-            #additional_keys.remove("rlnOriginYAngst")
-            #additional_keys.remove("rlnOriginZAngst")
 
         if "rlnOriginZ" in df_keys:
             origin_present = True
@@ -253,10 +245,6 @@ class RELION5ParticleData(ParticleData):
         elif "rlnOriginZAngst" in df_keys:
             origin_present = True
             origin_angstrom = True
-
-            #self._data_keys.pop("rlnOriginX")
-            #self._data_keys.pop("rlnOriginY")
-            #self._data_keys.pop("rlnOriginZ")
 
             self._data_keys["rlnOriginXAngst"] = []
             self._data_keys["rlnOriginYAngst"] = []
@@ -313,11 +301,9 @@ class RELION5ParticleData(ParticleData):
         for key in additional_keys:
             if np.issubdtype(df.dtypes[key], np.number):
                 additional_entries.append(key)
-                print(f"additional entries key:{key}")
                 self._data_keys[key] = []
             else:
                 self.remaining_data[key] = df[key]
-                print(f"remaining data key:{key}")
                 additional_entries.append(key)
                 self._data_keys[key] = []
 
@@ -364,21 +350,13 @@ class RELION5ParticleData(ParticleData):
             p["pos_z"] = (row["rlnCenteredCoordinateZAngst"] / pixsize) + z_center
 
             # Shift
-            # if origin_present == True:
-            #     p["shift_x"] = -row["rlnOriginXAngst"]
-            #     p["shift_y"] = -row["rlnOriginYAngst"]
-            #     p["shift_z"] = -row["rlnOriginZAngst"]
-            # else:
-            #     p["shift_x"] = 0
-            #     p["shift_y"] = 0
-            #     p["shift_z"] = 0
-
             if origin_present:
                 if origin_angstrom:
+                    #transfer from Angstrom yo pixel
                     # Note negation due to convention
-                    p["shift_x"] = -row["rlnOriginXAngst"]
-                    p["shift_y"] = -row["rlnOriginYAngst"]
-                    p["shift_z"] = -row["rlnOriginZAngst"]
+                    p["shift_x"] = -row["rlnOriginXAngst"] / pixsize
+                    p["shift_y"] = -row["rlnOriginYAngst"] / pixsize
+                    p["shift_z"] = -row["rlnOriginZAngst"] / pixsize
                 else:
                     # Note negation due to convention
                     p["shift_x"] = -row["rlnOriginX"]
@@ -389,12 +367,14 @@ class RELION5ParticleData(ParticleData):
                 p["shift_y"] = 0
                 p["shift_z"] = 0
 
-            self.read_rel5_and_combined=False
+
+
             # Orientation
-            #print(f"rot_present:{rot_present}, tilt_present:{tilt_present}, psi_present:{psi_present}, tomo_rot_present:{tomo_rot_present}, tomo_psi_present:{tomo_psi_present}, tomo_tilt_present:{tomo_tilt_present}")
+
+            self.read_rel5_and_combined=False
+
             if rot_present and tilt_present and psi_present and tomo_rot_present and tomo_psi_present and tomo_tilt_present:
                 self.read_rel5_and_combined=True
-                #print(f"read rel5 and combined: {self.read_rel5_and_combined}")
 
                 # Box angles in degrees
 
@@ -452,38 +432,15 @@ class RELION5ParticleData(ParticleData):
                 p['ang_2'] = 0
                 p['ang_3'] = 0
 
-            # Everything else that is a number
+            # Storing Everything else
             for attr in additional_entries:
                 if attr in self.remaining_data:
+                    #all strings
                     p[attr] = str(row[attr])
                 else:
+                    #all numbers
                     p[attr] = float(row[attr])
 
-            #for attr in self.remaining_data:
-
-
-            # #store all attributes in remaining_data
-            # from chimerax.core.commands import run
-            # from chimerax.atomic import Atom
-            # from chimerax.core.attributes import type_attrs
-            #
-            # # Register each attribute in `attr_type_map` directly
-            # for attr_name in self.remaining_data.keys():
-            #     # Check if the attribute has already been registered for the Atom class
-            #     if attr_name not in type_attrs(Atom):
-            #         # Register the attribute with the type specified in `attr_type_map`
-            #         Atom.register_attr(self.session, attr_name, "artiax", attr_type=string)
-            #
-            #     for attr_name, attr_value in self.remaining_data.items():
-            #         # Call set_attr for each key-value pair in the dictionary
-            #         try:
-            #             target = "a"
-            #             objects = f"#{identifier}"
-            #             command = f"setattr {objects} {target} {attr_name} {attr_value} create true type string"
-            #             run(self.session, command)
-            #             self.session.logger.status(f"Attribute '{attr_name}' set to '{attr_value}' on {identifier}.")
-            #         except Exception as e:
-            #             print(f"Failed to set attribute '{attr_name}': {e}")
 
     def write_file(
         self,
@@ -547,24 +504,24 @@ class RELION5ParticleData(ParticleData):
                 # Zero-pad the number based on the leading zeros
                 formatted_num = f"{num:0{leading_zeros}d}"
                 if suffix is not None and prefix is not None:
-                    print("a")
-                    print(formatted_num)
+                    # print("a")
+                    # print(formatted_num)
                     if int(formatted_num) == 0:
                         data['rlnTomoName'][idx] = f"{prefix}{tomogram_name}{suffix}"
                     else:
                         data['rlnTomoName'][idx] = f"{prefix}{formatted_num}{suffix}"
                 elif prefix is not None:
-                    print("b")
-                    print(formatted_num)
-                    print(prefix)
+                    # print("b")
+                    # print(formatted_num)
+                    # print(prefix)
                     if int(formatted_num) == 0:
                         print("i am here")
                         data['rlnTomoName'][idx] = f"{prefix}{tomogram_name}"
                     else:
                         data['rlnTomoName'][idx] = f"{prefix}{formatted_num}"
                 elif suffix is not None:
-                    print("c")
-                    print(formatted_num)
+                    # print("c")
+                    # print(formatted_num)
                     if int(formatted_num) == 0:
                         data['rlnTomoName'][idx] = f"{tomogram_name}{suffix}"
                     else:
@@ -590,11 +547,12 @@ class RELION5ParticleData(ParticleData):
 
         # Angles
         remove_angles = [0, 90, 0]
-        #print(f"all keys{self._data_keys.keys()}")
-        print(f"Type of remove_angles before loop: {type(remove_angles)}")  # Debug
-        saved_rlnAngles_Rot=data['rlnAngleRot']
-        saved_rlnAngles_Tilt=data['rlnAngleTilt']
-        saved_rlnAngles_Psi=data['rlnAnglePsi']
+
+        #if particle list was read in as relion5 and angles were combined, remember original rlnAngle values
+        if hasattr(self, 'read_rel5_and_combined') and self.read_rel5_and_combined:
+            saved_rlnAngles_Rot=data['rlnAngleRot']
+            saved_rlnAngles_Tilt=data['rlnAngleTilt']
+            saved_rlnAngles_Psi=data['rlnAnglePsi']
 
         for idx in range(len(data['rlnTomoSubtomogramRot'])):
             # Extract the original rlnTomoSubtomogram angles
@@ -602,20 +560,11 @@ class RELION5ParticleData(ParticleData):
             tomo_tilt = data['rlnTomoSubtomogramTilt'][idx]
             tomo_psi = data['rlnTomoSubtomogramPsi'][idx]
 
-            #print(f"read rel5 and combined: {self.read_rel5_and_combined}")
-            # Find corresponding entry in the rlnAngle list if particle list was already read in as relion5
-            #print(f"Type of remove_angles inside loop before modification: {type(remove_angles)}")  # Debug
-            if self.read_rel5_and_combined == True:
-            #    for index, value1 in enumerate(self.combined_angles_rot):  # Iterate directly over the list
-            #        if value1 == tomo_rot:
-            #            print(f"Match found for idx {idx} (tomo_rot={tomo_rot}): value1={value1}, at index {index}")
-            #            break
-                #print(f"Type of data['rlnAngleRot']: {saved_rlnAngles_Rot}")
-                #print(f"Value of data['rlnAngleRot']: {saved_rlnAngles_Rot}")
+            # if particle list was already read in as relion5, replace remove_angles with actual rlnAngle values
+            if hasattr(self, 'read_rel5_and_combined') and self.read_rel5_and_combined:
                 remove_angles[0]= saved_rlnAngles_Rot[idx]
                 remove_angles[1]= saved_rlnAngles_Tilt[idx]
                 remove_angles[2]= saved_rlnAngles_Psi[idx]
-                #print(f"remove angles {remove_angles}")
 
             # Convert rlnTomoSubtomogram angles to rotation matrix
             rotation_matrix = R.from_euler('zyz', [tomo_rot, tomo_tilt, tomo_psi], degrees=True).as_matrix()
@@ -635,41 +584,25 @@ class RELION5ParticleData(ParticleData):
             data['rlnTomoSubtomogramTilt'][idx] = combined_euler_angles[1]
             data['rlnTomoSubtomogramPsi'][idx] = combined_euler_angles[2]
 
-            # Also create rlnAngle with (0, 90, 0)
             data['rlnAngleRot'][idx] = remove_angles[0]
-            #print(f"value in rlnAngleRot: {data['rlnAngleRot']}")
             data['rlnAngleTilt'][idx] = remove_angles[1]
-            #print(f"value in rlnAngleTilt: {data['rlnAngleTilt']}")
             data['rlnAnglePsi'][idx] = remove_angles[2]
-            #print(f"value in rlnAnglePsi: {data['rlnAnglePsi']}")
 
             # Also create rlnAngle with (0, 90, 0)
             data['rlnAngleTiltPrior'] = 90
             data['rlnAnglePsiPrior'] = 0
 
         #Coordinates
-        #combine shift in rlnOriginX,Y,Z und pos since rlnOrigin no longer in relion5
-        # if "rlnOriginX" in data:
-        #     for idx, v in enumerate(data["rlnCoordinateX"]):
-        #             print(data["rlnOriginX"][idx])
-        #             data["rlnCoordinateX"][idx] = (data["rlnOriginX"][idx] + data["rlnCoordinateX"][idx])
-        #             data["rlnCoordinateY"][idx] = (data["rlnOriginY"][idx] + data["rlnCoordinateY"][idx])
-        #             data["rlnCoordinateZ"][idx] = (data["rlnOriginZ"][idx] + data["rlnCoordinateZ"][idx])
-        #             #removing rlnOrigin
-        #             del data['rlnOriginX']
-        #             del data['rlnOriginY']
-        #             del data['rlnOriginZ']
-        # #else dont change pos since shift will be written out as rlnOriginXAngst,...
-
-            # Convert shifts back to their convention
+            # Convert shifts back to their convention (*-1)
         if "rlnOriginXAngst" in self._data_keys.keys():
             for idx, v in enumerate(data["rlnOriginXAngst"]):
-                data["rlnOriginXAngst"][idx] *= -1
-                data["rlnOriginYAngst"][idx] *= -1
-                data["rlnOriginZAngst"][idx] *= -1
+                #change internal shift in pixel back to Angstrom
+                data["rlnOriginXAngst"][idx] = data["rlnOriginXAngst"][idx] * -1 *pixsize
+                data["rlnOriginYAngst"][idx] = data["rlnOriginYAngst"][idx] * -1 *pixsize
+                data["rlnOriginZAngst"][idx] = data["rlnOriginZAngst"][idx] * -1 *pixsize
         else:
+            #combine pos with shift since rlnOrigin no longer in relion5
             for idx, v in enumerate(data["rlnOriginX"]):
-                print(f"shift{data['rlnOriginX'][idx]} is being subtracted from pos {data['rlnCoordinateX'][idx]}")
                 data["rlnOriginX"][idx] *= -1
                 data["rlnOriginY"][idx] *= -1
                 data["rlnOriginZ"][idx] *= -1
@@ -684,8 +617,6 @@ class RELION5ParticleData(ParticleData):
 
         for idx, v in enumerate(data["rlnCoordinateX"]):
                 # changes unit from pixel to Angstrom and makes coordinate centered
-                #print("before")
-                #print(data["rlnCoordinateX"][idx])
                 # center coordinate
                 data["rlnCoordinateX"][idx] = (
                     data["rlnCoordinateX"][idx]
@@ -721,9 +652,6 @@ class RELION5ParticleData(ParticleData):
 
         # Replace the old dictionary with the new one
         data = new_data
-
-        #add columns in remaining_data
-        #data.update(self.remaining_data)
 
         df = pd.DataFrame(data=data)
 
