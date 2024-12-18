@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 #Qt
-from Qt.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QComboBox, QGridLayout, QHBoxLayout, QFrame
+from Qt.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QComboBox, QGridLayout, QHBoxLayout, QFrame, QToolButton
 
 
 class CoordInputDialogRead(QDialog):
@@ -57,12 +57,13 @@ class CoordInputDialogRead(QDialog):
 
         # Horizontal layout for X, Y, Z
         xyz_layout = QHBoxLayout()
-        xyz_layout.addWidget(self.x_input)
         xyz_layout.addWidget(QLabel("X"))
-        xyz_layout.addWidget(self.y_input)
+        xyz_layout.addWidget(self.x_input)
         xyz_layout.addWidget(QLabel("Y"))
-        xyz_layout.addWidget(self.z_input)
+        xyz_layout.addWidget(self.y_input)
         xyz_layout.addWidget(QLabel("Z"))
+        xyz_layout.addWidget(self.z_input)
+
 
         # Add tomogram size inputs to the grid layout
         grid_layout.addWidget(QLabel("Set Volume Dimensions:"), 0, 0)
@@ -80,9 +81,20 @@ class CoordInputDialogRead(QDialog):
         separator.setFrameShadow(QFrame.Sunken)
         layout.addWidget(separator)
 
-        # Create labels and input fields for prefix and suffix
-        layout.addWidget(QLabel("Enter Tomogram number prefix in 'rlnTomoName':"))
-        layout.addWidget(self.prefix_input)
+        # Create labels and input fields for prefix with tooltip
+        prefix_layout = QHBoxLayout()
+        prefix_layout.addWidget(QLabel("Prefix:"))
+
+
+        # Add a tooltip button
+        prefix_tooltip_button = QToolButton()
+        prefix_tooltip_button.setText("?")
+        prefix_tooltip_button.setToolTip(
+            "Enter the prefix that prepends the tomogram number in 'rlnTomoName'. For example, enter 'tomo_' for entries like tomo_17, tomo_18 ,etc.")
+        prefix_layout.addWidget(prefix_tooltip_button)
+        prefix_layout.addWidget(self.prefix_input)
+
+        layout.addLayout(prefix_layout)
         #layout.addWidget(QLabel("Enter Tomogram number suffix in 'rlnTomoName':"))
         #layout.addWidget(self.suffix_input)
 
@@ -135,7 +147,7 @@ class CoordInputDialogRead(QDialog):
 
         except ValueError:
             # If there's a validation error, show a message
-            QMessageBox.warning(self, "Input Error", "Please enter valid integer values for X, Y, and Z and for the pixelsize and strings for prefix and suffix.")
+            QMessageBox.warning(self, "Input Error", "Please enter valid integer values for X, Y, Z and for the pixelsize and strings for the prefix.")
             return None, None, None, None, None, #None
 
     def get_info_read(self):

@@ -10,7 +10,7 @@ import os
 
 # Chimerax
 import chimerax
-from chimerax.core.commands import StringArg
+from chimerax.core.commands import StringArg, BoolArg
 from chimerax.core.errors import UserError
 from chimerax.core.session import Session
 from chimerax.core.models import Model
@@ -73,6 +73,7 @@ class RELION5ParticleData(ParticleData):
         prefix: str = None,
         suffix: str = None,
         volume: Model = None,
+        prior: bool = True,
     ) -> None:
         self.remaining_loops = {}
         self.remaining_data = {}
@@ -86,6 +87,7 @@ class RELION5ParticleData(ParticleData):
         self.suffix = suffix
         self.oripix = oripix
         self.volume = volume
+        self.prior = prior
 
         super().__init__(
             session,
@@ -451,6 +453,7 @@ class RELION5ParticleData(ParticleData):
         suffix: str = None,
         tomonumber: int = None,
         pixelsize: float = None,
+        prior: bool=True
     ) -> None:
 
         self.dimensions = dimensions
@@ -458,7 +461,9 @@ class RELION5ParticleData(ParticleData):
         self.suffix = suffix
         self.tomonumber = tomonumber
         self.pixelsize = pixelsize
+        self.prior = prior
 
+        print(f"received prior{prior}")
 
         x_size, y_size, z_size, name = 0, 0, 0, ""
 
@@ -555,43 +560,60 @@ class RELION5ParticleData(ParticleData):
             saved_rlnAngles_Psi=data['rlnAnglePsi']
 
         for idx in range(len(data['rlnTomoSubtomogramRot'])):
-            # Extract the original rlnTomoSubtomogram angles
-            tomo_rot = data['rlnTomoSubtomogramRot'][idx]
-            tomo_tilt = data['rlnTomoSubtomogramTilt'][idx]
-            tomo_psi = data['rlnTomoSubtomogramPsi'][idx]
-            print(f"rot:{tomo_rot}, tilt:{tomo_tilt}, psi:{tomo_psi}")
 
-            # if particle list was already read in as relion5, replace remove_angles with actual rlnAngle values
-            if hasattr(self, 'read_rel5_and_combined') and self.read_rel5_and_combined:
-                remove_angles[0]= saved_rlnAngles_Rot[idx]
-                remove_angles[1]= saved_rlnAngles_Tilt[idx]
-                remove_angles[2]= saved_rlnAngles_Psi[idx]
+            if prior == False:
+                # move Angle values to rlnAngle columns
+                data['rlnAngleRot'][idx] = data['rlnTomoSubtomogramRot'][idx]
+                print(f"angle rot{data['rlnAngleRot'][idx]}")
+                data['rlnAngleTilt'][idx] = data['rlnTomoSubtomogramTilt'][idx]
+                data['rlnAnglePsi'][idx] = data['rlnTomoSubtomogramPsi'][idx]
 
-            # Convert rlnTomoSubtomogram angles to rotation matrix
-            rotation_matrix = R.from_euler('zyz', [tomo_rot, tomo_tilt, tomo_psi], degrees=True).as_matrix()
+                # delete rlnTomoSubtomo columns and Prior columns
+                #del data['rlnTomoSubtomogramRot']
+                #del data['rlnTomoSubtomogramTilt']
+                #del data['rlnTomoSubtomogramPsi']
+                #del data['rlnAngleTiltPrior']
+                #del data['rlnAnglePsiPrior']
 
-            # Create a new rotation matrix for the angles to remove
-            remove_rotation_matrix = R.from_euler('ZYZ', remove_angles, degrees=True).as_matrix()
+            elif prior ==  True:
+                # Extract the original rlnTomoSubtomogram angles
+                tomo_rot = data['rlnTomoSubtomogramRot'][idx]
+                tomo_tilt = data['rlnTomoSubtomogramTilt'][idx]
+                tomo_psi = data['rlnTomoSubtomogramPsi'][idx]
+                print(f"rot:{tomo_rot}, tilt:{tomo_tilt}, psi:{tomo_psi}")
 
-            # Combine the two rotations: original rotation minus the removal rotation
-            # Inverting the remove_rotation to effectively "remove" it
-            resulting_rotation_matrix = rotation_matrix @ remove_rotation_matrix.T
+                # if particle list was already read in as relion5, replace remove_angles with actual rlnAngle values
+                if hasattr(self, 'read_rel5_and_combined') and self.read_rel5_and_combined:
+                    remove_angles[0]= saved_rlnAngles_Rot[idx]
+                    remove_angles[1]= saved_rlnAngles_Tilt[idx]
+                    remove_angles[2]= saved_rlnAngles_Psi[idx]
 
-            # Convert the resulting rotation matrix back to Euler angles
-            combined_euler_angles = R.from_matrix(resulting_rotation_matrix).as_euler('zyz', degrees=True)
+                # Convert rlnTomoSubtomogram angles to rotation matrix
+                rotation_matrix = R.from_euler('zyz', [tomo_rot, tomo_tilt, tomo_psi], degrees=True).as_matrix()
 
-            # Update data with new angle sets
-            data['rlnTomoSubtomogramRot'][idx] = combined_euler_angles[0]
-            data['rlnTomoSubtomogramTilt'][idx] = combined_euler_angles[1]
-            data['rlnTomoSubtomogramPsi'][idx] = combined_euler_angles[2]
+                # Create a new rotation matrix for the angles to remove
+                remove_rotation_matrix = R.from_euler('ZYZ', remove_angles, degrees=True).as_matrix()
 
-            data['rlnAngleRot'][idx] = remove_angles[0]
-            data['rlnAngleTilt'][idx] = remove_angles[1]
-            data['rlnAnglePsi'][idx] = remove_angles[2]
+                # Combine the two rotations: original rotation minus the removal rotation
+                # Inverting the remove_rotation to effectively "remove" it
+                resulting_rotation_matrix = rotation_matrix @ remove_rotation_matrix.T
 
-            # Also create rlnAngle with (0, 90, 0)
-            data['rlnAngleTiltPrior'] = 90
-            data['rlnAnglePsiPrior'] = 0
+                # Convert the resulting rotation matrix back to Euler angles
+                combined_euler_angles = R.from_matrix(resulting_rotation_matrix).as_euler('zyz', degrees=True)
+
+                # Update data with new angle sets
+                data['rlnTomoSubtomogramRot'][idx] = combined_euler_angles[0]
+                data['rlnTomoSubtomogramTilt'][idx] = combined_euler_angles[1]
+                data['rlnTomoSubtomogramPsi'][idx] = combined_euler_angles[2]
+
+                data['rlnAngleRot'][idx] = remove_angles[0]
+                data['rlnAngleTilt'][idx] = remove_angles[1]
+                data['rlnAnglePsi'][idx] = remove_angles[2]
+
+                # Also create rlnAnglePrior with (0, 90, 0)
+                data['rlnAngleTiltPrior'] = 90
+                data['rlnAnglePsiPrior'] = 0
+
 
         #Coordinates
             # Convert shifts back to their convention (*-1)
@@ -633,6 +655,15 @@ class RELION5ParticleData(ParticleData):
                 data["rlnCoordinateX"][idx] *= pixsize
                 data["rlnCoordinateY"][idx] *= pixsize
                 data["rlnCoordinateZ"][idx] *= pixsize
+
+        #if splitting was not desired, delete unecessary columns
+        if prior == False:
+            # delete rlnTomoSubtomo columns and Prior columns
+            del data['rlnTomoSubtomogramRot']
+            del data['rlnTomoSubtomogramTilt']
+            del data['rlnTomoSubtomogramPsi']
+            del data['rlnAngleTiltPrior']
+            del data['rlnAnglePsiPrior']
 
 
         #Change coordinates column names
@@ -794,7 +825,7 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
     def additional_content(
         self,
     ):
-        from Qt.QtWidgets import QLineEdit, QLabel, QHBoxLayout, QVBoxLayout, QGroupBox
+        from Qt.QtWidgets import QLineEdit, QLabel, QHBoxLayout, QVBoxLayout, QGroupBox, QCheckBox, QToolButton
         from ...widgets.NLabelValue import NLabelValue
         from ...widgets.IgnorantComboBox import IgnorantComboBox
 
@@ -804,6 +835,13 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         self._keep_name_prefix_layout = QHBoxLayout()  # Horizontal layout for prefix
         self._keep_name_prefix_label = QLabel("Prefix:")  # Label for prefix
         self._keep_name_prefix_edit = QLineEdit("")  # Text input for prefix
+
+        # Add the tooltip button for Prefix input
+        self._help_button_prefix = QToolButton()
+        self._help_button_prefix.setText("?")
+        self._help_button_prefix.setToolTip(
+            "Enter the prefix that will precede the tomogram number in 'rlnTomoName'. Example: 'Tomo_' will result in 'Tomo_001', 'Tomo_002', etc.")
+        self._keep_name_prefix_layout.addWidget(self._help_button_prefix)  # Add the button next to the prefix input
         self._keep_name_prefix_layout.addWidget(self._keep_name_prefix_label)
         self._keep_name_prefix_layout.addWidget(self._keep_name_prefix_edit)
         # Set the initial prefix value when the widget is first loaded
@@ -822,7 +860,7 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         #self._keep_combined_layout.addLayout(self._keep_name_suffix_layout)  # Add suffix layout
 
         # Create a group box to hold both prefix and suffix inputs
-        self._keep_tomoname_group = QGroupBox("Prefix preceeding tomogram number in 'rlnTomoName':")
+        self._keep_tomoname_group = QGroupBox("Prefix:")
         self._keep_tomoname_group.setLayout(self._keep_combined_layout)  # Set combined layout to group box
         #self._keep_tomoname_group.setCheckable(True)  # Make group box checkable
         #self._keep_tomoname_group.setChecked(False)  # Initially unchecked (disabled)
@@ -832,6 +870,14 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         self._name_layout = QHBoxLayout()
         self._name_label = QLabel("TomoNumber:")
         self._name_edit = QLineEdit("")
+
+        # Add the tooltip button for TomoNumber input
+        self._help_button_tomo_number = QToolButton()
+        self._help_button_tomo_number.setText("?")
+        self._help_button_tomo_number.setToolTip(
+            "Enter the tomogram number for the new particle list. This is required if a tomogram number is not yet assigned to the particles, e.g. if the particles were newly created or if the input particle list did not include this information.")
+        self._name_layout.addWidget(self._help_button_tomo_number)  # Add the button next to the tomo number input
+
         self._name_layout.addWidget(self._name_label)
         self._name_layout.addWidget(self._name_edit)
 
@@ -839,10 +885,8 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         self._combined_layout = QVBoxLayout()
         self._combined_layout.addLayout(self._name_layout)  # Add tomo number layout
 
-        self._tomoname_group = QGroupBox("Set new TomoNumber (Required input for newly created particles or if assignment of tomogram number doesnt't exist yet):")
+        self._tomoname_group = QGroupBox("Set new TomoNumber:")
         self._tomoname_group.setLayout(self._combined_layout)
-        self._tomoname_group.setCheckable(True)
-        self._tomoname_group.setChecked(True)
 
 
 
@@ -879,6 +923,8 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         self._dim_layout.addWidget(self._dim_widget)
         self._dim_layout.addLayout(self._vs_layout)
 
+
+
         # Group
         self._dim_group = QGroupBox("Set Volume Dimensions:")
         self._dim_group.setLayout(self._dim_layout)
@@ -895,10 +941,42 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
 
         self._vol_combobox.currentIndexChanged.connect(self._on_vol_combobox)
 
+        # Split / No Split Section
+        self._split_layout = QHBoxLayout()
+
+        # Checkboxes
+        self._split_checkbox = QCheckBox("Create File with Prior")
+        self._nosplit_checkbox = QCheckBox("Create File without Prior")
+
+        # Question mark icon with tooltip
+        self._help_button_prior_true = QToolButton()
+        self._help_button_prior_true.setText("?")
+        self._help_button_prior_true.setToolTip(
+            "Create a particle list with rlnAngleRot/Tilt/Prior, rlnTomoSubtomogramRot/Tilt/Psi and rlnAnglePriorTilt/Psi columns. This can be useful for particles with a relevant geometric context, e.g. membrane proteins or filaments. The orientation of the geometric context will be written out in the rlnTomoSubtomogramRot/Tilt/Psi columns and the particle is then positioned in relation to this structure using the columns rlnAngleRot/Tilt/Psi. The Relion5 processing pipeline can then restrain the rotation around the angles specified in rlnAnglePriorTilt/Psi. Further information can be found in the relion5 documentation. ")
+
+        # Question mark icon with tooltip
+        self._help_button_prior_false = QToolButton()
+        self._help_button_prior_false.setText("?")
+        self._help_button_prior_false.setToolTip(
+            "Create a particle list with rlnAngleRot/Tilt/Psi columns. Useful for particles without geometric context, like e.g. cytosolic particles ")
+
+        # Add checkboxes and help button to layout
+        self._split_layout.addWidget(self._help_button_prior_true)
+        self._split_layout.addWidget(self._split_checkbox)
+        self._split_layout.addWidget(self._help_button_prior_false)
+        self._split_layout.addWidget(self._nosplit_checkbox)
+
+
+
+        # Group box for Split options
+        self._split_group = QGroupBox("Output Options:")
+        self._split_group.setLayout(self._split_layout)
+
         self._main = QVBoxLayout()
         self._main.addWidget(self._tomoname_group)
         self._main.addWidget(self._keep_tomoname_group)
         self._main.addWidget(self._dim_group)
+        self._main.addWidget(self._split_group)
 
         from Qt.QtCore import Qt
 
@@ -964,8 +1042,22 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         else:
             name_number = 9999   #if name_number was not supplied during input, set as integer placeholder because None doesnt work
 
+        prior=False
+        #Prior
+        if self._split_checkbox.isChecked() and self._nosplit_checkbox.isChecked():
+            raise UserError("Please select either ...or ....")
+        if self._split_checkbox.isChecked():
+            print("Split option is selected.")
+            prior=True
+        elif self._nosplit_checkbox.isChecked():
+            prior=False
+            print("No Split option is selected.")
+        else:
+            raise UserError("Please select either ...or ....")
+
+
         print(f"Name_number:{name_number}")
-        txt = f"voldim {x:.3f},{y:.3f},{z:.3f} voxelsize {v:.3f} prefix {prefix} suffix {name_suffix} tomonumber {name_number}"
+        txt = f"voldim {x:.3f},{y:.3f},{z:.3f} voxelsize {v:.3f} prefix {prefix} suffix {name_suffix} tomonumber {name_number} prior {prior}"
 
         return txt
 
@@ -983,6 +1075,7 @@ class RELION5SaverInfo(ArtiaXSaverInfo):
         prefix: str = None,
         suffix: str = None,
         tomonumber: int = None,
+        prior: bool = True,
     ) -> None:
 
         # UserErrors for input through command line
@@ -1030,6 +1123,7 @@ class RELION5SaverInfo(ArtiaXSaverInfo):
             prefix=prefix,
             suffix=suffix,
             tomonumber=tomonumber,
+            prior=prior
 
         )
 
@@ -1045,6 +1139,7 @@ class RELION5SaverInfo(ArtiaXSaverInfo):
             "prefix": StringArg,
             "suffix": StringArg,
             "tomonumber": IntArg,
+            "prior": BoolArg,
         }
 
 
