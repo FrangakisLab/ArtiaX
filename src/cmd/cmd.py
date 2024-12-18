@@ -1569,6 +1569,44 @@ def artiax_user_guide(session:Session):
     raise UserError(
         "To open artiax user guide, type 'help artiax user guide'.")
 
+def artiax_delete_duplicates(session:Session, models):
+    if not hasattr(session, "ArtiaX"):
+        session.logger.warning("ArtiaX is not currently running.")
+    print("delete duplicates is being executed")
+    # No Models
+    if models is None:
+        models = session.ArtiaX.partlists.child_models()
+
+    # Filter models
+    ms = []
+    for model in models:
+        # Is it a particle list?
+        from ..particle import ParticleList
+
+        if not isinstance(model, ParticleList):
+            # Is it a model that likely belongs to a particle list?
+            from chimerax.core.models import ancestor_models
+
+            if session.ArtiaX in ancestor_models([model]):
+                continue
+            else:
+                session.logger.warning(
+                    'artiax unlock: Model #{} - "{}" is not a particle list'.format(
+                        model.id_string, model.name
+                    )
+                )
+                continue
+
+        ms.append(model)
+
+    from ..particle.ParticleList import delete_duplicates
+    print(f"all models that are particle lists{ms}")
+    delete_duplicates(ms,session)
+
+
+
+
+
 
 def register_artiax(logger):
     """Register all commands with ChimeraX, and specify expected arguments."""
@@ -1997,6 +2035,14 @@ def register_artiax(logger):
         )
         register("artiax user guide", desc, artiax_user_guide)
 
+    def register_artiax_delete_duplicates():
+        desc = CmdDesc(
+            required=[("models", Or(ModelsArg, EmptyArg))],
+            synopsis="Delete duplicates in particle list",
+            url="help:user/artiax_index.html",
+        )
+        register("artiax delete duplicates", desc, artiax_delete_duplicates)
+
 
     register_artiax_start()
     register_artiax_open_tomo()
@@ -2040,6 +2086,7 @@ def register_artiax(logger):
     register_artiax_open()
     register_artiax_save()
     register_artiax_user_guide()
+    register_artiax_delete_duplicates()
 
 
 # Possible styles

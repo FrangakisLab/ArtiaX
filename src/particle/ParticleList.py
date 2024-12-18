@@ -1353,3 +1353,18 @@ def invert_selection(session):
         if plist.visible:
             markerset = plist.markers
             markerset.atoms.selecteds = logical_not(markerset.atoms.selecteds)
+
+def delete_duplicates(session, models):
+    #if not hasattr(session, "ArtiaX"):
+    #    print("abort")
+    #    return
+
+    print(f"actual delete particles is being executed")
+
+    for m in models:
+        if isinstance(m, ParticleList):
+            data=m.markers
+            id=m.child_ids
+
+            print(f"data: {data}")
+            print(f"id: {id}")
