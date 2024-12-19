@@ -258,9 +258,27 @@ class Particle(State):
             "ang_3",
         ]
 
+        # Define a dictionary for exceptions and their default values
+        exception_defaults = {
+            "rlnAngleRot": 0.0,  # Example: Default for 'pos_x' is 0
+            "rlnAngleTilt": 90.0,  # Example: Default for 'pos_y' is 2.0
+            "rlnAnglePsi": 0.0,  # Example: Default for 'pos_z' is 3.0
+        }
+
+        rel5_file=False
+        #note if relion5 file
+        #print(self._data_keys.items())
+        if "rlnCenteredCoordinateXAngst" in self._data_keys:
+            rel5_file=True
+        #print(f"rel5?:{rel5_file}")
+
         # Add all data entries and aliases
         for key, value in self._data_keys.items():
-            self[key] = 0
+            if key in exception_defaults and rel5_file==True:
+                self[key] = exception_defaults[key]  # Set the exception value
+            else:
+                self[key] = 0  # Default value for other key
+
             for v in value:
                 self._add_alias(v, key)
 

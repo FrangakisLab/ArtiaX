@@ -31,9 +31,9 @@ class RELION5ParticleData(ParticleData):
 
     DATA_KEYS = {
         "rlnTomoName": [],
-        "rlnCoordinateX": [],
-        "rlnCoordinateY": [],
-        "rlnCoordinateZ": [],
+        "rlnCenteredCoordinateXAngst": [],
+        "rlnCenteredCoordinateYAngst": [],
+        "rlnCenteredCoordinateZAngst": [],
         "rlnOriginXAngst":[],
         "rlnOriginYAngst": [],
         "rlnOriginZAngst": [],
@@ -48,9 +48,9 @@ class RELION5ParticleData(ParticleData):
     }
 
     DEFAULT_PARAMS = {
-        "pos_x": "rlnCoordinateX",
-        "pos_y": "rlnCoordinateY",
-        "pos_z": "rlnCoordinateZ",
+        "pos_x": "rlnCenteredCoordinateXAngst",
+        "pos_y": "rlnCenteredCoordinateYAngst",
+        "pos_z": "rlnCenteredCoordinateZAngst",
         "shift_x": "rlnOriginX",
         "shift_y": "rlnOriginY",
         "shift_z": "rlnOriginZ",
@@ -550,16 +550,41 @@ class RELION5ParticleData(ParticleData):
                     data['rlnTomoName'][idx] = f"{formatted_num}{suffix}"
 
 
-        # Angles
-        remove_angles = [0, 90, 0]
-
-        #if particle list was read in as relion5 and angles were combined, remember original rlnAngle values
-        if hasattr(self, 'read_rel5_and_combined') and self.read_rel5_and_combined:
-            saved_rlnAngles_Rot=data['rlnAngleRot']
-            saved_rlnAngles_Tilt=data['rlnAngleTilt']
-            saved_rlnAngles_Psi=data['rlnAnglePsi']
-
         for idx in range(len(data['rlnTomoSubtomogramRot'])):
+
+            # Angles, set default
+            remove_angles = [0, 90, 0]
+            prior_tilt=90
+            prior_psi=0
+
+            #if particle list was read in as relion5 and angles were combined, remember original rlnAngle values
+            if hasattr(self, 'read_rel5_and_combined') and self.read_rel5_and_combined:
+                try:
+                    print(f"found key for {idx}")
+                    saved_rlnAngles_Rot=data['rlnAngleRot'][idx]
+                    saved_rlnAngles_Tilt=data['rlnAngleTilt'][idx]
+                    saved_rlnAngles_Psi=data['rlnAnglePsi'][idx]
+                except KeyError:
+                    print(f"did not find key for {idx}")
+                    #adding default if particle list was read in as rel5 but new particles were added to the list
+                    saved_rlnAngles_Rot=0
+                    saved_rlnAngles_Tilt=90
+                    saved_rlnAngles_Psi=0
+
+                print(f"saved_rlnAngles_Rot: {saved_rlnAngles_Rot}")
+                print(f"saved_rlnAngles_Tilt: {saved_rlnAngles_Tilt}")
+                print(f"saved_rlnAngles_Psi: {saved_rlnAngles_Psi}")
+
+                try:
+                    saved_rlnAnglesPriorTilt=data['rlnAnglesTiltPrior'][idx]
+                    saved_rlnAnglesPriorPsi=data['rlnAnglesPsiPrior'][idx]
+
+                except KeyError:
+                    # adding default if particle list was read in as rel5 but new particles were added to the list
+                    saved_rlnAnglesPriorTilt=90
+                    saved_rlnAnglesPriorPsi=0
+
+                print(f"saved_rlnAnglesPriorTilt: {saved_rlnAnglesPriorTilt}")
 
             if prior == False:
                 # move Angle values to rlnAngle columns
@@ -582,11 +607,16 @@ class RELION5ParticleData(ParticleData):
                 tomo_psi = data['rlnTomoSubtomogramPsi'][idx]
                 print(f"rot:{tomo_rot}, tilt:{tomo_tilt}, psi:{tomo_psi}")
 
+
                 # if particle list was already read in as relion5, replace remove_angles with actual rlnAngle values
                 if hasattr(self, 'read_rel5_and_combined') and self.read_rel5_and_combined:
-                    remove_angles[0]= saved_rlnAngles_Rot[idx]
-                    remove_angles[1]= saved_rlnAngles_Tilt[idx]
-                    remove_angles[2]= saved_rlnAngles_Psi[idx]
+                    remove_angles[0]= saved_rlnAngles_Rot
+                    remove_angles[1]= saved_rlnAngles_Tilt
+                    remove_angles[2]= saved_rlnAngles_Psi
+                    print(f"remove angles{remove_angles}")
+                    prior_tilt = saved_rlnAnglesPriorTilt
+                    print(f"prior tilt : {prior_tilt}")
+                    prior_psi = saved_rlnAnglesPriorPsi
 
                 # Convert rlnTomoSubtomogram angles to rotation matrix
                 rotation_matrix = R.from_euler('zyz', [tomo_rot, tomo_tilt, tomo_psi], degrees=True).as_matrix()
@@ -611,8 +641,8 @@ class RELION5ParticleData(ParticleData):
                 data['rlnAnglePsi'][idx] = remove_angles[2]
 
                 # Also create rlnAnglePrior with (0, 90, 0)
-                data['rlnAngleTiltPrior'] = 90
-                data['rlnAnglePsiPrior'] = 0
+                data['rlnAngleTiltPrior'] = prior_tilt
+                data['rlnAnglePsiPrior'] = prior_psi
 
 
         #Coordinates
@@ -629,32 +659,32 @@ class RELION5ParticleData(ParticleData):
                 data["rlnOriginX"][idx] *= -1
                 data["rlnOriginY"][idx] *= -1
                 data["rlnOriginZ"][idx] *= -1
-                data["rlnCoordinateX"][idx] = (data["rlnOriginX"][idx] + data["rlnCoordinateX"][idx])
-                data["rlnCoordinateY"][idx] = (data["rlnOriginY"][idx] + data["rlnCoordinateY"][idx])
-                data["rlnCoordinateZ"][idx] = (data["rlnOriginZ"][idx] + data["rlnCoordinateZ"][idx])
+                data["rlnCenteredCoordinateXAngst"][idx] = (data["rlnOriginX"][idx] + data["rlnCenteredCoordinateXAngst"][idx])
+                data["rlnCenteredCoordinateYAngst"][idx] = (data["rlnOriginY"][idx] + data["rlnCenteredCoordinateYAngst"][idx])
+                data["rlnCenteredCoordinateZAngst"][idx] = (data["rlnOriginZ"][idx] + data["rlnCenteredCoordinateZAngst"][idx])
             #removing rlnOrigin column
             del data['rlnOriginX']
             del data['rlnOriginY']
             del data['rlnOriginZ']
 
 
-        for idx, v in enumerate(data["rlnCoordinateX"]):
+        for idx, v in enumerate(data["rlnCenteredCoordinateXAngst"]):
                 # changes unit from pixel to Angstrom and makes coordinate centered
                 # center coordinate
-                data["rlnCoordinateX"][idx] = (
-                    data["rlnCoordinateX"][idx]
+                data["rlnCenteredCoordinateXAngst"][idx] = (
+                    data["rlnCenteredCoordinateXAngst"][idx]
                 ) - x_center
-                data["rlnCoordinateY"][idx] = (
-                    data["rlnCoordinateY"][idx]
+                data["rlnCenteredCoordinateYAngst"][idx] = (
+                    data["rlnCenteredCoordinateYAngst"][idx]
                 ) - y_center
-                data["rlnCoordinateZ"][idx] = (
-                    data["rlnCoordinateZ"][idx]
+                data["rlnCenteredCoordinateZAngst"][idx] = (
+                    data["rlnCenteredCoordinateZAngst"][idx]
                 ) - z_center
 
                 # convert coordinate unit from pixel to angstrom
-                data["rlnCoordinateX"][idx] *= pixsize
-                data["rlnCoordinateY"][idx] *= pixsize
-                data["rlnCoordinateZ"][idx] *= pixsize
+                data["rlnCenteredCoordinateXAngst"][idx] *= pixsize
+                data["rlnCenteredCoordinateYAngst"][idx] *= pixsize
+                data["rlnCenteredCoordinateZAngst"][idx] *= pixsize
 
         #if splitting was not desired, delete unecessary columns
         if prior == False:
@@ -668,22 +698,22 @@ class RELION5ParticleData(ParticleData):
 
         #Change coordinates column names
         # Define the old-to-new key mapping
-        rename_keys = {
-            'rlnCoordinateZ': 'rlnCenteredCoordinateZAngst',
-            'rlnCoordinateX': 'rlnCenteredCoordinateXAngst',
-            'rlnCoordinateY': 'rlnCenteredCoordinateYAngst'
-        }
+        #rename_keys = {
+            #'rlnCoordinateZ': 'rlnCenteredCoordinateZAngst',
+            #'rlnCoordinateX': 'rlnCenteredCoordinateXAngst',
+            #'rlnCoordinateY': 'rlnCenteredCoordinateYAngst'
+        #}
 
         # Create a new dictionary to store the updated key order
-        new_data = {}
+        #new_data = {}
 
         # Iterate over the original dictionary and rename the keys
-        for key, value in data.items():
+        #for key, value in data.items():
             # If the key needs to be renamed, use the new key
-            new_data[rename_keys.get(key, key)] = value
+        #    new_data[rename_keys.get(key, key)] = value
 
         # Replace the old dictionary with the new one
-        data = new_data
+        #data = new_data
 
         df = pd.DataFrame(data=data)
 
@@ -875,7 +905,7 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         self._help_button_tomo_number = QToolButton()
         self._help_button_tomo_number.setText("?")
         self._help_button_tomo_number.setToolTip(
-            "Enter the tomogram number for the new particle list. This is required if a tomogram number is not yet assigned to the particles, e.g. if the particles were newly created or if the input particle list did not include this information.")
+            "Enter the tomogram number for the new particle list.\nThis is required if a tomogram number is not yet assigned to the particles,\ne.g. if the particles were newly created or if the input particle list did not include this information.")
         self._name_layout.addWidget(self._help_button_tomo_number)  # Add the button next to the tomo number input
 
         self._name_layout.addWidget(self._name_label)
@@ -952,13 +982,13 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         self._help_button_prior_true = QToolButton()
         self._help_button_prior_true.setText("?")
         self._help_button_prior_true.setToolTip(
-            "Create a particle list with rlnAngleRot/Tilt/Prior, rlnTomoSubtomogramRot/Tilt/Psi and rlnAnglePriorTilt/Psi columns. This can be useful for particles with a relevant geometric context, e.g. membrane proteins or filaments. The orientation of the geometric context will be written out in the rlnTomoSubtomogramRot/Tilt/Psi columns and the particle is then positioned in relation to this structure using the columns rlnAngleRot/Tilt/Psi. The Relion5 processing pipeline can then restrain the rotation around the angles specified in rlnAnglePriorTilt/Psi. Further information can be found in the relion5 documentation. ")
+            "Create a particle list with rlnAngleRot/Tilt/Prior, rlnTomoSubtomogramRot/Tilt/Psi and rlnAnglePriorTilt/Psi columns. \nThis can be useful for particles with a relevant geometric context, e.g. membrane proteins or filaments. \nThe orientation of the geometric context will be written out in the rlnTomoSubtomogramRot/Tilt/Psi columns \nand the particle is then positioned in relation to this structure using the columns rlnAngleRot/Tilt/Psi. \nThe RELION-5 processing pipeline can then restrain the rotation around the angles specified in rlnAnglePriorTilt/Psi. \nFurther information can be found in the RELION-5 documentation. ")
 
         # Question mark icon with tooltip
         self._help_button_prior_false = QToolButton()
         self._help_button_prior_false.setText("?")
         self._help_button_prior_false.setToolTip(
-            "Create a particle list with rlnAngleRot/Tilt/Psi columns. Useful for particles without geometric context, like e.g. cytosolic particles ")
+            "Create a particle list with rlnAngleRot/Tilt/Psi columns. \nUseful for particles without geometric context, like e.g. cytosolic particles ")
 
         # Add checkboxes and help button to layout
         self._split_layout.addWidget(self._help_button_prior_true)

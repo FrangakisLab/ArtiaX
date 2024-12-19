@@ -90,7 +90,7 @@ class CoordInputDialogRead(QDialog):
         prefix_tooltip_button = QToolButton()
         prefix_tooltip_button.setText("?")
         prefix_tooltip_button.setToolTip(
-            "Enter the prefix that prepends the tomogram number in 'rlnTomoName'. For example, enter 'tomo_' for entries like tomo_17, tomo_18 ,etc.")
+            "Enter the prefix that preceds the tomogram number in 'rlnTomoName'. \nFor example, enter 'tomo_' for entries like tomo_17, tomo_18 ,etc.")
         prefix_layout.addWidget(prefix_tooltip_button)
         prefix_layout.addWidget(self.prefix_input)
 
