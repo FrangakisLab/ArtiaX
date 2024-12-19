@@ -3,6 +3,7 @@
 # General imports
 from __future__ import annotations
 import numpy as np
+import math
 from importlib import import_module
 
 # ChimeraX imports
@@ -1354,17 +1355,62 @@ def invert_selection(session):
             markerset = plist.markers
             markerset.atoms.selecteds = logical_not(markerset.atoms.selecteds)
 
-def delete_duplicates(session, models):
-    #if not hasattr(session, "ArtiaX"):
-    #    print("abort")
-    #    return
+def delete_duplicates(session, models, radius=0):
 
-    print(f"actual delete particles is being executed")
+    if not hasattr(session, "ArtiaX"):
+        return
 
-    for m in models:
-        if isinstance(m, ParticleList):
-            data=m.markers
-            id=m.child_ids
+    coordinates=[]
 
-            print(f"data: {data}")
-            print(f"id: {id}")
+    for pl in session.ArtiaX.partlists.iter():
+        for id in models:
+            duplicates=[]
+            duplicate_ids=[]
+            if f"{pl.id_string}" == id:
+                #find the particle list
+                selected_pl = pl
+                #collect particle ids
+                id=selected_pl.particle_ids
+
+                for pid in id:
+                    #collect coordinates for all particles in particle list
+                    particle, marker = pl._map[pid]
+                    coord=particle.coord
+                    coordinates.append(coord)
+
+
+                for i, coord1 in enumerate(coordinates):
+                    for j, coord2 in enumerate(coordinates):
+                        if i != j:  # Avoid comparing the same entry
+                            # Calculate Euclidean distance
+                            distance = math.sqrt(
+                                (coord1[0] - coord2[0]) ** 2 +
+                                (coord1[1] - coord2[1]) ** 2 +
+                                (coord1[2] - coord2[2]) ** 2
+                            )
+                            print(distance)
+                            if distance <= radius:  # Check if within specified radius
+                                duplicates.append((i, j))  # Store the indices
+
+                if duplicates:
+                    print(f"duplicates{duplicates}")
+                    for dup in duplicates:
+                        print(f"checking {dup}")
+                        #print(f"At indices {dup[0]} and {dup[1]}")
+                        # dup[0] and dup[1] are the indices of duplicate coordinates
+                        particle_id1 = id[dup[0]]  # Particle ID corresponding to the first duplicate
+                        particle_id2 = id[dup[1]]  # Particle ID corresponding to the second duplicate
+
+                        # Add the IDs to the duplicate_ids list if they are not already in it
+                        print(f"current state of duplicate_id {duplicate_ids}")
+                        if particle_id1 not in duplicate_ids and particle_id2 not in duplicate_ids:
+                            duplicate_ids.append(particle_id1)
+                            print(f"added {particle_id1}")
+                        #if particle_id2 not in duplicate_ids and particle_id1 not in duplicate_ids:
+                        #    duplicate_ids.append(particle_id2)
+                else:
+                    print("No duplicate coordinates found.")
+                print(duplicate_ids)
+                pl.delete_data(list(duplicate_ids))
+
+

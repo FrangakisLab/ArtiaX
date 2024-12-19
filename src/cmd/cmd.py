@@ -1569,10 +1569,11 @@ def artiax_user_guide(session:Session):
     raise UserError(
         "To open artiax user guide, type 'help artiax user guide'.")
 
-def artiax_delete_duplicates(session:Session, models):
+def artiax_delete_duplicates(session:Session, models=None, radius=0):
+
     if not hasattr(session, "ArtiaX"):
         session.logger.warning("ArtiaX is not currently running.")
-    print("delete duplicates is being executed")
+
     # No Models
     if models is None:
         models = session.ArtiaX.partlists.child_models()
@@ -1596,12 +1597,12 @@ def artiax_delete_duplicates(session:Session, models):
                     )
                 )
                 continue
-
-        ms.append(model)
+        _id = model.id_string
+        ms.append(_id)
 
     from ..particle.ParticleList import delete_duplicates
-    print(f"all models that are particle lists{ms}")
-    delete_duplicates(ms,session)
+
+    delete_duplicates(session,ms, radius)
 
 
 
@@ -2038,6 +2039,7 @@ def register_artiax(logger):
     def register_artiax_delete_duplicates():
         desc = CmdDesc(
             required=[("models", Or(ModelsArg, EmptyArg))],
+            optional=[("radius", FloatArg)],
             synopsis="Delete duplicates in particle list",
             url="help:user/artiax_index.html",
         )
