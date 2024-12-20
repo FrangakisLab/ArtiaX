@@ -528,7 +528,6 @@ class ParticleList(Model):
                     minima.append(min(values))
                 else:
                     minima.append(None)
-            print(f"minima:{minima}")
 
         return minima
 

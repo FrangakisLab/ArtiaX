@@ -101,7 +101,7 @@ class RELION5ParticleData(ParticleData):
 
     def read_file(self, voxelsize = None, dimensions = None, prefix = None, suffix = None, volume = None) -> None:
         """Reads RELION5 star file."""
-        print("import as relion5")
+        #print("import as relion5")
         ### Collect all necessary information for computation
         #Validate information
         if self.prefix is not None:
@@ -131,7 +131,6 @@ class RELION5ParticleData(ParticleData):
         #TODO: can be removed
         #input not through command line but through opening gui, therefore open additional window
         elif self.dimensions is None:
-            #print("open pop up in read")
             from ...widgets.Relion5ReadAddInfo import CoordInputDialogRead
             # get information through widget about tomogram size and pixelsize
             dialog = CoordInputDialogRead(self.session)
@@ -162,7 +161,6 @@ class RELION5ParticleData(ParticleData):
         x_center = x_size / 2
         y_center = y_size / 2
         z_center = z_size / 2
-        #print(x_center)
 
 
         # Take the good loop, store the rest and the loop name so we can write it out again later on
@@ -182,7 +180,6 @@ class RELION5ParticleData(ParticleData):
 
             # Sanity check names
             first_name = names[0]
-            #print(first_name)
 
             # Ensure proper handling of prefix and suffix
             if prefix:  # Only check if prefix is not None or empty
@@ -463,8 +460,6 @@ class RELION5ParticleData(ParticleData):
         self.pixelsize = pixelsize
         self.prior = prior
 
-        print(f"received prior{prior}")
-
         x_size, y_size, z_size, name = 0, 0, 0, ""
 
         if self.dimensions is not None and len(self.dimensions) == 3:
@@ -479,7 +474,6 @@ class RELION5ParticleData(ParticleData):
 
         if self.tomonumber != 9999:  #None was not possible for placeholder signaling no user input, therefore 9999
             tomogram_name = self.tomonumber
-            #print(f"Corresponding tomogram number: {tomogram_name}")
         else:
             tomogram_name = None
 
@@ -509,24 +503,17 @@ class RELION5ParticleData(ParticleData):
                 # Zero-pad the number based on the leading zeros
                 formatted_num = f"{num:0{leading_zeros}d}"
                 if suffix is not None and prefix is not None:
-                    # print("a")
-                    # print(formatted_num)
                     if int(formatted_num) == 0:
                         data['rlnTomoName'][idx] = f"{prefix}{tomogram_name}{suffix}"
                     else:
                         data['rlnTomoName'][idx] = f"{prefix}{formatted_num}{suffix}"
                 elif prefix is not None:
-                    # print("b")
-                    # print(formatted_num)
-                    # print(prefix)
                     if int(formatted_num) == 0:
                         #print("i am here")
                         data['rlnTomoName'][idx] = f"{prefix}{tomogram_name}"
                     else:
                         data['rlnTomoName'][idx] = f"{prefix}{formatted_num}"
                 elif suffix is not None:
-                    # print("c")
-                    # print(formatted_num)
                     if int(formatted_num) == 0:
                         data['rlnTomoName'][idx] = f"{tomogram_name}{suffix}"
                     else:
@@ -560,20 +547,14 @@ class RELION5ParticleData(ParticleData):
             #if particle list was read in as relion5 and angles were combined, remember original rlnAngle values
             if hasattr(self, 'read_rel5_and_combined') and self.read_rel5_and_combined:
                 try:
-                    print(f"found key for {idx}")
                     saved_rlnAngles_Rot=data['rlnAngleRot'][idx]
                     saved_rlnAngles_Tilt=data['rlnAngleTilt'][idx]
                     saved_rlnAngles_Psi=data['rlnAnglePsi'][idx]
                 except KeyError:
-                    print(f"did not find key for {idx}")
                     #adding default if particle list was read in as rel5 but new particles were added to the list
                     saved_rlnAngles_Rot=0
                     saved_rlnAngles_Tilt=90
                     saved_rlnAngles_Psi=0
-
-                print(f"saved_rlnAngles_Rot: {saved_rlnAngles_Rot}")
-                print(f"saved_rlnAngles_Tilt: {saved_rlnAngles_Tilt}")
-                print(f"saved_rlnAngles_Psi: {saved_rlnAngles_Psi}")
 
                 try:
                     saved_rlnAnglesPriorTilt=data['rlnAnglesTiltPrior'][idx]
@@ -584,12 +565,9 @@ class RELION5ParticleData(ParticleData):
                     saved_rlnAnglesPriorTilt=90
                     saved_rlnAnglesPriorPsi=0
 
-                print(f"saved_rlnAnglesPriorTilt: {saved_rlnAnglesPriorTilt}")
-
             if prior == False:
                 # move Angle values to rlnAngle columns
                 data['rlnAngleRot'][idx] = data['rlnTomoSubtomogramRot'][idx]
-                print(f"angle rot{data['rlnAngleRot'][idx]}")
                 data['rlnAngleTilt'][idx] = data['rlnTomoSubtomogramTilt'][idx]
                 data['rlnAnglePsi'][idx] = data['rlnTomoSubtomogramPsi'][idx]
 
@@ -605,7 +583,7 @@ class RELION5ParticleData(ParticleData):
                 tomo_rot = data['rlnTomoSubtomogramRot'][idx]
                 tomo_tilt = data['rlnTomoSubtomogramTilt'][idx]
                 tomo_psi = data['rlnTomoSubtomogramPsi'][idx]
-                print(f"rot:{tomo_rot}, tilt:{tomo_tilt}, psi:{tomo_psi}")
+                #print(f"rot:{tomo_rot}, tilt:{tomo_tilt}, psi:{tomo_psi}")
 
 
                 # if particle list was already read in as relion5, replace remove_angles with actual rlnAngle values
@@ -613,9 +591,9 @@ class RELION5ParticleData(ParticleData):
                     remove_angles[0]= saved_rlnAngles_Rot
                     remove_angles[1]= saved_rlnAngles_Tilt
                     remove_angles[2]= saved_rlnAngles_Psi
-                    print(f"remove angles{remove_angles}")
+                    #print(f"remove angles{remove_angles}")
                     prior_tilt = saved_rlnAnglesPriorTilt
-                    print(f"prior tilt : {prior_tilt}")
+                    #print(f"prior tilt : {prior_tilt}")
                     prior_psi = saved_rlnAnglesPriorPsi
 
                 # Convert rlnTomoSubtomogram angles to rotation matrix
@@ -811,9 +789,9 @@ class RELION5OpenerInfo(ArtiaXOpenerInfo):
         elif (dimensions is None and volume is None) or (voxelsize is None and volume is None):
             from ...widgets.Relion5ReadAddInfo import CoordInputDialogRead
             print("Information is missing, opening input window")
-            print("Example for expected Syntax: open /your/path/relion5_file.star format relion5 voldim 896,696,250 voxelsize 11.52 prefix TS_ ")
-            print("Example for expected Syntax: open /your/path/relion5_file.star format relion5 volume #1.1.1 prefix tomo ")
-            print("Please provide either a volume or the volume dimensions and pixelsize of your tomogram. To correctly read the column 'rlnTomoName' in the star file, the desired prefix that preceeds the tomogram number can be specified")
+            #print("Example for expected Syntax: open /your/path/relion5_file.star format relion5 voldim 896,696,250 voxelsize 11.52 prefix TS_ ")
+            #print("Example for expected Syntax: open /your/path/relion5_file.star format relion5 volume #1.1.1 prefix tomo ")
+            #print("Please provide either a volume or the volume dimensions and pixelsize of your tomogram. To correctly read the column 'rlnTomoName' in the star file, the desired prefix that preceeds the tomogram number can be specified")
             dialog = CoordInputDialogRead(session)
             x, y, z, voxelsize, prefix, suffix = dialog.get_info_read()
             dimensions = x,y,z
@@ -1020,7 +998,6 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         if not hasattr(self.session, 'rel5_import_prefix'):
             self.session.rel5_import_prefix = {}  # Initialize the dictionary if it doesn't exist, e.g. when read as relion or em
         default_prefix = self.session.rel5_import_prefix.get(model_name, "")  # Get prefix or empty string
-        print(f"Model Name: {model_name}, Prefix: {self.session.rel5_import_prefix.get(model_name, 'Not Found')}")
 
         # Update the QLineEdit with the new prefix
         self._keep_name_prefix_edit.setText(default_prefix)
@@ -1077,16 +1054,14 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         if self._split_checkbox.isChecked() and self._nosplit_checkbox.isChecked():
             raise UserError("Please select either 'Create File with Prior' or 'Create File without Prior'")
         if self._split_checkbox.isChecked():
-            print("Split option is selected.")
             prior=True
         elif self._nosplit_checkbox.isChecked():
             prior=False
-            print("No Split option is selected.")
         else:
             raise UserError("Please select either ...or ....")
 
 
-        print(f"Name_number:{name_number}")
+        #print(f"Name_number:{name_number}")
         txt = f"voldim {x:.3f},{y:.3f},{z:.3f} voxelsize {v:.3f} prefix {prefix} suffix {name_suffix} tomonumber {name_number} prior {prior}"
 
         return txt
@@ -1110,18 +1085,18 @@ class RELION5SaverInfo(ArtiaXSaverInfo):
 
         # UserErrors for input through command line
         if voldim is None and volume is None:
-            print("Example for expected Syntax: save /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 volume #1.1.1 prefix tomo_ tomonumber 17")
-            print("Example for expected Syntax: open /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 voldim 896,696,250 voxelsize 11.52 prefix tomo_ tomonumber 17 ")
+            #print("Example for expected Syntax: save /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 volume #1.1.1 prefix tomo_ tomonumber 17")
+            #print("Example for expected Syntax: open /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 voldim 896,696,250 voxelsize 11.52 prefix tomo_ tomonumber 17 ")
             print("Please provide either a volume or the volume dimensions and pixelsize of your tomogram. To correctly populate the column 'rlnTomoName' in the star file, the desired prefix that preceeds the tomogram number can be specified, as well as a fixed tomogram number.")
             raise UserError("No volume dimensions provided.")
         if voxelsize is None and volume is None:
-            print("Example for expected Syntax: save /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 volume #1.1.1 prefix tomo_ tomonumber 17")
-            print("Example for expected Syntax: open /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 voldim 896,696,250 voxelsize 11.52 prefix tomo_ tomonumber 17 ")
+            #print("Example for expected Syntax: save /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 volume #1.1.1 prefix tomo_ tomonumber 17")
+            #print("Example for expected Syntax: open /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 voldim 896,696,250 voxelsize 11.52 prefix tomo_ tomonumber 17 ")
             print("Please provide either a volume or the volume dimensions and pixelsize of your tomogram. To correctly populate the column 'rlnTomoName' in the star file, the desired prefix that preceeds the tomogram number can be specified, as well as a fixed tomogram number.")
             raise UserError("No voxelsize provided.")
         if volume is not None and voldim is not None:
-            print("Example for expected Syntax: save /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 volume #1.1.1 prefix tomo_ tomonumber 17")
-            print("Example for expected Syntax: open /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 voldim 896,696,250 voxelsize 11.52 prefix tomo_ tomonumber 17 ")
+            #print("Example for expected Syntax: save /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 volume #1.1.1 prefix tomo_ tomonumber 17")
+            #print("Example for expected Syntax: open /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 voldim 896,696,250 voxelsize 11.52 prefix tomo_ tomonumber 17 ")
             print("Please provide either a volume or the volume dimensions and pixelsize of your tomogram. To correctly populate the column 'rlnTomoName' in the star file, the desired prefix that preceeds the tomogram number can be specified, as well as a fixed tomogram number.")
             raise UserError("Please only provide either the dimensions or a volume.")
 
