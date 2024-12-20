@@ -1075,7 +1075,7 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         prior=False
         #Prior
         if self._split_checkbox.isChecked() and self._nosplit_checkbox.isChecked():
-            raise UserError("Please select either ...or ....")
+            raise UserError("Please select either 'Create File with Prior' or 'Create File without Prior'")
         if self._split_checkbox.isChecked():
             print("Split option is selected.")
             prior=True

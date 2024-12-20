@@ -517,7 +517,18 @@ class ParticleList(Model):
             if self.size == 0:
                 minima.append(0)
             else:
-                minima.append(min([getattr(m, a) for m in self.markers.atoms]))
+                is_numeric = True
+                values=[getattr(m, a) for m in self.markers.atoms]
+                #check if attribute is numerical
+                for index, value in enumerate(values):
+                    if not isinstance(value, (int, float)) or isinstance(value, (bool, str)):
+                        is_numeric = False
+                        break  # No need to check further if one value is not numeric
+                if is_numeric:
+                    minima.append(min(values))
+                else:
+                    minima.append(None)
+            print(f"minima:{minima}")
 
         return minima
 
@@ -527,7 +538,17 @@ class ParticleList(Model):
             if self.size == 0:
                 maxima.append(0)
             else:
-                maxima.append(max([getattr(m, a) for m in self.markers.atoms]))
+                is_numeric=True
+                values = [getattr(m, a) for m in self.markers.atoms]
+                #check if attribute is numerical
+                for index, value in enumerate(values):
+                    if not isinstance(value, (int, float)) or isinstance(value, (bool, str)):
+                        is_numeric = False
+                        break  # No need to check further if one value is not numeric
+                if is_numeric:
+                    maxima.append(min(values))
+                else:
+                    maxima.append(None)
 
         return maxima
 
@@ -535,13 +556,30 @@ class ParticleList(Model):
         info = {}
 
         for a in attrs:
-            info[a] = {}
-            info[a]["min"] = min([getattr(m, a) for m in self.markers.atoms])
-            info[a]["max"] = max([getattr(m, a) for m in self.markers.atoms])
-            info[a]["mean"] = np.mean([getattr(m, a) for m in self.markers.atoms])
-            info[a]["std"] = np.std([getattr(m, a) for m in self.markers.atoms])
-            info[a]["var"] = np.var([getattr(m, a) for m in self.markers.atoms])
-            info[a]["alias"] = self.data._data_keys[a]
+            is_numeric = False
+            values=[getattr(m, a) for m in self.markers.atoms]
+            for index, value in enumerate(values):
+                if isinstance(value, (int, float)) and not isinstance(value, (bool, str)):
+                    is_numeric = True
+
+            if is_numeric:
+                info[a] = {}
+                info[a]["min"] = min(values)
+                info[a]["max"] = max(values)
+                info[a]["mean"] = np.mean(values)
+                info[a]["std"] = np.std(values)
+                info[a]["var"] = np.var(values)
+                info[a]["alias"] = self.data._data_keys[a]
+            else:
+                info[a] = {}
+                info[a]["min"] = 0
+                info[a]["max"] = 0
+                info[a]["mean"] = 0
+                info[a]["std"] = 0
+                info[a]["var"] = 0
+                info[a]["alias"] = self.data._data_keys[a]
+
+
 
             if a in self.data._default_params.values():
                 idx = list(self.data._default_params.values()).index(a)
