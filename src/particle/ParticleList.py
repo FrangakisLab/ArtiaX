@@ -545,7 +545,7 @@ class ParticleList(Model):
                         is_numeric = False
                         break  # No need to check further if one value is not numeric
                 if is_numeric:
-                    maxima.append(min(values))
+                    maxima.append(max(values))
                 else:
                     maxima.append(None)
 
@@ -798,7 +798,7 @@ class ParticleList(Model):
         from numpy import zeros, logical_not, logical_or
 
         #find index of
-        print(f"deleting particle {particle_ids}")
+        #print(f"deleting particle {particle_ids}")
 
         mask = zeros((self.size,), dtype=bool)
         prev_ids = self._data.particle_ids

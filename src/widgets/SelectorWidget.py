@@ -42,9 +42,8 @@ class SelectorWidget(QWidget):
         #remove attributes if they aren't numerical
         indexes_to_remove = []  # Store indexes to remove
         for idx, value in enumerate(self.minima):
-            if not isinstance(value, float):  # Check if the value in list2 is not a float
+            if not isinstance(value, (float, int)):  # Check if the value in list2 is not a float
                 indexes_to_remove.append(idx)  # Add index to removal list
-        print(f"indexes_to_remove: {indexes_to_remove}")
         # Remove elements from list1 using the indexes collected
         for index in sorted(indexes_to_remove, reverse=True):  # Remove from the end to avoid index shifting
             del self.attributes[index]

@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Tuple, Union
 import numpy as np
 import starfile
 import pandas as pd
+from scipy.sparse.csgraph import depth_first_order
 from scipy.spatial.transform import Rotation as R
 import os
 
@@ -172,6 +173,8 @@ class RELION5ParticleData(ParticleData):
         # What is present
         df_keys = list(df.keys())
         additional_keys = df_keys
+        self.remember_keys_order = list(df_keys)
+        #print("key order", self.remember_keys_order)
 
         # Do we have tomo names?
         names_present = False
@@ -440,6 +443,7 @@ class RELION5ParticleData(ParticleData):
                     #all numbers
                     p[attr] = float(row[attr])
 
+        #print(f"last key check:{self.remember_keys_order}")
 
     def write_file(
         self,
@@ -692,6 +696,40 @@ class RELION5ParticleData(ParticleData):
 
         # Replace the old dictionary with the new one
         #data = new_data
+
+        #reorder columns
+        #remember column order if imported as relion5
+        if self.remember_keys_order:
+            #print("old keys", self.remember_keys_order)
+            # Step 1: Check column names
+            #print(f"order vorher{self.remember_keys_order}")
+            #print(f"order after{data.keys()}")
+            data_columns = set(data.keys())
+            list_columns = set(self.remember_keys_order)
+            columns_match=False
+
+            if data_columns != list_columns:
+                missing_in_data = list(list_columns - data_columns)
+                extra_in_data = list(data_columns - list_columns)
+                #print(f"Missing columns in DataFrame: {missing_in_data}")
+                #print(f"Extra columns in DataFrame: {extra_in_data}")
+            else:
+                #print("Column names match.")
+                columns_match=True
+
+            # Step 2: Reorder columns
+            #if data_columns == list_columns:
+            #    data = data[self.remember_keys_order]
+            #    print("Reordered DataFrame:")
+            #    print(data)
+
+            # Step 2: Reorder columns
+            if columns_match==True:
+                if isinstance(data, dict):  # Check if data is a dictionary
+                    data = {key: data[key] for key in self.remember_keys_order if key in data}
+                    #print("reordered columns")
+                #else:
+                    #raise TypeError("Expected 'data' to be a dictionary.")
 
         df = pd.DataFrame(data=data)
 
