@@ -1375,13 +1375,16 @@ def delete_duplicates(session, models, radius=0):
                 #collect particle ids
                 id=selected_pl.particle_ids
 
+                #pixsize=pl.origin_pixelsize
+                #print(f"pixsize{pixsize}")
+
                 for pid in id:
                     #collect coordinates for all particles in particle list
                     particle, marker = pl._map[pid]
                     coord=particle.coord
                     coordinates.append(coord)
 
-
+                #counter=0
                 for i, coord1 in enumerate(coordinates):
                     for j, coord2 in enumerate(coordinates):
                         if i != j:  # Avoid comparing the same entry
@@ -1391,7 +1394,12 @@ def delete_duplicates(session, models, radius=0):
                                 (coord1[1] - coord2[1]) ** 2 +
                                 (coord1[2] - coord2[2]) ** 2
                             )
-                            #print(distance)
+                            #counter=counter+1
+
+                            #distance_a=distance*pixsize #convert distance from pixel to angstrom
+                            #if counter < 5:
+                                #print(distance)
+                                #print(distance_a)
                             if distance <= radius:  # Check if within specified radius
                                 duplicates.append((i, j))  # Store the indices
 
