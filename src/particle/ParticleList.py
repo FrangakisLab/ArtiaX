@@ -2,6 +2,9 @@
 
 # General imports
 from __future__ import annotations
+
+from operator import length_hint
+
 import numpy as np
 import math
 from importlib import import_module
@@ -1388,29 +1391,31 @@ def delete_duplicates(session, models, radius=0):
                                 (coord1[1] - coord2[1]) ** 2 +
                                 (coord1[2] - coord2[2]) ** 2
                             )
-                            print(distance)
+                            #print(distance)
                             if distance <= radius:  # Check if within specified radius
                                 duplicates.append((i, j))  # Store the indices
 
                 if duplicates:
-                    print(f"duplicates{duplicates}")
+                    #print(f"duplicates{duplicates}")
                     for dup in duplicates:
-                        print(f"checking {dup}")
+                        #print(f"checking {dup}")
                         #print(f"At indices {dup[0]} and {dup[1]}")
                         # dup[0] and dup[1] are the indices of duplicate coordinates
                         particle_id1 = id[dup[0]]  # Particle ID corresponding to the first duplicate
                         particle_id2 = id[dup[1]]  # Particle ID corresponding to the second duplicate
 
                         # Add the IDs to the duplicate_ids list if they are not already in it
-                        print(f"current state of duplicate_id {duplicate_ids}")
+                        #print(f"current state of duplicate_id {duplicate_ids}")
                         if particle_id1 not in duplicate_ids and particle_id2 not in duplicate_ids:
                             duplicate_ids.append(particle_id1)
-                            print(f"added {particle_id1}")
+                            #print(f"added {particle_id1}")
                         #if particle_id2 not in duplicate_ids and particle_id1 not in duplicate_ids:
                         #    duplicate_ids.append(particle_id2)
                 else:
                     print("No duplicate coordinates found.")
-                print(duplicate_ids)
+                #print(duplicate_ids)
+                duplicates_number=len(duplicate_ids)
+                print(f"{duplicates_number} particles were deleted")
                 pl.delete_data(list(duplicate_ids))
 
 

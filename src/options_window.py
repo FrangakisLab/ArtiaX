@@ -590,6 +590,7 @@ class OptionsWindow(ToolInstance):
         ow.group_manipulation_delete_button.clicked.connect(ow._delete_selected)
         ow.group_manipulation_reset_selected_button.clicked.connect(ow._reset_selected)
         ow.group_manipulation_reset_all_button.clicked.connect(ow._reset_all)
+        ow.group_manipulation_button_delete_duplicates.clicked.connect(partial(ow._remove_duplicates, ow.input_distance))
 
         # Adding an object
         ow.browse_edit.returnPressed.connect(ow._enter_display_volume)
@@ -988,6 +989,9 @@ class OptionsWindow(ToolInstance):
         self.group_manipulation.setCheckable(True)
         self.group_manipulation.setChecked(False)
 
+        # Main layout for the group box
+        manipulation_layout = QVBoxLayout()
+
         # First row of buttons
         self.manipulation_buttons_1 = QHBoxLayout()
         self.group_manipulation_delete_button = QPushButton("Delete selected")
@@ -1000,7 +1004,35 @@ class OptionsWindow(ToolInstance):
         self.manipulation_buttons_1.addWidget(self.group_manipulation_reset_selected_button)
         self.manipulation_buttons_1.addWidget(self.group_manipulation_reset_all_button)
 
-        self.group_manipulation.setLayout(self.manipulation_buttons_1)
+        # Add first row of buttons to the main layout
+        manipulation_layout.addLayout(self.manipulation_buttons_1)
+
+        # Subgroup: Remove duplicates
+        self.subgroup_remove_duplicates = QGroupBox("Remove duplicates")
+        self.subgroup_remove_duplicates.setFont(self.font)
+
+        # Layout for the subgroup
+        remove_duplicates_layout = QHBoxLayout()
+        self.label_distance = QLabel("Distance [angstrom]:")
+        self.label_distance.setFont(self.font)
+        self.input_distance = QLineEdit()
+        self.input_distance.setFont(self.font)
+        self.group_manipulation_button_delete_duplicates = QPushButton("Delete")
+        self.group_manipulation_button_delete_duplicates.setFont(self.font)
+
+        # Add widgets to the subgroup layout
+        remove_duplicates_layout.addWidget(self.label_distance)
+        remove_duplicates_layout.addWidget(self.input_distance)
+        remove_duplicates_layout.addWidget(self.group_manipulation_button_delete_duplicates)
+
+        # Set layout for the subgroup
+        self.subgroup_remove_duplicates.setLayout(remove_duplicates_layout)
+
+        # Add subgroup to the main layout
+        manipulation_layout.addWidget(self.subgroup_remove_duplicates)
+
+        # Set the main layout for the group box
+        self.group_manipulation.setLayout(manipulation_layout)
         #### Manipulation group box ####
 
         #### Selection group box ####
@@ -1360,9 +1392,33 @@ class OptionsWindow(ToolInstance):
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _reset_all(self):
+        print("reset all is executed")
         artia = self.session.ArtiaX
         pl = artia.partlists.get(artia.options_partlist)
         pl.reset_all_particles()
+        self._update_partlist_ui()
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    def _remove_duplicates(self, radius):
+        #print("remove duplicates is executed")
+
+        # Ensure the radius is a valid float
+        try:
+            rad = float(radius.text())
+        except ValueError:
+            print("Invalid radius value provided")
+            return  # Exit the function if the input is invalid
+
+        artia = self.session.ArtiaX
+        pl = artia.partlists.get(artia.options_partlist)
+        model=pl.id_string
+        #print(f"model{model}")
+        models=[model]
+        from .particle.ParticleList import delete_duplicates
+
+        delete_duplicates(self.session, models, rad)
+
         self._update_partlist_ui()
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
