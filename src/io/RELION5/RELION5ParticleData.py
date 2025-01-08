@@ -699,7 +699,7 @@ class RELION5ParticleData(ParticleData):
 
         #reorder columns
         #remember column order if imported as relion5
-        if self.remember_keys_order:
+        if hasattr(self, 'remember_keys_order'):
             #print("old keys", self.remember_keys_order)
             # Step 1: Check column names
             #print(f"order vorher{self.remember_keys_order}")
