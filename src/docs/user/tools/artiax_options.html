@@ -98,6 +98,84 @@ or derivations thereof.=== UCSF ChimeraX Copyright ===-->
           </li>
         </ul>
       </li>
+      <li> <b>Reorient:</b>
+        <p> The <b>Reorient</b> tab allows to reorient the particles.
+        </p>
+        <ul>
+          <li> <b>Reorient Particles:</b>
+            <p>Reorients the particle according to their order in the particle list, so that every particle points to the next one in the particle list.
+            </p>
+          </li>
+          <li> <b>Create new, reordered particle list:</b>
+            <p>Creates a new, reordered particle list. One of two options can be selected. Select one particle as a start and press "To closest" to reorder the particles, starting with one particle and then continuing further to its closest neighbor.
+            The other option is to ......? </p>
+          </li>
+        </ul>
+      </li>
+      <li> <b>Geometric Model:</b>
+        <p> The <b>Geometric Model</b> tab includes all options surrounding the possible geometric  models. For example, you can change the way the models are fitted to the particle lists they originate from. Additionally, the models can be populated with particles to create new particle lists based on the models.
+        </p>
+        <ul>
+          <li> <b>Colour Options:</b>
+            <p>Used to change the color and transparency of the geomodel.
+            </p>
+          </li>
+          <li> <b>Generate Points:</b>
+            <p> Randomly generating points on a surface, sphere or line. The options and methods are further explained here <a href="artiax_generate_points_on_surface.html"> <i>artiax gen on surface</i></a> and there <a href="artiax_generate_points_in_surface.html"> <i>artiax gen in surface</i></a>. For some types of geomodels more options for particle population are located further down below in the geomodel tab.</p>
+          </li>
+        </ul>
+        <p> The following options depend on what kind of geomodel is currently selected.  </p>
+        <ul>
+          <li> <b>Sphere Options</b>
+            <p> Further options only applicable to line geomodels. Press "Update Sphere" to redraw the sphere after e.g. moving some of its defining particles. Press "Reorient Particles" to reorient the selected particles so that their z-axis points away from sphere.</p>
+          </li>
+          <li> <b>Curved Line Options</b>
+            <p> Further options only applicable to line geomodels. </p>
+            <ul>
+              <li> <b>Line Display:</b>
+                <p> Includes various options to modify the line. Change the line thickness by varying the line radius. Press "Update Line" to redraw the line after e.g. moving some ifts defining particles or "Remove Deleted Particles" after deleting some particles of the corresponding particle list.
+                  This can also be set to happen automatically.
+                </p>
+              </li>
+              <li> <b>Change line fitting:</b>
+                <p> Change the polynomial degree and resolution of the fitted line or smoothen it.  </p>
+              </li>
+              <li> <b>Move camera along line:</b>
+                <p> Moves the camera along the line. The line is used to define the camera path, with different settings to define e.g. viewing and moving direction. Useful for recording videos in combination with the 'movie record' command.
+                </p>
+              </li>
+              <li> <b>Populate line with evenly spaced particles:</b>
+                <p> Detailed option to populate the line with particles and generate a new particle list. The interparticle distance and the orientation of the particles can be defined.
+                </p>
+              </li>
+            </ul>
+          </li>
+          <li> <b>Surface Options</b>
+            <p> Further options only applicable to surface geomodels. Also you can update the sphere after e.g. moving some of its defining particles and reorient the selected particles so that their z-axis points along the normal of the closest part of the surface. </p>
+            <ul>
+              <li> <b>Change surface fitting:</b>
+                <p>Change the fitting method, resolution and base level of the surface.
+                </p>
+              </li>
+              <li> <b>Populate surface with particles in every vertex:</b>
+                <p> Detailed option to populate the surface with particles and generate a new particle list. Particles will be placed in every vertex. To modify the density of population, just change the resolution of the surface to lessen the amount of vertices.</p>
+              </li>
+            </ul>
+          </li>
+          <li> <b>Boundary Options</b>
+            <p> Further options only applicable to boundary geomodels. Also you can update the boundary after e.g. moving some of its defining particles and reorient the selected particles so that their z-axis points along the average normal of the corner. </p>
+            <ul>
+              <li> <b>Change boundary fitting:</b>
+                <p>Vary the alpha value
+                </p>
+              </li>
+            </ul>
+          </li>
+          <li> <b>Triangulation Surface Options</b>
+            <p> Further options only applicable to triangulation surface geomodels. Also you can update the surface after e.g. moving some of its defining particles and reorient the selected particles so that their z-axis points away from the surface. </p>
+          </li>
+        </ul>
+      </li>
     </ul>
     <hr>
     <address>BMLS Frangakis Group / June 2022</address>
