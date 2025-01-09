@@ -99,8 +99,16 @@ def is_point_in_surface(point, vertices, triangles, xyz_min, xyz_max):
 
 def create_partlist_from_coords(session, name, points, using_points=False):
     artia = session.ArtiaX
+
+    # Get pixelsize from currently selected particle list
+    pl = artia.partlists.get(artia.options_partlist)
+    pixsize = pl.origin_pixelsize
+    print(f"pixelsize{pixsize}")
+
     artia.create_partlist(name=name)
     partlist = artia.partlists.child_models()[-1]
+    # Set pixelsize
+    partlist.origin_pixelsize = pixsize
     from chimerax.geometry import translation
     if using_points:
         origins = [translation(point.coord) for point in points]
