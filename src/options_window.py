@@ -534,16 +534,28 @@ class OptionsWindow(ToolInstance):
         self.addition_checkbox = QCheckBox("Addition")
         self.subtraction_checkbox = QCheckBox("Subtraction")
         self.multiplication_checkbox = QCheckBox("Multiplication")
+        self.division_checkbox = QCheckBox("Division")
 
         # Add checkboxes to the operations layout
         operations_layout.addWidget(self.addition_checkbox)
         operations_layout.addWidget(self.subtraction_checkbox)
         operations_layout.addWidget(self.multiplication_checkbox)
+        operations_layout.addWidget(self.division_checkbox)
 
         # Connect the checkbox state change to the update function
-        self.addition_checkbox.stateChanged.connect(self.update_operation_info)
-        self.subtraction_checkbox.stateChanged.connect(self.update_operation_info)
-        self.multiplication_checkbox.stateChanged.connect(self.update_operation_info)
+        #self.addition_checkbox.stateChanged.connect(self.update_operation_info)
+        #self.subtraction_checkbox.stateChanged.connect(self.update_operation_info)
+        #self.multiplication_checkbox.stateChanged.connect(self.update_operation_info)
+        #self.division_checkbox.stateChanged.connect(self.update_operation_info)
+        # Connect each checkbox to both the handler and the update function
+        self.addition_checkbox.stateChanged.connect(
+            lambda: (self.on_checkbox_toggled(self.addition_checkbox), self.update_operation_info()))
+        self.subtraction_checkbox.stateChanged.connect(
+            lambda: (self.on_checkbox_toggled(self.subtraction_checkbox), self.update_operation_info()))
+        self.multiplication_checkbox.stateChanged.connect(
+            lambda: (self.on_checkbox_toggled(self.multiplication_checkbox), self.update_operation_info()))
+        self.division_checkbox.stateChanged.connect(
+            lambda: (self.on_checkbox_toggled(self.division_checkbox), self.update_operation_info()))
 
         # Add the operations layout to the coloring layout
         coloring_layout.addLayout(operations_layout)
@@ -570,6 +582,17 @@ class OptionsWindow(ToolInstance):
 
         # Add the button to the coloring layout (at the end)
         coloring_layout.addWidget(self.color_tomogram_button)
+
+        #TODO delete
+        # Create the "Invert Contrast" button
+        #self.invert_contrast_button = QPushButton("Invert Contrast")
+        #self.invert_contrast_button.setToolTip("Invert the contrast of the selected tomogram")
+
+        # Connect the button to the invert contrast method
+        #self.invert_contrast_button.clicked.connect(self.invert_contrast)
+
+        # Add the "Invert Contrast" button to the coloring layout (below the "Compute" button)
+        #coloring_layout.addWidget(self.invert_contrast_button)
 
         # Set the layout for the coloring group box
         self.color_tomogram_group.setLayout(coloring_layout)
@@ -1012,7 +1035,7 @@ class OptionsWindow(ToolInstance):
         command = "volume fourier #{} phase true".format(id)
         run(self.session, command)
 
-
+    #TODO delete
     # def split_volume_by_connected_colors(self):
     #     """
     #     Create new volumes for each connected colored region in the surface.
@@ -1452,6 +1475,7 @@ class OptionsWindow(ToolInstance):
         addition=False
         subtraction=False
         multiplication=False
+        division=False
         #check which mode
         if self.addition_checkbox.isChecked():
             addition=True
@@ -1462,11 +1486,14 @@ class OptionsWindow(ToolInstance):
         if self.multiplication_checkbox.isChecked():
             print("Multiplication mode selected")
             multiplication=True
+        if self.division_checkbox.isChecked():
+            print("Division mode selected")
+            division=True
 
-        if sum([addition, subtraction, multiplication]) > 1:
+        if sum([addition, subtraction, multiplication, division]) > 1:
             raise UserError("More than one operation selected. Please select only one.")
 
-        if sum([addition, subtraction, multiplication]) == 0:
+        if sum([addition, subtraction, multiplication, division]) == 0:
             raise UserError("Please select one arithmetic operation.")
 
         if arrays_match:
@@ -1487,6 +1514,16 @@ class OptionsWindow(ToolInstance):
                 array=matrix_1 * matrix_2
                 key="multiplication"
 
+            if division:
+
+                # Check if matrix_2 contains any zero elements
+                if np.any(matrix_2 == 0):
+                    raise UserError("Matrix 2 contains zero(s), division by zero in the denominator is not allowed")
+
+                # Perform the division
+                array = matrix_1 / matrix_2
+                key = "division"
+
             name1=self.tomo_math.name
             name2=self.selected_tomo_math.name
             # Remove file extensions from the tomogram names
@@ -1497,6 +1534,8 @@ class OptionsWindow(ToolInstance):
             name = f"{name1_base}_{name2_base}_{key}"
 
             self.tomo_math.create_tomo_from_array(array,name)
+
+        #TODO delete
 
         # Sort triangles of segmentation by color
         # triangles_per_color = self.group_triangles_by_color(surface=segm)
@@ -1775,11 +1814,13 @@ class OptionsWindow(ToolInstance):
             item = self.tomogram_list_widget.item(index)
             if item.checkState() == Qt.Checked:
                 selected_tomograms.append(item.data(0))  # Access stored volume object
-        print(selected_tomograms)
         return selected_tomograms
 
     def _update_analysis(self):
         self.populate_tomogram_list()
+        for chbx in [self.addition_checkbox, self.subtraction_checkbox, self.multiplication_checkbox,self.division_checkbox]:
+                chbx.setChecked(False)
+        self.update_operation_info()
 
     # Method to update the operation information
     def update_operation_info(self):
@@ -1787,34 +1828,118 @@ class OptionsWindow(ToolInstance):
         #name1 = self.tomo_math.name
         artia = self.session.ArtiaX
         tomo1 = artia.tomograms.get(artia.options_tomogram)
-        name1=tomo1.name
-        id_1=tomo1.id_string
+        if tomo1:
+            name1=tomo1.name
+            id_1=tomo1.id_string
+        else:
+            name1=""
+            id_1=""
         #name2 = self.selected_tomo_math.name
         #name2="selected tomogram"
         # Get the second selected tomogram name
         selected_tomograms = self.get_selected_tomograms()
 
         if selected_tomograms:
-            name2=selected_tomograms[0]
+            # Loop through selected tomograms
+            for tomo_id_string in selected_tomograms:
+                self.selected_tomo_math = None
+                for tomo in self.session.ArtiaX.tomograms.iter():
+                    if f"#{tomo.id_string} - {tomo.name}" == tomo_id_string:
+                        name2=tomo.name
+                        id_2=f"#{tomo.id_string}"
+                        break
         else:
             name2=""
+            id_2=""
         # If a tomogram is selected, fetch its name
         #name2 = selected_tomograms[0].name if selected_tomograms else "No tomogram selected"
 
         # Check the operation being performed
-        operation_str = "None"
+        operation_str = "Operation not defined"
         if self.addition_checkbox.isChecked():
             operation_str = "+"
         elif self.subtraction_checkbox.isChecked():
             operation_str = "-"
         elif self.multiplication_checkbox.isChecked():
             operation_str = "*"
+        elif self.division_checkbox.isChecked():
+            operation_str = "/"
 
         if operation_str == "None":
             self.operation_info_label.setText(f"No operation selected")
         # Update the QLabel text to show the current operation
-        self.operation_info_label.setText(
-            f"#{id_1} - {name1} {operation_str} {name2}")
+        if hasattr(self, 'operation_info_label') and self.operation_info_label:
+            self.operation_info_label.setText(
+                f"#{id_1} {name1}    {operation_str}    {id_2} {name2}")
+
+    def invert_contrast(self):
+        #TODO Not used, delete!
+
+        # Get current tomogram
+        artia = self.session.ArtiaX
+        tomo = artia.tomograms.get(artia.options_tomogram)
+        matrix_1 = tomo.data.matrix()
+        # volume = tomo
+        print("Split Tomogram button clicked!")
+        # surface = volume.surfaces[0]
+        # matrix_1=surface.data.matrix()
+        print("Array Excerpt (first 5 elements):")
+        print(matrix_1.ravel()[:5])  # Flatten the array and print the first 5 elements
+
+        print("\nBasic Information:")
+        print(f"Shape: {matrix_1.shape}")
+        print(f"Data type: {matrix_1.dtype}")
+        print(f"Size (number of elements): {matrix_1.size}")
+        print(f"Memory (bytes): {matrix_1.nbytes}")
+        print(f"Max value: {matrix_1.max()}")
+        print(f"Min value: {matrix_1.min()}")
+
+        # Find the max and min values of the array
+        max_value = matrix_1.max()
+        min_value = matrix_1.min()
+
+        # Check if the values are binary (0 and 1)
+        if max_value == 1 and min_value == 0:
+            print("Binary values detected, performing binary inversion.")
+            # Invert the contrast by flipping 0s and 1s
+            array_invert = 1 - matrix_1
+        else:
+            print(f"Max value: {max_value}")
+            print(f"Min value: {min_value}")
+            # Calculate the midpoint
+            midpoint = (max_value + min_value) / 2
+            print(f"Midpoint: {midpoint}")
+
+            # Option 1: Invert around the max value
+            #array_invert = max_value - matrix_1
+
+            # Invert around the midpoint
+            array_invert = 2 * midpoint - matrix_1
+
+        # Print the first 5 elements of the inverted array for verification
+        print("Inverted array (first 5 elements):")
+        print(array_invert.ravel()[:5])
+
+        name1 = tomo.name
+        # Remove file extensions from the tomogram names
+        name1_base = os.path.splitext(name1)[0]
+
+        key="invert"
+
+        # Build the new tomogram name dynamically without file extensions
+        name = f"{name1_base}_{key}"
+
+        tomo.create_tomo_from_array(array_invert, name)
+
+    # Common handler to ensure only one checkbox is selected at a time
+    def on_checkbox_toggled(self, checkbox):
+        # If the checkbox is checked, uncheck the others
+        if checkbox.isChecked():
+            # Uncheck all other checkboxes
+            for chbx in [self.addition_checkbox, self.subtraction_checkbox, self.multiplication_checkbox,
+                         self.division_checkbox]:
+                if chbx != checkbox:
+                    chbx.setChecked(False)
 
 
 # ==============================================================================
