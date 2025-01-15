@@ -496,14 +496,14 @@ class OptionsWindow(ToolInstance):
         group_slices.setLayout(group_slices_layout)
         #### Slice Box ####
 
-        ### Coloring Tomogram ###
 
-        # Create a group box to hold the coloring-related widgets
-        self.color_tomogram_group = QGroupBox("Tomogram Arithmetics")
-        self.color_tomogram_group.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum))
+        #### Tomogram arithmetics ####
+        # Create a group box to hold the arithmetics-related widgets
+        self.arithmetics_group = QGroupBox("Tomogram Arithmetics")
+        self.arithmetics_group.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum))
 
         # Create a layout for the group box
-        coloring_layout = QVBoxLayout()
+        arithmetics_layout = QVBoxLayout()
 
         # Section: "Select Tomogram"
         self.select_tomogram_group = QGroupBox("Select Tomogram for Arithmetics")
@@ -522,11 +522,8 @@ class OptionsWindow(ToolInstance):
         # Set the layout for the "Select Tomogram" group
         self.select_tomogram_group.setLayout(select_tomogram_layout)
 
-        # Add the "Select Tomogram" group to the coloring layout
-        coloring_layout.addWidget(self.select_tomogram_group)
-
-
-
+        # Add the "Select Tomogram" group to the arithmetics layout
+        arithmetics_layout.addWidget(self.select_tomogram_group)
 
 
         # Add the checkboxes for operations (Addition, Subtraction, Multiplication)
@@ -542,11 +539,6 @@ class OptionsWindow(ToolInstance):
         operations_layout.addWidget(self.multiplication_checkbox)
         operations_layout.addWidget(self.division_checkbox)
 
-        # Connect the checkbox state change to the update function
-        #self.addition_checkbox.stateChanged.connect(self.update_operation_info)
-        #self.subtraction_checkbox.stateChanged.connect(self.update_operation_info)
-        #self.multiplication_checkbox.stateChanged.connect(self.update_operation_info)
-        #self.division_checkbox.stateChanged.connect(self.update_operation_info)
         # Connect each checkbox to both the handler and the update function
         self.addition_checkbox.stateChanged.connect(
             lambda: (self.on_checkbox_toggled(self.addition_checkbox), self.update_operation_info()))
@@ -557,58 +549,42 @@ class OptionsWindow(ToolInstance):
         self.division_checkbox.stateChanged.connect(
             lambda: (self.on_checkbox_toggled(self.division_checkbox), self.update_operation_info()))
 
-        # Add the operations layout to the coloring layout
-        coloring_layout.addLayout(operations_layout)
-
-
+        # Add the operations layout to the arithmetics layout
+        arithmetics_layout.addLayout(operations_layout)
 
 
         # Add a QLabel to show the current operation and selected tomograms
         self.operation_info_label = QLabel("Current operation: None")
         self.operation_info_label.setAlignment(Qt.AlignCenter)
 
-        # Add the label to the layout (somewhere appropriate in your layout)
-        coloring_layout.addWidget(self.operation_info_label)
+        # Add the label to the layout
+        arithmetics_layout.addWidget(self.operation_info_label)
 
 
-
-
-        # Create the "Color Tomogram" button
-        self.color_tomogram_button = QPushButton("Compute")
-        self.color_tomogram_button.setToolTip("Color the tomogram according to segmentation")
+        # Create the "Compute"  button
+        self.compute_button = QPushButton("Compute")
 
         # Connect the button to the method
-        self.color_tomogram_button.clicked.connect(self.tomo_arithmetics)
+        self.compute_button.clicked.connect(self.tomo_arithmetics)
 
-        # Add the button to the coloring layout (at the end)
-        coloring_layout.addWidget(self.color_tomogram_button)
+        # Add the button to the arithmetics layout
+        arithmetics_layout.addWidget(self.compute_button)
 
-        #TODO delete
-        # Create the "Invert Contrast" button
-        #self.invert_contrast_button = QPushButton("Invert Contrast")
-        #self.invert_contrast_button.setToolTip("Invert the contrast of the selected tomogram")
+        # Set the layout for the arithmetics group box
+        self.arithmetics_group.setLayout(arithmetics_layout)
 
-        # Connect the button to the invert contrast method
-        #self.invert_contrast_button.clicked.connect(self.invert_contrast)
+        #### Tomogram arithmetics ####
 
-        # Add the "Invert Contrast" button to the coloring layout (below the "Compute" button)
-        #coloring_layout.addWidget(self.invert_contrast_button)
-
-        # Set the layout for the coloring group box
-        self.color_tomogram_group.setLayout(coloring_layout)
 
         # Add groups to layout
         tomo_layout.addWidget(group_current_tomo)
         tomo_layout.addWidget(group_pixelsize)
-        tomo_layout.addWidget(self.color_tomogram_group)
+        tomo_layout.addWidget(self.arithmetics_group)
         tomo_layout.addWidget(group_contrast)
         tomo_layout.addWidget(group_slices)
         tomo_layout.addWidget(group_orthoplanes)
         tomo_layout.addWidget(group_process)
         #tomo_layout.addWidget(group_fourier_transform)
-
-
-
 
         # And finally set the layout of the widget
         self.tomo_widget = QWidget()
@@ -1035,381 +1011,6 @@ class OptionsWindow(ToolInstance):
         command = "volume fourier #{} phase true".format(id)
         run(self.session, command)
 
-    #TODO delete
-    # def split_volume_by_connected_colors(self):
-    #     """
-    #     Create new volumes for each connected colored region in the surface.
-    #
-    #     Args:
-    #         surface: The surface object containing triangle and vertex color data.
-    #     Returns:
-    #         A list of new volumes split by color.
-    #     """
-    #     artia = self.session.ArtiaX
-    #     tomo = artia.tomograms.get(artia.options_tomogram)
-    #     volume=tomo
-    #     print("Split Tomogram button clicked!")
-    #
-    #     #surface=Volume.VolumeSurface
-    #
-    #     # Get the number of surfaces in the volume
-    #     num_surfaces = len(volume.surfaces)
-    #
-    #     # Print the number of surfaces
-    #     print(f"There are {num_surfaces} surfaces in the volume.")
-    #
-    #     surface = volume.surfaces[0]
-    #
-    #     if hasattr(surface, 'triangles'):
-    #         triangles = surface.triangles
-    #         print("Triangles:", triangles)
-    #
-    #     if hasattr(surface, 'vertex_colors'):
-    #         vertex_colors = surface.vertex_colors
-    #         print("Vertex Colors:", vertex_colors)
-    #
-    #     if hasattr(surface, 'vertices'):
-    #         vertices = surface.vertices
-    #         print("Vertices:", vertices)
-    #
-    #
-    #     if surface == None:
-    #         raise UserError("No surface found")
-    #
-    #     from chimerax.surface import connected_triangles
-    #
-    #     if surface.vertex_colors is None:
-    #         raise ValueError("Surface does not have vertex colors assigned.")
-    #
-    #     # Step 1: Group triangles by colors
-    #     color_to_triangles=self.group_triangles_by_color(surface)
-    #
-    #     # Step 2: Generate masked grid data for each color group
-    #     grids = []
-    #
-    #     print(f"color to triangles{color_to_triangles}")
-    #     num_surfaces = len(color_to_triangles)
-    #
-    #     # Print the number of surfaces
-    #     print(f"There are {num_surfaces} entries in color_to_triangles.")
-    #
-    #     for color, triangle_indices in color_to_triangles.items():
-    #         # Mask triangles not belonging to this color group
-    #         masked_triangles = np.isin(np.arange(len(surface.triangles)), triangle_indices)
-    #         grid = self._create_grid_for_masked_triangles(volume, masked_triangles)
-    #         grid.zone_color = color  # Assign the color to the grid
-    #         grids.append(grid)
-    #
-    #     # Step 3: Create new volumes from grids
-    #
-    #     print("grids are done")
-    #     for i, grid in enumerate(grids):
-    #         print(f"Grid {i}: Name={grid.name}, Dimensions={grid.size}")
-    #
-    #     from chimerax.map import volume_from_grid_data
-    #
-    #     new_volumes = [volume_from_grid_data(g, self.session, open_model=False) for g in grids]
-    #     for v in new_volumes:
-    #         v.copy_settings_from(volume, copy_region=False)
-    #         rgba = tuple(c / 255 for c in v.data.zone_color)
-    #         v.set_parameters(surface_colors=[rgba] * len(v.surfaces))
-    #         v.display = True
-    #
-    #     # Step 4: Handle model hierarchy and visibility
-    #     volume.display = False
-    #     if len(new_volumes) == 1:
-    #         self.session.models.add(new_volumes)
-    #     else:
-    #         self.session.models.add_group(new_volumes, name=f"{volume.name} split")
-    #
-    #     return new_volumes
-    #
-    # def group_triangles_by_color(self, surface):
-    #     """
-    #         Groups the triangles of a surface based on their vertex colors.
-    #
-    #         Parameters:
-    #         ----------
-    #         surface : Surface
-    #             The surface object containing information about vertices, triangles,
-    #             and their associated colors. The `surface` object should have:
-    #             - `vertex_colors`: A numpy array of shape (N, 4) where N is the number
-    #               of vertices. Each row represents the RGBA color of a vertex.
-    #
-    #         Returns:
-    #         -------
-    #         color_to_triangles : dict
-    #             A dictionary where the keys are tuples representing unique RGBA colors
-    #             (e.g., `(R, G, B, A)`), and the values are arrays of indices pointing
-    #             to triangles that have vertices of the corresponding color.
-    #
-    #         Notes:
-    #         -----
-    #         - Triangles are grouped by the vertex color. If a vertex is shared by multiple
-    #           triangles, all those triangles will be included in the corresponding group.
-    #         """
-    #     # Step 1: Identify unique colors from the surface's vertex colors
-    #     unique_colors = np.unique(surface.vertex_colors, axis=0)
-    #     color_to_triangles = {}
-    #
-    #     # Step 2: Group triangles by their vertex colors
-    #     for color in unique_colors:
-    #         # Find all indices where the vertex color matches this unique color
-    #         color_indices = np.where((surface.vertex_colors == color).all(axis=1))[0]
-    #         color_to_triangles[tuple(color)] = color_indices
-    #
-    #     return color_to_triangles
-    #
-    # def _create_grid_for_masked_triangles(self, volume, masked_triangles):
-    #     # """
-    #     #     Generate grid data for a subset of triangles in the volume.
-    #     #
-    #     #     Args:
-    #     #         volume: The volume object.
-    #     #         masked_triangles: A boolean mask for triangles to include in the grid.
-    #     #     Returns:
-    #     #         A grid object with only the specified triangles.
-    #     #     """
-    #     # ijk_min, ijk_max, ijk_step = volume.region
-    #     # from chimerax.map_data import GridSubregion
-    #     # sg = GridSubregion(volume.data, ijk_min, ijk_max)
-    #     # print(f"Subregion dimensions (ijk_min to ijk_max): {ijk_min} to {ijk_max}, ijk_step={ijk_step}")
-    #     # print(f"Grid shape (sg): {sg.size}")  # Assuming GridSubregion has a data attribute.
-    #     # pixsize=sg.step[0]
-    #     #
-    #     #
-    #     # # Ensure that surface vertices are passed as zone_points
-    #     # from chimerax.map_data import zone_mask, masked_grid_data
-    #     #
-    #     # vertices = volume.surfaces[0].vertices
-    #     # # Create a mask for the vertices corresponding to the selected triangles
-    #     # vertex_mask = np.zeros(len(vertices), dtype=bool)
-    #     #
-    #     # # Use masked_triangles to set the mask for the corresponding vertices
-    #     # for i, triangle_indices in enumerate(volume.surfaces[0].triangles):
-    #     #     if masked_triangles[i]:  # If the triangle is selected
-    #     #         vertex_mask[triangle_indices] = True  # Mark the corresponding vertices
-    #     #
-    #     # print(f"vertex_mask{vertex_mask}")
-    #     # num_surfaces = len(vertex_mask)
-    #     #
-    #     # # Print the number of surfaces
-    #     # print(f"There are {num_surfaces} entries in vertex_mask.")
-    #     #
-    #     # # Extract only the selected vertices
-    #     # selected_vertices = vertices[vertex_mask]
-    #     #
-    #     # # Print diagnostic info
-    #     # print(f"Selected vertices: {selected_vertices}")
-    #     # print(f"Total vertices: {len(vertices)}")
-    #     # print(f"Selected vertices: {len(selected_vertices)}")
-    #     # print(f"Selected percentage: {len(selected_vertices) / len(vertices) * 100:.2f}%")
-    #     #
-    #     # print(f"pixsize: {pixsize}")
-    #     # # Use only the selected vertices as zone_points
-    #     # selected_vertices_scaled = selected_vertices / pixsize
-    #     # print(f"Number of scaled selected vertices: {len(selected_vertices_scaled)}")
-    #     # print(f"Scaled selected vertices: {selected_vertices_scaled}")
-    #     # print(f"Scaled vertices min: {selected_vertices_scaled.min(axis=0)}")
-    #     # print(f"Scaled vertices max: {selected_vertices_scaled.max(axis=0)}")
-    #     # print(f"Grid size: {sg.size}")
-    #     # grid_shape = np.array(sg.size)  # (1024, 1440, 800)
-    #     # zone_radius=1000
-    #     # voxel_radius = zone_radius / pixsize
-    #     # print(f"Voxel_radius {voxel_radius}")
-    #     # print(f"Scaled vertices within bounds: {np.all((selected_vertices_scaled >= 0) & (selected_vertices_scaled < grid_shape))}")
-    #     # mask = self.custom_zone_mask(sg, selected_vertices_scaled, zone_radius=voxel_radius, invert_mask=False)
-    #     # print(f"Zone mask shape: {mask.shape}")
-    #     # #mask = np.transpose(mask, (2, 1, 0))
-    #     # # Replace the mask with one that is fully True
-    #     # #mask = np.ones(sg.size, dtype=bool)
-    #     # print(f"Transposed mask shape: {mask.shape}")
-    #     # print(np.unique(mask))
-    #     # print(f"Mask filled with True: {np.sum(mask)} out of {mask.size}")
-    #     # indices = np.argwhere(mask)
-    #     # min_coords = indices.min(axis=0)
-    #     # max_coords = indices.max(axis=0)
-    #     # print(f"Bounding box: Min {min_coords}, Max {max_coords}")
-    #     #
-    #     #
-    #     #
-    #     #
-    #     # # Pass the actual surface vertices as zone_points
-    #     # #mask = zone_mask(sg, vertices, zone_radius=1, invert_mask=False, zone_point_mask_values=vertex_mask)
-    #     #
-    #     # # Create the masked grid
-    #     # grid = masked_grid_data(sg, mask, 1)  # '1' is used to select the region
-    #     # grid.name = f"{volume.data.name}_{np.sum(masked_triangles)}triangles"
-    #     # #print(dir(grid))
-    #     # #print(dir(grid.data))
-    #     # print(f"Grid size: {grid.size}")
-    #     # if hasattr(grid, 'array'):
-    #     #     print(f"Grid array shape: {grid.array.shape}")
-    #     # else:
-    #     #     print("Grid does not have an array attribute.")
-    #     # if hasattr(grid, 'matrix'):
-    #     #     print(f"Grid matrix shape: {grid.matrix().shape}")  # Use method call if `matrix` is callable
-    #     # elif hasattr(grid, 'full_matrix'):
-    #     #     print(f"Grid full matrix shape: {grid.full_matrix().shape}")
-    #     # else:
-    #     #     print("Grid has no matrix or full_matrix attributes.")
-    #     # if hasattr(grid, 'submatrix'):
-    #     #     submat = grid.submatrix((0, 0, 0), (1, 1, 1))  # Try with a minimal slice
-    #     #     print(f"Submatrix slice shape: {submat.shape}")
-    #     # print(f"Origin: {grid.origin}")  # May provide grid origin
-    #     # print(f"Step size: {grid.step}")  # Spacing between voxels
-    #     # print(f"Masked grid data name: {grid.name}, Masked grid size: {grid.size}")
-    #     # print(f"Mask shape: {mask.shape}, Expected shape: {grid.size}")
-    #     #
-    #     # return grid
-    #
-    #     """
-    #         Generate grid data for a subset of triangles in the volume.
-    #
-    #         Args:
-    #             volume: The volume object.
-    #             masked_triangles: A boolean mask for triangles to include in the grid.
-    #         Returns:
-    #             A grid object with only the specified triangles.
-    #         """
-    #     ijk_min, ijk_max, ijk_step = volume.region
-    #     from chimerax.map_data import GridSubregion
-    #     sg = GridSubregion(volume.data, ijk_min, ijk_max)
-    #     pixsize = sg.step[0]
-    #
-    #     # Ensure that surface vertices are passed as zone_points
-    #     vertices = volume.surfaces[0].vertices
-    #     vertex_mask = np.zeros(len(vertices), dtype=bool)
-    #
-    #     # Use masked_triangles to set the mask for the corresponding vertices
-    #     for i, triangle_indices in enumerate(volume.surfaces[0].triangles):
-    #         if masked_triangles[i]:
-    #             vertex_mask[triangle_indices] = True  # Mark the corresponding vertices
-    #
-    #     # Extract only the selected vertices
-    #     selected_vertices = vertices[vertex_mask]
-    #
-    #     # Scale selected vertices by the pixel size (voxel units)
-    #     selected_vertices_scaled = selected_vertices / pixsize
-    #
-    #     # Initialize the mask array (e.g., with the same shape as the grid)
-    #     grid_shape = np.array(sg.size)  # (1024, 1440, 800)
-    #     mask = np.zeros(grid_shape, dtype=bool)
-    #
-    #     # Iterate through the selected vertices and mark the corresponding entries in the mask
-    #     for vertex in selected_vertices_scaled:
-    #         # Round the scaled vertex coordinates to nearest integers (voxel indices)
-    #         voxel_coords = np.round(vertex).astype(int)
-    #
-    #         # Check if the voxel coordinates are within the bounds of the grid
-    #         if np.all(voxel_coords >= 0) and np.all(voxel_coords < grid_shape):
-    #             mask[tuple(voxel_coords)] = True
-    #
-    #     # Final mask status
-    #     print(f"Mask shape: {mask.shape}")
-    #     print(f"Mask filled with True: {np.sum(mask)} out of {mask.size}")
-    #
-    #     # Create the masked grid
-    #     from chimerax.map_data import masked_grid_data
-    #     grid = masked_grid_data(sg, mask, 1)
-    #     grid.name = f"{volume.data.name}_{np.sum(masked_triangles)}triangles"
-    #
-    #     print(f"Grid size: {grid.size}")
-    #     if hasattr(grid, 'array'):
-    #         print(f"Grid array shape: {grid.array.shape}")
-    #     else:
-    #         print("Grid does not have an array attribute.")
-    #     if hasattr(grid, 'matrix'):
-    #         print(f"Grid matrix shape: {grid.matrix().shape}")
-    #     elif hasattr(grid, 'full_matrix'):
-    #         print(f"Grid full matrix shape: {grid.full_matrix().shape}")
-    #     else:
-    #         print("Grid has no matrix or full_matrix attributes.")
-    #     if hasattr(grid, 'submatrix'):
-    #         submat = grid.submatrix((0, 0, 0), (1, 1, 1))  # Try with a minimal slice
-    #         print(f"Submatrix slice shape: {submat.shape}")
-    #     print(f"Origin: {grid.origin}")  # May provide grid origin
-    #     print(f"Step size: {grid.step}")  # Spacing between voxels
-    #     print(f"Masked grid data name: {grid.name}, Masked grid size: {grid.size}")
-    #
-    #     return grid
-    #
-    #
-    # def custom_zone_mask(self, grid_data, zone_points, zone_radius, invert_mask=False, zone_point_mask_values=None):
-    #     """
-    #     Custom version of the zone_mask function with debugging output.
-    #     """
-    #
-    #     # Convert zone_points to a numpy array (ensure it's in float64)
-    #     zone_points = np.array(zone_points, dtype=np.float64)
-    #
-    #     # Initialize mask
-    #     shape = tuple(reversed(grid_data.size))
-    #     mask_3d = np.zeros(shape, dtype=np.int8)
-    #     mask_1d = mask_3d.ravel()
-    #
-    #     # Debugging: Show the initial mask state
-    #     print("Initial mask state:", mask_3d.shape)
-    #
-    #     # If zone_point_mask_values are not provided, set the mask value
-    #     if zone_point_mask_values is None:
-    #         mask_value = 1 if not invert_mask else 0
-    #     else:
-    #         mask_value = 1
-    #
-    #     # Check for grid size limit and process the grid efficiently
-    #     size_limit = 2 ** 22  # limit to avoid too large arrays
-    #     if mask_3d.size > size_limit:
-    #         xsize, ysize, zsize = grid_data.size
-    #         grid_points = np.indices((xsize, ysize, 1), dtype=np.float64)  # Convert to float64
-    #
-    #         # Reshape grid_points to be a 2D array where each row is a (x, y, z) point
-    #         grid_points = grid_points.reshape(3, -1).T  # Reshape to (n_points, 3)
-    #
-    #         grid_data.ijk_to_xyz_transform.transform_points(grid_points, in_place=True)
-    #         zstep = [grid_data.ijk_to_xyz_transform.matrix[a][2] for a in range(3)]
-    #
-    #         for z in range(zsize):
-    #             i1, i2, n1 = find_closest_points(grid_points, zone_points, zone_radius)
-    #             print(f"i1:{i1}, i2:{i2}, n1:{n1}")
-    #             offset = xsize * ysize * z
-    #
-    #             if zone_point_mask_values is None:
-    #                 mask_1d[i1 + offset] = mask_value
-    #             else:
-    #                 mask_1d[i1 + offset] = zone_point_mask_values[n1]
-    #
-    #             # Debugging: Show how points are marked
-    #             print(f"Layer {z}: Marked grid points within zone_radius")
-    #             print(f"Marked grid points indices in this layer: {i1 + offset}")
-    #
-    #     else:
-    #         grid_points = np.indices(grid_data.size, dtype=np.float64)  # Convert to float64
-    #
-    #         # Reshape grid_points to be a 2D array where each row is a (x, y, z) point
-    #         grid_points = grid_points.reshape(3, -1).T  # Reshape to (n_points, 3)
-    #
-    #         grid_data.ijk_to_xyz_transform.transform_points(grid_points, in_place=True)
-    #         i1, i2, n1 = find_closest_points(grid_points, zone_points, zone_radius)
-    #
-    #         # Debugging: Show which grid points are affected by each zone_point
-    #         print(f"Processing zone_points: {len(zone_points)} points within {zone_radius} radius.")
-    #         for idx, zone_point in enumerate(zone_points):
-    #             print(f"Zone Point {idx}: {zone_point}")
-    #
-    #         # Show the indices of the grid points being marked
-    #         print(f"Indices of grid points marked within radius: {i1}")
-    #
-    #         if zone_point_mask_values is None:
-    #             mask_1d[i1] = mask_value
-    #         else:
-    #             mask_1d[i1] = zone_point_mask_values[n1]
-    #
-    #     # Final mask status
-    #     print(f"Final mask has {np.sum(mask_1d)} marked points (True values) out of {mask_3d.size}.")
-    #
-    #     # Return the 3D mask
-    #     return mask_3d
 
     def tomo_arithmetics(self):
 
@@ -1417,14 +1018,9 @@ class OptionsWindow(ToolInstance):
         artia = self.session.ArtiaX
         self.tomo_math = artia.tomograms.get(artia.options_tomogram)
         matrix_1 = self.tomo_math.data.matrix()
-        #volume = tomo
-        print("Split Tomogram button clicked!")
-        #surface = volume.surfaces[0]
-        #matrix_1=surface.data.matrix()
+
         print("Array Excerpt (first 5 elements):")
         print(matrix_1.ravel()[:5])  # Flatten the array and print the first 5 elements
-
-
         print("\nBasic Information:")
         print(f"Shape: {matrix_1.shape}")
         print(f"Data type: {matrix_1.dtype}")
@@ -1450,13 +1046,10 @@ class OptionsWindow(ToolInstance):
             print("No valid segmentation selected.")
             return
 
-        # Get surface of selected tomogram/segmentation
-        #segm = selected_tomo.surfaces[0]
-
         matrix_2 = self.selected_tomo_math.data.matrix()
+
         print("Array Excerpt (first 5 elements):")
         print(matrix_2.ravel()[:5])  # Flatten the array and print the first 5 elements
-
         print("\nBasic Information:")
         print(f"Shape: {matrix_2.shape}")
         print(f"Data type: {matrix_2.dtype}")
@@ -1535,243 +1128,6 @@ class OptionsWindow(ToolInstance):
 
             self.tomo_math.create_tomo_from_array(array,name)
 
-        #TODO delete
-
-        # Sort triangles of segmentation by color
-        # triangles_per_color = self.group_triangles_by_color(surface=segm)
-        # print(f"triangles per color dict: {triangles_per_color}")
-        #
-        # # Prepare arguments for the color_zone function
-        # points = []
-        # point_colors = []
-        #
-        # for color, triangle_indices in triangles_per_color.items():
-        #     print(f"Processing color: {color}, triangle indices: {triangle_indices}")
-        #
-        #     # Calculate centroids for all triangles of this color
-        #     for tri_idx in triangle_indices:
-        #         triangle = segm.vertices[segm.triangles[tri_idx]]  # Get the 3 vertices of the triangle
-        #         print(f"Triangle vertices for index {tri_idx}: {triangle}")
-        #
-        #         # Compute centroid of the triangle
-        #         centroid = triangle.mean(axis=0)
-        #         print(f"Centroid of triangle {tri_idx}: {centroid}")
-        #
-        #         # Add this centroid and its associated color
-        #         points.append(centroid)
-        #         point_colors.append(color)
-
-        # Convert lists to numpy arrays for compatibility
-        # points = np.array(points)  # Shape (N, 3), where N is the total number of triangles
-        # point_colors = np.array(point_colors, dtype=np.uint8)  # Shape (N, 4)
-        # print(f"points shape: {points.shape}")
-        # print(f"points: {points}")
-        # print(f"point_colors shape: {point_colors.shape}")
-        # print(f"point_colors: {point_colors}")
-        #
-        # # Define the radius for the color zone
-        # radius = 20.0
-        #
-        # from chimerax.surface.colorzone import color_zone
-        #
-        # # Apply the color zoning to the surface
-        # color_zone(surface=surface,points=points,point_colors=point_colors,distance=radius,sharp_edges=False,far_color=None,auto_update=True)
-
-        # print("Surface coloring completed!")
-
-        #self.color_image(triangles_per_color=triangles_per_color, segm=segm, volume=volume)
-
-    import numpy as np
-
-    # def color_image(self, segm, triangles_per_color, volume):
-    #
-    #
-    #     # Create the 3D segmentation map
-    #     segmentation_map = self.create_3d_segmentation_map(segm, triangles_per_color, volume)
-    #
-    #     # Get the shape of the array
-    #     shape = segmentation_map.shape
-    #
-    #     # Print lengths in each dimension
-    #     x_length, y_length, z_length = shape
-    #     print(f"Length in X (rows): {x_length}")
-    #     print(f"Length in Y (columns): {y_length}")
-    #     print(f"Length in Z (depth): {z_length}")
-    #
-    #     # For completeness, show size and count of non-zeros as before
-    #     total_size = segmentation_map.size
-    #     non_zero_count = np.count_nonzero(segmentation_map)
-    #
-    #     print(f"Total size of the array: {total_size}")
-    #     print(f"Number of non-zero entries: {non_zero_count}")
-    #
-    #     # Convert the 3D segmentation map to a ChimeraX-compatible format
-    #     #segmentation = self.create_segmentation_from_map(segmentation_map)
-    #
-    #     # Use the segmentation_colors function for the volume display
-    #     from chimerax.segment.segment import segmentation_colors
-    #     segmentation_colors(session=self.session, segmentations=segmentation_map, color=None, map=volume)
-    #
-    # def create_3d_segmentation_map(self, segm, triangles_per_color, volume):
-    #     """
-    #     Create a 3D segmentation map where each voxel corresponds to a segment ID.
-    #
-    #     Parameters:
-    #     segm: The segmentation surface model (contains vertices and triangles).
-    #     triangles_per_color: Dictionary mapping colors to triangle indices of the segm.
-    #     volume: tomogram volume which is supposed to be colored
-    #
-    #     Returns:
-    #     segmentation_map: 3D numpy array representing the segmentation volume.
-    #     """
-    #     grid_size=volume.size
-    #     # Initialize a 3D array for the segmentation map
-    #     segmentation_map = np.zeros(grid_size, dtype=int)
-    #
-    #     # Map colors to segment IDs
-    #     color_to_segment_id = {}
-    #     segment_counter = 1
-    #     for color in triangles_per_color.keys():
-    #         color_to_segment_id[color] = segment_counter
-    #         segment_counter += 1
-    #
-    #     #reduced version for debugging
-    #     # Loop through colors and their associated triangle indices
-    #     # for color, triangle_indices in triangles_per_color.items():
-    #     #     segment_id = color_to_segment_id[color]
-    #     #     print(f"Now processing color: {color}")
-    #     #
-    #     #     # Limit to the first 5 triangles (or less if fewer exist)
-    #     #     limited_triangle_indices = triangle_indices[:5]
-    #     #
-    #     #     for tri_idx in limited_triangle_indices:
-    #     #         # Get the triangle vertices
-    #     #         vertices = segm.vertices[segm.triangles[tri_idx]]
-    #     #         print(f"Triangle vertices: {vertices}")
-    #     #
-    #     #         # Calculate the bounding box of the triangle in the 3D grid
-    #     #         min_coords = np.floor(vertices.min(axis=0)).astype(int)
-    #     #         max_coords = np.ceil(vertices.max(axis=0)).astype(int)
-    #     #         print(f"Bounding box - min_coords: {min_coords}, max_coords: {max_coords}")
-    #     #
-    #     #         # Iterate over voxels within the bounding box
-    #     #         for x in range(min_coords[0], max_coords[0] + 1):
-    #     #             for y in range(min_coords[1], max_coords[1] + 1):
-    #     #                 for z in range(min_coords[2], max_coords[2] + 1):
-    #     #                     # Check if the voxel lies within the triangle
-    #     #                     voxel_center = np.array([x + 0.5, y + 0.5, z + 0.5])
-    #     #                     print(f"Voxel center: {voxel_center}")
-    #     #                     if self.is_point_in_triangle(voxel_center, vertices):
-    #     #                         segmentation_map[x, y, z] = segment_id
-    #     #                         print(f"Marked voxel ({x}, {y}, {z}) with segment ID {segment_id}")
-    #
-    #
-    #     #Old version
-    #     # Iterate through each color and its associated triangles
-    #     for color, triangle_indices in triangles_per_color.items():
-    #         segment_id = color_to_segment_id[color]
-    #         print(f"now color:{color}")
-    #
-    #         for tri_idx in triangle_indices:
-    #             # Get the triangle vertices
-    #             vertices = segm.vertices[segm.triangles[tri_idx]]
-    #             print(f"vertices: {vertices}")
-    #
-    #             # Calculate the bounding box of the triangle in the 3D grid
-    #             min_coords = np.floor(vertices.min(axis=0)).astype(int)
-    #             max_coords = np.ceil(vertices.max(axis=0)).astype(int)
-    #             print(f"min_coords: {min_coords}, max_coords: {max_coords}")
-    #
-    #             # Iterate over voxels within the bounding box
-    #             for x in range(min_coords[0], max_coords[0] + 1):
-    #                 for y in range(min_coords[1], max_coords[1] + 1):
-    #                     for z in range(min_coords[2], max_coords[2] + 1):
-    #                         # Check if the voxel lies within the triangle
-    #                         voxel_center = np.array([x + 0.5, y + 0.5, z + 0.5])
-    #                         print(f"voxel_center: {voxel_center}")
-    #                         if self.is_point_in_triangle(voxel_center, vertices):
-    #                             segmentation_map[x, y, z] = segment_id
-    #                             print(f"marked {x},{y},{z} with {segment_id}")
-    #
-    #     return segmentation_map
-    #
-    # def is_point_in_triangle(self, point, triangle_vertices):
-    #     """
-    #     Check if a point lies within a triangle in 3D space using barycentric coordinates.
-    #
-    #     Parameters:
-    #     point: The 3D coordinates of the point.
-    #     triangle_vertices: The 3 vertices of the triangle.
-    #
-    #     Returns:
-    #     True if the point is inside the triangle; False otherwise.
-    #     """
-    #     # Unpack the triangle vertices
-    #     v0, v1, v2 = triangle_vertices
-    #
-    #     # Calculate the vectors relative to the first vertex
-    #     v0v1 = v1 - v0
-    #     v0v2 = v2 - v0
-    #     v0p = point - v0
-    #
-    #     # Compute dot products
-    #     dot00 = np.dot(v0v2, v0v2)
-    #     dot01 = np.dot(v0v2, v0v1)
-    #     dot02 = np.dot(v0v2, v0p)
-    #     dot11 = np.dot(v0v1, v0v1)
-    #     dot12 = np.dot(v0v1, v0p)
-    #
-    #     # Compute barycentric coordinates
-    #     denom = dot00 * dot11 - dot01 * dot01
-    #     if denom == 0:
-    #         print("Degenerate triangle")
-    #         return False  # Degenerate triangle
-    #
-    #     u = (dot11 * dot02 - dot01 * dot12) / denom
-    #     v = (dot00 * dot12 - dot01 * dot02) / denom
-    #
-    #     # Check if point is in triangle
-    #     inside = (u >= 0) and (v >= 0) and (u + v <= 1)
-    #     if inside:
-    #         print("is in triangle")
-    #     else:
-    #         print("not in triangle")
-    #     return inside
-    #
-    # def color_segm(self):
-    #     # Retrieve the currently selected tomogram
-    #     print("empty button")
-    #     # artia = self.session.ArtiaX
-    #     # tomo = artia.tomograms.get(artia.options_tomogram)
-    #     # matrix = tomo.data.matrix()
-    #     # print("Array Excerpt (first 5 elements):")
-    #     # print(matrix.ravel()[:5])  # Flatten the array and print the first 5 elements
-    #     #
-    #     # print("\nBasic Information:")
-    #     # print(f"Shape: {matrix.shape}")
-    #     # print(f"Data type: {matrix.dtype}")
-    #     # print(f"Size (number of elements): {matrix.size}")
-    #     # print(f"Memory (bytes): {matrix.nbytes}")
-    #     # print(f"Max value: {matrix.max()}")
-    #     # print(f"Min value: {matrix.min()}")
-    #     #
-    #     # # Compute and print histogram (value distribution)
-    #     # # print("\nExact Value Distribution:")
-    #     # # unique, counts = np.unique(matrix, return_counts=True)
-    #     # # for value, count in zip(unique, counts):
-    #     # #     print(f"Value {value}: {count}")
-    #     # print("\nValue Distribution (Histogram):")
-    #     # hist, edges = np.histogram(matrix, bins=10)
-    #     # for i in range(len(hist)):
-    #     #     print(f"Range {edges[i]:.2f} - {edges[i + 1]:.2f}: {hist[i]}")
-    #
-    #     #vertex=tomo.surfaces[0].vertex_colors
-    #     #print("First 5 entries:")
-    #     #for i, (key, value) in enumerate(vertex.items()):
-    #     #    print(f"{key}: {value}")
-    #     #    if i == 4:  # Stop after the 5th entry
-    #     #        break
-
     def populate_tomogram_list(self):
         # Clear the current items
         self.tomogram_list_widget.clear()
@@ -1798,9 +1154,6 @@ class OptionsWindow(ToolInstance):
             item.setCheckState(Qt.Unchecked)  # Unchecked by default
             item.setData(Qt.UserRole, vol)  # Store the volume object in the item for later access
 
-            # Connect the item check state change to update the operation info
-            #item.stateChanged.connect(self.update_operation_info)
-
             # Add the item to the list widget
             self.tomogram_list_widget.addItem(item)
 
@@ -1822,10 +1175,9 @@ class OptionsWindow(ToolInstance):
                 chbx.setChecked(False)
         self.update_operation_info()
 
-    # Method to update the operation information
+
     def update_operation_info(self):
-        # Get the names of the tomograms
-        #name1 = self.tomo_math.name
+        # Get the names of the current tomogram
         artia = self.session.ArtiaX
         tomo1 = artia.tomograms.get(artia.options_tomogram)
         if tomo1:
@@ -1834,8 +1186,6 @@ class OptionsWindow(ToolInstance):
         else:
             name1=""
             id_1=""
-        #name2 = self.selected_tomo_math.name
-        #name2="selected tomogram"
         # Get the second selected tomogram name
         selected_tomograms = self.get_selected_tomograms()
 
@@ -1851,8 +1201,6 @@ class OptionsWindow(ToolInstance):
         else:
             name2=""
             id_2=""
-        # If a tomogram is selected, fetch its name
-        #name2 = selected_tomograms[0].name if selected_tomograms else "No tomogram selected"
 
         # Check the operation being performed
         operation_str = "Operation not defined"
@@ -1931,7 +1279,7 @@ class OptionsWindow(ToolInstance):
 
         tomo.create_tomo_from_array(array_invert, name)
 
-    # Common handler to ensure only one checkbox is selected at a time
+    # Common handler to ensure only one arithmetic operation checkbox is selected at a time
     def on_checkbox_toggled(self, checkbox):
         # If the checkbox is checked, uncheck the others
         if checkbox.isChecked():
