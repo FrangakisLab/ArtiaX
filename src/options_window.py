@@ -334,6 +334,13 @@ class OptionsWindow(ToolInstance):
         group_contrast_layout.addWidget(self.contrast_center_widget)
         group_contrast_layout.addWidget(self.contrast_width_widget)
 
+        # Add an "Invert Contrast" button below the sliders
+        self.invert_contrast_button = QPushButton("Invert Contrast")
+        self.invert_contrast_button.setToolTip("Invert the contrast of the selected tomogram.")
+        self.invert_contrast_button.clicked.connect(self.invert_contrast)
+
+        group_contrast_layout.addWidget(self.invert_contrast_button)
+
         # Add grid to group
         group_contrast.setLayout(group_contrast_layout)
         #### Contrast Box ####
@@ -579,11 +586,11 @@ class OptionsWindow(ToolInstance):
         # Add groups to layout
         tomo_layout.addWidget(group_current_tomo)
         tomo_layout.addWidget(group_pixelsize)
-        tomo_layout.addWidget(self.arithmetics_group)
         tomo_layout.addWidget(group_contrast)
         tomo_layout.addWidget(group_slices)
         tomo_layout.addWidget(group_orthoplanes)
         tomo_layout.addWidget(group_process)
+        tomo_layout.addWidget(self.arithmetics_group)
         #tomo_layout.addWidget(group_fourier_transform)
 
         # And finally set the layout of the widget
@@ -1221,14 +1228,12 @@ class OptionsWindow(ToolInstance):
                 f"#{id_1} {name1}    {operation_str}    {id_2} {name2}")
 
     def invert_contrast(self):
-        #TODO Not used, delete!
 
         # Get current tomogram
         artia = self.session.ArtiaX
         tomo = artia.tomograms.get(artia.options_tomogram)
         matrix_1 = tomo.data.matrix()
         # volume = tomo
-        print("Split Tomogram button clicked!")
         # surface = volume.surfaces[0]
         # matrix_1=surface.data.matrix()
         print("Array Excerpt (first 5 elements):")
@@ -1290,7 +1295,7 @@ class OptionsWindow(ToolInstance):
                     chbx.setChecked(False)
 
 
-# ==============================================================================
+    # ==============================================================================
 # Options Menus for Motivelists =================================================
 # ==============================================================================
 
