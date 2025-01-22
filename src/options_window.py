@@ -336,7 +336,7 @@ class OptionsWindow(ToolInstance):
 
         # Add an "Invert Contrast" button below the sliders
         self.invert_contrast_button = QPushButton("Invert Contrast")
-        self.invert_contrast_button.setToolTip("Invert the contrast of the selected tomogram.")
+        self.invert_contrast_button.setToolTip("Invert the contrast of the selected tomogram. A new tomogram is created for which the density values are inverted.")
         self.invert_contrast_button.clicked.connect(self.invert_contrast)
 
         group_contrast_layout.addWidget(self.invert_contrast_button)
@@ -417,7 +417,7 @@ class OptionsWindow(ToolInstance):
 
         self.lp_box = QGroupBox('Low pass')
         self.lp_box.setCheckable(True)
-        tooltip = 'Low pass filter the current tomogram. Use Gaussian or Cosine decay. If the unit is set to pixels and the ' \
+        tooltip = 'Low pass or High Pass filter the current tomogram. Use Gaussian or Cosine decay. If the unit is set to pixels and the ' \
                   'pass frequency is set to zero the center of decay will be at zero. If decay size is set to zero a box ' \
                   'filter is used. If the unit is set to "angstrom", the decay size is always set to 1/pass*0.25.'
         self.lp_box.setToolTip(tooltip)
@@ -507,6 +507,7 @@ class OptionsWindow(ToolInstance):
         #### Tomogram arithmetics ####
         # Create a group box to hold the arithmetics-related widgets
         self.arithmetics_group = QGroupBox("Tomogram Arithmetics")
+        self.arithmetics_group.setCheckable(True)
         self.arithmetics_group.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum))
 
         # Create a layout for the group box
