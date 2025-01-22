@@ -1018,6 +1018,7 @@ class OptionsWindow(ToolInstance):
         self.input_distance = QLineEdit()
         self.input_distance.setFont(self.font)
         self.group_manipulation_button_delete_duplicates = QPushButton("Delete")
+        self.group_manipulation_button_delete_duplicates.setToolTip("Deletes particle duplicates or particles that are within a specified radius (in angstrom) to each other.")
         self.group_manipulation_button_delete_duplicates.setFont(self.font)
 
         # Add widgets to the subgroup layout
