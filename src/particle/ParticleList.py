@@ -1377,10 +1377,14 @@ def delete_duplicates(session, models, radius=0):
                     tomoname = selected_pl.get_values_of_attribute("rlnTomoName")
                 elif "tomo_number" in attri:
                     tomoname = selected_pl.get_values_of_attribute("tomo_number")
+                elif "tomo" in attri:
+                    tomoname = selected_pl.get_values_of_attribute("tomo")
 
+                # If no tomogram info, treat all particles as one tomogram
                 if not tomoname:
-                    print("Tomogram information not found.")
-                    continue
+                    print(
+                        f"Warning: Tomogram information not found for particle list ID {id}. Treating all particles as one tomogram.")
+                    tomoname = [0] * len(particle_ids)  # Assign all particles to one "virtual tomogram"
 
                 # Create a dictionary to group coordinates by tomogram
                 tomo_coordinates = {}
@@ -1417,10 +1421,7 @@ def delete_duplicates(session, models, radius=0):
 
                             if distance <= radius:
                                 duplicates.append((i, j))
-                                print(
-                                    f"Tomogram {tomo_id}: Adding particle {i} to deletion list, "
-                                    f"distance {distance} to particle {j}"
-                                )
+                                #print(f"Tomogram {tomo_id}: Adding particle {i} to deletion list, "f"distance {distance} to particle {j}")
 
                     # Map duplicate indices to particle IDs
                     for i, j in duplicates:
@@ -1428,9 +1429,9 @@ def delete_duplicates(session, models, radius=0):
                             duplicate_ids.append(ids[i])
 
                 if duplicate_ids:
-                    print(f"Deleting {len(duplicate_ids)} particles from tomogram {tomo_id}")
+                    print(f"Deleting {len(duplicate_ids)} particles")
                     selected_pl.delete_data(duplicate_ids)
                 else:
-                    print(f"No duplicates found for tomogram {tomo_id}.")
+                    print(f"No duplicates found.")
 
 
