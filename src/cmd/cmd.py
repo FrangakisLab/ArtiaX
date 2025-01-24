@@ -759,17 +759,20 @@ def artiax_gen_on_surface(session, model, method, num_pts, radius=None, exactNum
 
 
 def artiax_geomodel_to_volume(
-    session, model=None, geomodels=None, subdivide_length=None
+    session, model=None, geomodels=None, subdivide_length=None, merge=False
 ):
     from ..volume.Tomogram import Tomogram
     from chimerax.surface._surface import subdivide_mesh
     from chimerax.map_data import ArrayGridData
 
     new_model = False
+    noTomo=False
     if model is None:
-        new_model = True
         ps = [1, 1, 1]
         name = "segmented surfaces"
+        noTomo=True
+        if merge is True:
+            raise UserError("Geomodel can not be merge with existing tomogram if it is not provided. Please indicate the tomogram.")
     elif not isinstance(model, Tomogram):
         session.logger.warning("{} is not a tomogram loaded into ArtiaX".format(model))
         return
@@ -779,10 +782,15 @@ def artiax_geomodel_to_volume(
         ps = tomo.pixelsize
         mat = tomo.data.matrix().copy()
 
+    if merge is False:
+        new_model = True
+
+
+
     if geomodels is None:
         geomodels = [g for g in session.ArtiaX.geomodels.child_models() if g.visible]
 
-    if new_model:
+    if noTomo:
         from chimerax.geometry.bounds import union_bounds
 
         union = union_bounds([gm.geometry_bounds() for gm in geomodels])
@@ -816,7 +824,7 @@ def artiax_geomodel_to_volume(
         # Set voxels
         for i, v in enumerate(vs):
 
-            if new_model:
+            if noTomo:
                 index = (v - xyz_min) / ps[0]
             else:
                 index = tomo.data.xyz_to_ijk(v)
@@ -1860,7 +1868,7 @@ def register_artiax(logger):
 
     def register_artiax_geomodel_to_volume():
         desc = CmdDesc(
-            optional=[("model", ModelArg)],
+            optional=[("model", ModelArg), ("merge", BoolArg)],
             keyword=[("geomodels", ListOf(ModelArg)), ("subdivide_length", FloatArg)],
             synopsis="Adds the specified geomodels to the specified volume. If no model is specified, a new one is"
             " created. If no geomodels are specified, all shown are used. The subdivide_length keyword sets"
