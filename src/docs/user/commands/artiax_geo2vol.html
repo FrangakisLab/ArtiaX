@@ -8,12 +8,12 @@
         alt="ArtiaX docs icon" class="clRight" title="User Guide Index" width="60px"></a>
     <h3><a href="../artiax_index.html#commands">Command</a>: artiax geo2vol</h3>
     <h3 class="usage"><a href="usageconventions.html">Usage</a>: <br>
-      <b>artiax geo2vol</b> [<a href="atomspec.html#hierarchy"><i>model-spec</i></a>]
+      <b>artiax geo2vol</b> <a href="atomspec.html#hierarchy"><i>model-spec</i></a>
       [<strong>geomodels</strong> <a href="atomspec.html#hierarchy"><i>model-specs</i></a>]
       [<strong>subdivideLength</strong> <i>value</i>] [<strong>merge</strong> <i>Bool</i>]</h3>
     <p> The <b>artiax geo2vol</b> command turns the specified geomodels (comma seperated) into a volume by voxelizing the geomodel.
-      The geomodel can also be merged with an already existing volume, as long as it fits inside the bounding box of the volume. If a tomogram was indicated, the
-      new volume is automatically scaled to fit the existing tomogram. If not, the volume is scaled so that the maximum side length is 400 angstrom.
+      The geomodel can also be merged with an already existing volume, as long as it fits inside the bounding box of the volume. The
+      new volume is automatically scaled to fit the indicated existing tomogram. If no tomogram is indicated, the currently selected tomogram is chosen.
       If no geomodels are specified, all shown ones are used.</p>
     <table style="width: 1006px; height: 380px;" border="1">
       <tbody>
@@ -46,9 +46,9 @@
     <p> Examples: </p>
     <blockquote> <b>artiax geo2vol #1.1.1 geomodels #1.3.1,#1.3.2 <br>
         artiax geo2vol subdivideLength 0.5 <br>
-        artiax geo2vol #1.1.2 subdivideLength 0.25 </b>
-        artiax geo2vol #1.1.3 geomodels 3.1.1 subdivideLength 0.25 merge True</b>
-        artiax geo2vol #1.1.3 geomodels 3.1.1 subdivideLength 0.25 merge False</b></blockquote>
+        artiax geo2vol #1.1.2 subdivideLength 0.25 <br>
+        artiax geo2vol #1.1.3 geomodels 3.1.1 subdivideLength 0.25 merge True<br>
+        artiax geo2vol #1.1.3 geomodels 3.1.1 subdivideLength 0.25 merge False<br> </blockquote>
     <p></p>
     <hr>
     <address>BMLS Frangakis Group / August 2023</address>

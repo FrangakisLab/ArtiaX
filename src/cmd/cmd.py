@@ -768,12 +768,29 @@ def artiax_geomodel_to_volume(
     new_model = False
     noTomo=False
     if model is None:
-        ps = [1, 1, 1]
-        name = "segmented surfaces"
-        noTomo=True
-        if merge is True:
-            raise UserError("Geomodel can not be merge with existing tomogram if it is not provided. Please indicate the tomogram.")
-    elif not isinstance(model, Tomogram):
+        #ps = [1, 1, 1]
+        #name = "segmented surfaces"
+        #noTomo=True
+        #model = [m for m in session.ArtiaX.tomograms.child_models() if m.visible]
+        count=0
+        for models in session.selection.models():
+            if isinstance(models, Volume):
+                print(f"found volume {models}")
+                model=models
+                count=count+1
+        if count ==0:
+            if merge == True:
+                raise UserError("Please indicate one tomogram for scaling purposes and for merging, either by command line or with the selection mouse mode.")
+            else:
+                raise UserError("Please indicate one tomogram for scaling purposes, either by command line or with the selection mouse mode.")
+        if count >=2:
+            if merge == True:
+                raise UserError("Please indicate only one tomogram for scaling purposes and merging not more.\nIf you want to combine multiple tomograms, please use the tomogram arithmetics section in ArtiaX Options Tomogram tab.")
+            else:
+                raise UserError("Please indicate only one tomogram for scaling purposes and not more.")
+        #if merge is True:
+            #raise UserError("Geomodel can not be merge with existing tomogram if it is not provided. Please indicate the tomogram.")
+    if not isinstance(model, Tomogram):
         session.logger.warning("{} is not a tomogram loaded into ArtiaX".format(model))
         return
     else:
