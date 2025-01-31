@@ -94,6 +94,46 @@ class CurvedLineOptions(QWidget):
         self.fitting_checkbox.setLayout(fitting_checkbox_layout)
         layout.addWidget(self.fitting_checkbox)
 
+        # Populate line with particles
+        self.spacing_checkbox = QGroupBox("Populate line with evenly spaced particles:")
+        self.spacing_checkbox.setCheckable(True)
+        self.spacing_checkbox.setChecked(False)
+
+        spacing_checkbox_layout = QVBoxLayout()
+
+        self.spacing_slider = LabelEditRangeSlider((1, 100), "Spacing [Å]:", min=0.1)
+        spacing_checkbox_layout.addWidget(self.spacing_slider)
+
+        self.create_particle_button = QPushButton("Create particles")
+        spacing_checkbox_layout.addWidget(self.create_particle_button)
+
+        self.rotate_checkbox = QGroupBox("Rotate particles:")
+        self.rotate_checkbox.setCheckable(True)
+        self.rotate_checkbox.setChecked(False)
+        rotate_checkbox_layout = QVBoxLayout()
+        self.rotation_slider = LabelEditRangeSlider((-1, 1), "Rotation [deg/Å]:")
+        self.start_rotation = LabelEditSlider((-180, 180), "Start Rotation [deg]:")
+        rotate_checkbox_layout.addWidget(self.rotation_slider)
+        rotate_checkbox_layout.addWidget(self.start_rotation)
+        self.rotate_checkbox.setLayout(rotate_checkbox_layout)
+        spacing_checkbox_layout.addWidget(self.rotate_checkbox)
+
+        self.marker_axis_display_checkbox = QGroupBox("Marker/Axis Display")
+        self.marker_axis_display_checkbox.setCheckable(True)
+        marker_axis_display_checkbox_layout = QVBoxLayout()
+        self.marker_radius_slider = LabelEditRangeSlider((1, 10), "Marker Radius:", min=0)
+        self.axes_size_slider = LabelEditRangeSlider((10, 20), "Axes Size:", min=0)
+        marker_axis_display_checkbox_layout.addWidget(self.marker_radius_slider)
+        marker_axis_display_checkbox_layout.addWidget(self.axes_size_slider)
+        self.marker_axis_display_checkbox.setLayout(marker_axis_display_checkbox_layout)
+        spacing_checkbox_layout.addWidget(self.marker_axis_display_checkbox)
+
+        spacing_checkbox_layout.setSizeConstraint(QLayout.SetMinimumSize)
+        self.spacing_checkbox.setLayout(spacing_checkbox_layout)
+
+        layout.addWidget(self.spacing_checkbox)
+
+
         # Move camera along line options
         self.camera_checkbox = QGroupBox("Move camera along line:")
         self.camera_checkbox.setCheckable(True)
@@ -146,44 +186,7 @@ class CurvedLineOptions(QWidget):
         self.camera_checkbox.setLayout(camera_checkbox_layout)
         layout.addWidget(self.camera_checkbox)
 
-        # Populate line with particles
-        self.spacing_checkbox = QGroupBox("Populate line with evenly spaced particles:")
-        self.spacing_checkbox.setCheckable(True)
-        self.spacing_checkbox.setChecked(False)
 
-        spacing_checkbox_layout = QVBoxLayout()
-
-        self.spacing_slider = LabelEditRangeSlider((1, 100), "Spacing [Å]:", min=0.1)
-        spacing_checkbox_layout.addWidget(self.spacing_slider)
-
-        self.create_particle_button = QPushButton("Create particles")
-        spacing_checkbox_layout.addWidget(self.create_particle_button)
-
-        self.rotate_checkbox = QGroupBox("Rotate particles:")
-        self.rotate_checkbox.setCheckable(True)
-        self.rotate_checkbox.setChecked(False)
-        rotate_checkbox_layout = QVBoxLayout()
-        self.rotation_slider = LabelEditRangeSlider((-1, 1), "Rotation [deg/Å]:")
-        self.start_rotation = LabelEditSlider((-180, 180), "Start Rotation [deg]:")
-        rotate_checkbox_layout.addWidget(self.rotation_slider)
-        rotate_checkbox_layout.addWidget(self.start_rotation)
-        self.rotate_checkbox.setLayout(rotate_checkbox_layout)
-        spacing_checkbox_layout.addWidget(self.rotate_checkbox)
-
-        self.marker_axis_display_checkbox = QGroupBox("Marker/Axis Display")
-        self.marker_axis_display_checkbox.setCheckable(True)
-        marker_axis_display_checkbox_layout = QVBoxLayout()
-        self.marker_radius_slider = LabelEditRangeSlider((1, 10), "Marker Radius:", min=0)
-        self.axes_size_slider = LabelEditRangeSlider((10, 20), "Axes Size:", min=0)
-        marker_axis_display_checkbox_layout.addWidget(self.marker_radius_slider)
-        marker_axis_display_checkbox_layout.addWidget(self.axes_size_slider)
-        self.marker_axis_display_checkbox.setLayout(marker_axis_display_checkbox_layout)
-        spacing_checkbox_layout.addWidget(self.marker_axis_display_checkbox)
-
-        spacing_checkbox_layout.setSizeConstraint(QLayout.SetMinimumSize)
-        self.spacing_checkbox.setLayout(spacing_checkbox_layout)
-
-        layout.addWidget(self.spacing_checkbox)
 
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addStretch()
