@@ -31,7 +31,7 @@ or derivations thereof.=== UCSF ChimeraX Copyright ===-->
             <p> Used to set the center and width of a linear contrast slope,
               used as a quick, reproducible way of changing the contrast
               settings. Contrast can still be adjusted using the <b>Volume
-                Viewer</b> box if desired. </p>
+                Viewer</b> box if desired. By pressing the "Invert Contrast" button, a new tomogram is created for which the density values are inverted.</p>
           </li>
           <li> <b>Navigation:</b>
             <p> Changes the slice direction and which slice is currently shown.
@@ -48,6 +48,15 @@ or derivations thereof.=== UCSF ChimeraX Copyright ===-->
             <p> Sets the camera to view the tomogram from one of the standard
               directions. Also changes the slice direction so that the slice
               plane is parallel to the viewing plane. </p>
+          </li>
+          <li> <b>Processing:</b>
+            <p> Includes different options for tomogram processing. In the "Average" section, the user can create a copy of the tomogram averaged in the set direction, using the number of nearest slabs for the averaging.
+            In the "Filtering" area, the user can create a copy of the tomogram that is filtered using a Low Pass or High Pass filter.
+            A Gaussian or Cosine decay can be selected. If the unit is set to pixels and the pass frequency is set to zero the center of decay will be at zero. If decay size is set to zero a box filter is used. If the unit is set to "angstrom", the decay size is always set to 1/pass*0.25.</p>
+          </li>
+          <li> <b>Tomogram arithmetics:</b>
+            <p> GUI incorporation of arithmetic operations for tomograms. The tomogram for which the ArtiaX options tab is currently activated is the first operand.
+              A second operand can be selected as well as the desired operation (Addition, Subtraction, Multiplication, Division). After pressing "Compute", a new tomogram will be generated from the result of this operation.</p>
           </li>
         </ul>
       </li>

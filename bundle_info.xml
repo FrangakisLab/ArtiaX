@@ -353,6 +353,12 @@ will be displayed without the ChimeraX- prefix.
     <Provider tab="ArtiaX Models" section="Change Models" mouse_mode="mask connected triangles"
       name="Mask Connected Triangles" display_name="Mask Triangles" icon="mask_triangle.png"
       description="Hides all triangles connected to the picked triangle."/>
+    <Provider tab="ArtiaX Models" section="Change Models" mouse_mode="color connected triangles"
+      name="Color Connected Triangles" display_name="Color Triangles" icon="mask_triangle.png"
+      description="Color all triangles connected to the picked triangle."/>
+    <Provider tab="ArtiaX Models" section="Change Models" mouse_mode="extract connected triangles"
+      name="Extract Connected Triangles" display_name="Extract Triangles" icon="mask_triangle.png"
+      description="Extract all triangles connected to the picked triangle and save them as a new tomogram."/>
 
   </Providers>
 

@@ -4,12 +4,16 @@
 from functools import partial
 from pathlib import Path
 from sys import platform
+import os
+import numpy as np
+from PyQt6.QtWidgets import QButtonGroup
 
 # ChimeraX
 from chimerax.core.commands import run
 from chimerax.core.errors import UserError
 from chimerax.core.tools import ToolInstance
-from chimerax.map import open_map
+from chimerax.map import open_map, Volume
+from chimerax.geometry import find_closest_points
 
 # Qt
 from Qt.QtCore import Qt, QSize
@@ -30,8 +34,13 @@ from Qt.QtWidgets import (
     QLayout,
     QWidget,
     QStackedLayout,
-    QStackedWidget
+    QStackedWidget,
+    QListWidget,
+    QListWidgetItem,
+    QCheckBox
+
 )
+from chimerax.surface.texture import color_image
 
 # This package
 from .volume.Tomogram import orthoplane_cmd
@@ -325,6 +334,13 @@ class OptionsWindow(ToolInstance):
         group_contrast_layout.addWidget(self.contrast_center_widget)
         group_contrast_layout.addWidget(self.contrast_width_widget)
 
+        # Add an "Invert Contrast" button below the sliders
+        self.invert_contrast_button = QPushButton("Invert Contrast")
+        self.invert_contrast_button.setToolTip("Invert the contrast of the selected tomogram. A new tomogram is created for which the density values are inverted.")
+        self.invert_contrast_button.clicked.connect(self.invert_contrast)
+
+        group_contrast_layout.addWidget(self.invert_contrast_button)
+
         # Add grid to group
         group_contrast.setLayout(group_contrast_layout)
         #### Contrast Box ####
@@ -401,7 +417,7 @@ class OptionsWindow(ToolInstance):
 
         self.lp_box = QGroupBox('Low pass')
         self.lp_box.setCheckable(True)
-        tooltip = 'Low pass filter the current tomogram. Use Gaussian or Cosine decay. If the unit is set to pixels and the ' \
+        tooltip = 'Low pass or High Pass filter the current tomogram. Use Gaussian or Cosine decay. If the unit is set to pixels and the ' \
                   'pass frequency is set to zero the center of decay will be at zero. If decay size is set to zero a box ' \
                   'filter is used. If the unit is set to "angstrom", the decay size is always set to 1/pass*0.25.'
         self.lp_box.setToolTip(tooltip)
@@ -487,6 +503,87 @@ class OptionsWindow(ToolInstance):
         group_slices.setLayout(group_slices_layout)
         #### Slice Box ####
 
+
+        #### Tomogram arithmetics ####
+        # Create a group box to hold the arithmetics-related widgets
+        self.arithmetics_group = QGroupBox("Tomogram Arithmetics")
+        self.arithmetics_group.setCheckable(True)
+        self.arithmetics_group.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum))
+
+        # Create a layout for the group box
+        arithmetics_layout = QVBoxLayout()
+
+        # Section: "Select Tomogram"
+        self.select_tomogram_group = QGroupBox("Select Tomogram for Arithmetics")
+        self.select_tomogram_group.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum))
+
+        # Create a layout for the "Select Tomogram" group
+        select_tomogram_layout = QVBoxLayout()
+
+        # Tomogram selection list
+        self.tomogram_list_widget = QListWidget()
+        self.populate_tomogram_list()
+
+        # Add the list widget to the selection layout
+        select_tomogram_layout.addWidget(self.tomogram_list_widget)
+
+        # Set the layout for the "Select Tomogram" group
+        self.select_tomogram_group.setLayout(select_tomogram_layout)
+
+        # Add the "Select Tomogram" group to the arithmetics layout
+        arithmetics_layout.addWidget(self.select_tomogram_group)
+
+
+        # Add the checkboxes for operations (Addition, Subtraction, Multiplication)
+        operations_layout = QHBoxLayout()  # Use a horizontal layout for checkboxes
+        self.addition_checkbox = QCheckBox("Addition")
+        self.subtraction_checkbox = QCheckBox("Subtraction")
+        self.multiplication_checkbox = QCheckBox("Multiplication")
+        self.division_checkbox = QCheckBox("Division")
+
+        # Add checkboxes to the operations layout
+        operations_layout.addWidget(self.addition_checkbox)
+        operations_layout.addWidget(self.subtraction_checkbox)
+        operations_layout.addWidget(self.multiplication_checkbox)
+        operations_layout.addWidget(self.division_checkbox)
+
+        # Connect each checkbox to both the handler and the update function
+        self.addition_checkbox.stateChanged.connect(
+            lambda: (self.on_checkbox_toggled(self.addition_checkbox), self.update_operation_info()))
+        self.subtraction_checkbox.stateChanged.connect(
+            lambda: (self.on_checkbox_toggled(self.subtraction_checkbox), self.update_operation_info()))
+        self.multiplication_checkbox.stateChanged.connect(
+            lambda: (self.on_checkbox_toggled(self.multiplication_checkbox), self.update_operation_info()))
+        self.division_checkbox.stateChanged.connect(
+            lambda: (self.on_checkbox_toggled(self.division_checkbox), self.update_operation_info()))
+
+        # Add the operations layout to the arithmetics layout
+        arithmetics_layout.addLayout(operations_layout)
+
+
+        # Add a QLabel to show the current operation and selected tomograms
+        self.operation_info_label = QLabel("Current operation: None")
+        self.operation_info_label.setAlignment(Qt.AlignCenter)
+
+        # Add the label to the layout
+        arithmetics_layout.addWidget(self.operation_info_label)
+
+
+        # Create the "Compute"  button
+        self.compute_button = QPushButton("Compute")
+
+        # Connect the button to the method
+        self.compute_button.clicked.connect(self.tomo_arithmetics)
+
+        # Add the button to the arithmetics layout
+        arithmetics_layout.addWidget(self.compute_button)
+
+        # Set the layout for the arithmetics group box
+        self.arithmetics_group.setLayout(arithmetics_layout)
+
+        #### Tomogram arithmetics ####
+
+
         # Add groups to layout
         tomo_layout.addWidget(group_current_tomo)
         tomo_layout.addWidget(group_pixelsize)
@@ -494,6 +591,7 @@ class OptionsWindow(ToolInstance):
         tomo_layout.addWidget(group_slices)
         tomo_layout.addWidget(group_orthoplanes)
         tomo_layout.addWidget(group_process)
+        tomo_layout.addWidget(self.arithmetics_group)
         #tomo_layout.addWidget(group_fourier_transform)
 
         # And finally set the layout of the widget
@@ -637,6 +735,7 @@ class OptionsWindow(ToolInstance):
     def _update_tomo_ui(self):
         self._update_tomo_sliders()
         self._update_pixelsize_edit()
+        self._update_analysis()
 
     def _models_changed(self, name, model):
         artia = self.session.ArtiaX
@@ -921,7 +1020,284 @@ class OptionsWindow(ToolInstance):
         command = "volume fourier #{} phase true".format(id)
         run(self.session, command)
 
-# ==============================================================================
+
+    def tomo_arithmetics(self):
+
+        # Get current tomogram
+        artia = self.session.ArtiaX
+        self.tomo_math = artia.tomograms.get(artia.options_tomogram)
+        matrix_1 = self.tomo_math.data.matrix()
+
+        print("Array Excerpt (first 5 elements):")
+        print(matrix_1.ravel()[:5])  # Flatten the array and print the first 5 elements
+        print("\nBasic Information:")
+        print(f"Shape: {matrix_1.shape}")
+        print(f"Data type: {matrix_1.dtype}")
+        print(f"Size (number of elements): {matrix_1.size}")
+        print(f"Memory (bytes): {matrix_1.nbytes}")
+        print(f"Max value: {matrix_1.max()}")
+        print(f"Min value: {matrix_1.min()}")
+
+
+        # Get selected segmentation/tomogram
+        selected_tomograms = self.get_selected_tomograms()
+
+        # Loop through selected tomograms
+        for tomo_id_string in selected_tomograms:
+            self.selected_tomo_math = None
+            for tomo in self.session.ArtiaX.tomograms.iter():
+                if f"#{tomo.id_string} - {tomo.name}" == tomo_id_string:
+                    self.selected_tomo_math = tomo
+                    break
+
+        # Ensure a segmentation is selected
+        if not self.selected_tomo_math:
+            print("No valid segmentation selected.")
+            return
+
+        matrix_2 = self.selected_tomo_math.data.matrix()
+
+        print("Array Excerpt (first 5 elements):")
+        print(matrix_2.ravel()[:5])  # Flatten the array and print the first 5 elements
+        print("\nBasic Information:")
+        print(f"Shape: {matrix_2.shape}")
+        print(f"Data type: {matrix_2.dtype}")
+        print(f"Size (number of elements): {matrix_2.size}")
+        print(f"Memory (bytes): {matrix_2.nbytes}")
+        print(f"Max value: {matrix_2.max()}")
+        print(f"Min value: {matrix_2.min()}")
+
+        arrays_match=False
+        if matrix_1.shape == matrix_2.shape:
+            print("The dimensions match!")
+            arrays_match=True
+        else:
+            raise UserError (f"Dimension mismatch: array1 shape {matrix_1.shape} != array2 shape {matrix_2.shape}")
+
+        addition=False
+        subtraction=False
+        multiplication=False
+        division=False
+        #check which mode
+        if self.addition_checkbox.isChecked():
+            addition=True
+            print("Addition mode selected")
+        if self.subtraction_checkbox.isChecked():
+            print("Subtraction mode selected")
+            subtraction=True
+        if self.multiplication_checkbox.isChecked():
+            print("Multiplication mode selected")
+            multiplication=True
+        if self.division_checkbox.isChecked():
+            print("Division mode selected")
+            division=True
+
+        if sum([addition, subtraction, multiplication, division]) > 1:
+            raise UserError("More than one operation selected. Please select only one.")
+
+        if sum([addition, subtraction, multiplication, division]) == 0:
+            raise UserError("Please select one arithmetic operation.")
+
+        if arrays_match:
+
+            if addition:
+                array=matrix_1 + matrix_2
+                key="addition"
+
+            if subtraction:
+                array=matrix_1 - matrix_2
+                key="subtraction"
+                min=array.min()
+                max=array.max()
+                if min==max:
+                    raise UserError (f"Subtraction led to empty array. Cannot produce new tomogram")
+
+            if multiplication:
+                array=matrix_1 * matrix_2
+                key="multiplication"
+
+            if division:
+
+                # Check if matrix_2 contains any zero elements
+                if np.any(matrix_2 == 0):
+                    raise UserError("Matrix 2 contains zero(s), division by zero in the denominator is not allowed")
+
+                # Perform the division
+                array = matrix_1 / matrix_2
+                key = "division"
+
+            name1=self.tomo_math.name
+            name2=self.selected_tomo_math.name
+            # Remove file extensions from the tomogram names
+            name1_base = os.path.splitext(name1)[0]
+            name2_base = os.path.splitext(name2)[0]
+
+            # Build the new tomogram name dynamically without file extensions
+            name = f"{name1_base}_{name2_base}_{key}"
+
+            self.tomo_math.create_tomo_from_array(array,name)
+
+    def populate_tomogram_list(self):
+        # Clear the current items
+        self.tomogram_list_widget.clear()
+
+        # Retrieve the currently selected tomogram
+        artia = self.session.ArtiaX
+        current_tomogram = artia.tomograms.get(artia.options_tomogram)
+
+        # Iterate through the available tomograms
+        for vol in self.session.ArtiaX.tomograms.iter():
+            # Skip the current tomogram to avoid adding it to the list
+            if vol == current_tomogram:
+                continue
+
+            # Retrieve id_string and name attributes
+            vol_id = getattr(vol, 'id_string', 'Unknown ID')  # Default to 'Unknown ID' if missing
+            vol_name = getattr(vol, 'name', 'Unnamed Tomogram')  # Default to 'Unnamed Tomogram' if missing
+
+            # Combine id and name for the display text
+            item_text = f"#{vol_id} - {vol_name}"
+
+            # Create the list widget item with the display text
+            item = QListWidgetItem(item_text)
+            item.setCheckState(Qt.Unchecked)  # Unchecked by default
+            item.setData(Qt.UserRole, vol)  # Store the volume object in the item for later access
+
+            # Add the item to the list widget
+            self.tomogram_list_widget.addItem(item)
+
+            # Connect the itemChanged signal of the QListWidget to update_operation_info
+        self.tomogram_list_widget.itemChanged.connect(self.update_operation_info)
+
+    def get_selected_tomograms(self):
+        #collect checked tomograms
+        selected_tomograms = []
+        for index in range(self.tomogram_list_widget.count()):
+            item = self.tomogram_list_widget.item(index)
+            if item.checkState() == Qt.Checked:
+                selected_tomograms.append(item.data(0))  # Access stored volume object
+        return selected_tomograms
+
+    def _update_analysis(self):
+        self.populate_tomogram_list()
+        for chbx in [self.addition_checkbox, self.subtraction_checkbox, self.multiplication_checkbox,self.division_checkbox]:
+                chbx.setChecked(False)
+        self.update_operation_info()
+
+
+    def update_operation_info(self):
+        # Get the names of the current tomogram
+        artia = self.session.ArtiaX
+        tomo1 = artia.tomograms.get(artia.options_tomogram)
+        if tomo1:
+            name1=tomo1.name
+            id_1=tomo1.id_string
+        else:
+            name1=""
+            id_1=""
+        # Get the second selected tomogram name
+        selected_tomograms = self.get_selected_tomograms()
+
+        if selected_tomograms:
+            # Loop through selected tomograms
+            for tomo_id_string in selected_tomograms:
+                self.selected_tomo_math = None
+                for tomo in self.session.ArtiaX.tomograms.iter():
+                    if f"#{tomo.id_string} - {tomo.name}" == tomo_id_string:
+                        name2=tomo.name
+                        id_2=f"#{tomo.id_string}"
+                        break
+        else:
+            name2=""
+            id_2=""
+
+        # Check the operation being performed
+        operation_str = "Operation not defined"
+        if self.addition_checkbox.isChecked():
+            operation_str = "+"
+        elif self.subtraction_checkbox.isChecked():
+            operation_str = "-"
+        elif self.multiplication_checkbox.isChecked():
+            operation_str = "*"
+        elif self.division_checkbox.isChecked():
+            operation_str = "/"
+
+        if operation_str == "None":
+            self.operation_info_label.setText(f"No operation selected")
+        # Update the QLabel text to show the current operation
+        if hasattr(self, 'operation_info_label') and self.operation_info_label:
+            self.operation_info_label.setText(
+                f"#{id_1} {name1}    {operation_str}    {id_2} {name2}")
+
+    def invert_contrast(self):
+
+        # Get current tomogram
+        artia = self.session.ArtiaX
+        tomo = artia.tomograms.get(artia.options_tomogram)
+        matrix_1 = tomo.data.matrix()
+        # volume = tomo
+        # surface = volume.surfaces[0]
+        # matrix_1=surface.data.matrix()
+        print("Array Excerpt (first 5 elements):")
+        print(matrix_1.ravel()[:5])  # Flatten the array and print the first 5 elements
+
+        print("\nBasic Information:")
+        print(f"Shape: {matrix_1.shape}")
+        print(f"Data type: {matrix_1.dtype}")
+        print(f"Size (number of elements): {matrix_1.size}")
+        print(f"Memory (bytes): {matrix_1.nbytes}")
+        print(f"Max value: {matrix_1.max()}")
+        print(f"Min value: {matrix_1.min()}")
+
+        # Find the max and min values of the array
+        max_value = matrix_1.max()
+        min_value = matrix_1.min()
+
+        # Check if the values are binary (0 and 1)
+        if max_value == 1 and min_value == 0:
+            print("Binary values detected, performing binary inversion.")
+            # Invert the contrast by flipping 0s and 1s
+            array_invert = 1 - matrix_1
+        else:
+            print(f"Max value: {max_value}")
+            print(f"Min value: {min_value}")
+            # Calculate the midpoint
+            midpoint = (max_value + min_value) / 2
+            print(f"Midpoint: {midpoint}")
+
+            # Option 1: Invert around the max value
+            #array_invert = max_value - matrix_1
+
+            # Invert around the midpoint
+            array_invert = 2 * midpoint - matrix_1
+
+        # Print the first 5 elements of the inverted array for verification
+        print("Inverted array (first 5 elements):")
+        print(array_invert.ravel()[:5])
+
+        name1 = tomo.name
+        # Remove file extensions from the tomogram names
+        name1_base = os.path.splitext(name1)[0]
+
+        key="invert"
+
+        # Build the new tomogram name dynamically without file extensions
+        name = f"{name1_base}_{key}"
+
+        tomo.create_tomo_from_array(array_invert, name)
+
+    # Common handler to ensure only one arithmetic operation checkbox is selected at a time
+    def on_checkbox_toggled(self, checkbox):
+        # If the checkbox is checked, uncheck the others
+        if checkbox.isChecked():
+            # Uncheck all other checkboxes
+            for chbx in [self.addition_checkbox, self.subtraction_checkbox, self.multiplication_checkbox,
+                         self.division_checkbox]:
+                if chbx != checkbox:
+                    chbx.setChecked(False)
+
+
+    # ==============================================================================
 # Options Menus for Motivelists =================================================
 # ==============================================================================
 
@@ -1303,6 +1679,8 @@ class OptionsWindow(ToolInstance):
 
         if model is opl:
             self._update_partlist_ui()
+
+
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Motl Group Functions +++++++++++++++++++++++++++++++++++++++++++++++++++++++++

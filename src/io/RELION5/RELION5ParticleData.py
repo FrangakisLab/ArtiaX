@@ -263,6 +263,7 @@ class RELION5ParticleData(ParticleData):
 
 
 
+
         # If angles are not there, take note
         rot_present = False
         if "rlnAngleRot" in df_keys:
