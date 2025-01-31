@@ -759,18 +759,38 @@ def artiax_gen_on_surface(session, model, method, num_pts, radius=None, exactNum
 
 
 def artiax_geomodel_to_volume(
-    session, model=None, geomodels=None, subdivide_length=None
+    session, model=None, geomodels=None, subdivide_length=None, merge=False
 ):
     from ..volume.Tomogram import Tomogram
     from chimerax.surface._surface import subdivide_mesh
     from chimerax.map_data import ArrayGridData
 
     new_model = False
+    noTomo=False
     if model is None:
-        new_model = True
-        ps = [1, 1, 1]
-        name = "segmented surfaces"
-    elif not isinstance(model, Tomogram):
+        #ps = [1, 1, 1]
+        #name = "segmented surfaces"
+        #noTomo=True
+        #model = [m for m in session.ArtiaX.tomograms.child_models() if m.visible]
+        count=0
+        for models in session.selection.models():
+            if isinstance(models, Volume):
+                print(f"found volume {models}")
+                model=models
+                count=count+1
+        if count ==0:
+            if merge == True:
+                raise UserError("Please indicate one tomogram for scaling purposes and for merging, either by command line or with the selection mouse mode.")
+            else:
+                raise UserError("Please indicate one tomogram for scaling purposes, either by command line or with the selection mouse mode.")
+        if count >=2:
+            if merge == True:
+                raise UserError("Please indicate only one tomogram for scaling purposes and merging not more.\nIf you want to combine multiple tomograms, please use the tomogram arithmetics section in ArtiaX Options Tomogram tab.")
+            else:
+                raise UserError("Please indicate only one tomogram for scaling purposes and not more.")
+        #if merge is True:
+            #raise UserError("Geomodel can not be merge with existing tomogram if it is not provided. Please indicate the tomogram.")
+    if not isinstance(model, Tomogram):
         session.logger.warning("{} is not a tomogram loaded into ArtiaX".format(model))
         return
     else:
@@ -779,10 +799,15 @@ def artiax_geomodel_to_volume(
         ps = tomo.pixelsize
         mat = tomo.data.matrix().copy()
 
+    if merge is False:
+        new_model = True
+
+
+
     if geomodels is None:
         geomodels = [g for g in session.ArtiaX.geomodels.child_models() if g.visible]
 
-    if new_model:
+    if noTomo:
         from chimerax.geometry.bounds import union_bounds
 
         union = union_bounds([gm.geometry_bounds() for gm in geomodels])
@@ -816,7 +841,7 @@ def artiax_geomodel_to_volume(
         # Set voxels
         for i, v in enumerate(vs):
 
-            if new_model:
+            if noTomo:
                 index = (v - xyz_min) / ps[0]
             else:
                 index = tomo.data.xyz_to_ijk(v)
@@ -1569,6 +1594,45 @@ def artiax_user_guide(session:Session):
     raise UserError(
         "To open artiax user guide, type 'help artiax user guide'.")
 
+def artiax_delete_duplicates(session:Session, models=None, radius=0):
+
+    if not hasattr(session, "ArtiaX"):
+        session.logger.warning("ArtiaX is not currently running.")
+
+    # No Models
+    if models is None:
+        models = session.ArtiaX.partlists.child_models()
+
+    # Filter models
+    ms = []
+    for model in models:
+        # Is it a particle list?
+        from ..particle import ParticleList
+
+        if not isinstance(model, ParticleList):
+            # Is it a model that likely belongs to a particle list?
+            from chimerax.core.models import ancestor_models
+
+            if session.ArtiaX in ancestor_models([model]):
+                continue
+            else:
+                session.logger.warning(
+                    'artiax unlock: Model #{} - "{}" is not a particle list'.format(
+                        model.id_string, model.name
+                    )
+                )
+                continue
+        _id = model.id_string
+        ms.append(_id)
+
+    from ..particle.ParticleList import delete_duplicates
+
+    delete_duplicates(session,ms, radius)
+
+
+
+
+
 
 def register_artiax(logger):
     """Register all commands with ChimeraX, and specify expected arguments."""
@@ -1821,7 +1885,7 @@ def register_artiax(logger):
 
     def register_artiax_geomodel_to_volume():
         desc = CmdDesc(
-            optional=[("model", ModelArg)],
+            optional=[("model", ModelArg), ("merge", BoolArg)],
             keyword=[("geomodels", ListOf(ModelArg)), ("subdivide_length", FloatArg)],
             synopsis="Adds the specified geomodels to the specified volume. If no model is specified, a new one is"
             " created. If no geomodels are specified, all shown are used. The subdivide_length keyword sets"
@@ -1997,6 +2061,15 @@ def register_artiax(logger):
         )
         register("artiax user guide", desc, artiax_user_guide)
 
+    def register_artiax_delete_duplicates():
+        desc = CmdDesc(
+            required=[("models", Or(ModelsArg, EmptyArg))],
+            optional=[("radius", FloatArg)],
+            synopsis="Delete duplicates in particle list",
+            url="help:user/artiax_index.html",
+        )
+        register("artiax delete duplicates", desc, artiax_delete_duplicates)
+
 
     register_artiax_start()
     register_artiax_open_tomo()
@@ -2040,6 +2113,7 @@ def register_artiax(logger):
     register_artiax_open()
     register_artiax_save()
     register_artiax_user_guide()
+    register_artiax_delete_duplicates()
 
 
 # Possible styles

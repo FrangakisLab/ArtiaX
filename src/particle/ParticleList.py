@@ -2,7 +2,11 @@
 
 # General imports
 from __future__ import annotations
+
+from operator import length_hint
+
 import numpy as np
+import math
 from importlib import import_module
 
 # ChimeraX imports
@@ -1393,3 +1397,81 @@ def invert_selection(session):
         if plist.visible:
             markerset = plist.markers
             markerset.atoms.selecteds = logical_not(markerset.atoms.selecteds)
+
+
+
+def delete_duplicates(session, models, radius=0):
+    if not hasattr(session, "ArtiaX"):
+        return
+
+    for pl in session.ArtiaX.partlists.iter():
+        for id in models:
+            if f"{pl.id_string}" == id:
+                # Find the particle list
+                selected_pl = pl
+                particle_ids = selected_pl.particle_ids
+                attri = selected_pl.get_main_attributes()
+
+                tomoname = None
+                if "rlnTomoName" in attri:
+                    tomoname = selected_pl.get_values_of_attribute("rlnTomoName")
+                elif "tomo_number" in attri:
+                    tomoname = selected_pl.get_values_of_attribute("tomo_number")
+                elif "tomo" in attri:
+                    tomoname = selected_pl.get_values_of_attribute("tomo")
+
+                # If no tomogram info, treat all particles as one tomogram
+                if not tomoname:
+                    print(
+                        f"Warning: Tomogram information not found for particle list ID {id}. Treating all particles as one tomogram.")
+                    tomoname = [0] * len(particle_ids)  # Assign all particles to one "virtual tomogram"
+
+                # Create a dictionary to group coordinates by tomogram
+                tomo_coordinates = {}
+                tomo_particle_ids = {}
+
+                for pid, tomo_id in zip(particle_ids, tomoname):
+                    particle, marker = pl._map[pid]
+                    coord = particle.coord
+
+                    if tomo_id not in tomo_coordinates:
+                        tomo_coordinates[tomo_id] = []
+                        tomo_particle_ids[tomo_id] = []
+
+                    tomo_coordinates[tomo_id].append(coord)
+                    tomo_particle_ids[tomo_id].append(pid)
+
+                # Check for duplicates within each tomogram
+                duplicate_ids = []
+
+                for tomo_id, coords in tomo_coordinates.items():
+                    ids = tomo_particle_ids[tomo_id]
+                    duplicates = []
+
+                    for i, coord1 in enumerate(coords):
+                        for j in range(i + 1, len(coords)):
+                            coord2 = coords[j]
+
+                            # Calculate Euclidean distance
+                            distance = math.sqrt(
+                                (coord1[0] - coord2[0]) ** 2 +
+                                (coord1[1] - coord2[1]) ** 2 +
+                                (coord1[2] - coord2[2]) ** 2
+                            )
+
+                            if distance <= radius:
+                                duplicates.append((i, j))
+                                #print(f"Tomogram {tomo_id}: Adding particle {i} to deletion list, "f"distance {distance} to particle {j}")
+
+                    # Map duplicate indices to particle IDs
+                    for i, j in duplicates:
+                        if ids[i] not in duplicate_ids:
+                            duplicate_ids.append(ids[i])
+
+                if duplicate_ids:
+                    print(f"Deleting {len(duplicate_ids)} particles")
+                    selected_pl.delete_data(duplicate_ids)
+                else:
+                    print(f"No duplicates found.")
+
+
