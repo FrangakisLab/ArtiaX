@@ -950,33 +950,33 @@ def artiax_mask_triangles_radius(session, radius=None):
     session.ui.mouse_modes.add_mode(mct)
     run(session, 'ui mousemode right "mask connected triangles"')
 
-def artiax_color_triangles_radius(session, radius=None):
-    if radius is not None and radius <= 0:
-        session.logger.warning("Select a positive radius.")
-        return
-    from ..mouse import ColorConnectedTrianglesMode
-
-    mct = session.ArtiaX.color_connected_triangles
-    session.ui.mouse_modes.remove_mode(mct)
-    mct = session.ArtiaX.color_connected_triangles = ColorConnectedTrianglesMode(
-        session, radius
-    )
-    session.ui.mouse_modes.add_mode(mct)
-    run(session, 'ui mousemode right "color connected triangles"')
-
-def artiax_extract_triangles_radius(session, radius=None):
-    if radius is not None and radius <= 0:
-        session.logger.warning("Select a positive radius.")
-        return
-    from ..mouse import ExtractConnectedTrianglesMode
-
-    mct = session.ArtiaX.extract_connected_triangles
-    session.ui.mouse_modes.remove_mode(mct)
-    mct = session.ArtiaX.extract_connected_triangles = ExtractConnectedTrianglesMode(
-        session, radius
-    )
-    session.ui.mouse_modes.add_mode(mct)
-    run(session, 'ui mousemode right "extract connected triangles"')
+# def artiax_color_triangles_radius(session, radius=None):
+#     if radius is not None and radius <= 0:
+#         session.logger.warning("Select a positive radius.")
+#         return
+#     from ..mouse import ColorConnectedTrianglesMode
+#
+#     mct = session.ArtiaX.color_connected_triangles
+#     session.ui.mouse_modes.remove_mode(mct)
+#     mct = session.ArtiaX.color_connected_triangles = ColorConnectedTrianglesMode(
+#         session, radius
+#     )
+#     session.ui.mouse_modes.add_mode(mct)
+#     run(session, 'ui mousemode right "color connected triangles"')
+#
+# def artiax_extract_triangles_radius(session, radius=None):
+#     if radius is not None and radius <= 0:
+#         session.logger.warning("Select a positive radius.")
+#         return
+#     from ..mouse import ExtractConnectedTrianglesMode
+#
+#     mct = session.ArtiaX.extract_connected_triangles
+#     session.ui.mouse_modes.remove_mode(mct)
+#     mct = session.ArtiaX.extract_connected_triangles = ExtractConnectedTrianglesMode(
+#         session, radius
+#     )
+#     session.ui.mouse_modes.add_mode(mct)
+#     run(session, 'ui mousemode right "extract connected triangles"')
 
 
 def artiax_filter_tomo(

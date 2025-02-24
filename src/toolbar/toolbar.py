@@ -58,8 +58,8 @@ _providers = {
     "Delete Picked Triangle": 'ui mousemode right "delete picked triangle"',
     "Delete Tetra From Boundary": 'ui mousemode right "delete tetra from boundary"',
     "Mask Connected Triangles": 'ui mousemode right "mask connected triangles"',
-    "Color Connected Triangles": 'ui mousemode right "color connected triangles"',
-    "Extract Connected Triangles": 'ui mousemode right "extract connected triangles"',
+    # "Color Connected Triangles": 'ui mousemode right "color connected triangles"',
+    # "Extract Connected Triangles": 'ui mousemode right "extract connected triangles"',
 }
 
 

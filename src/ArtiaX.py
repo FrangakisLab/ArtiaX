@@ -135,8 +135,8 @@ class ArtiaX(Model):
             DeletePickedTriangleMode,
             DeletePickedTetraMode,
             MaskConnectedTrianglesMode,
-            ColorConnectedTrianglesMode,
-            ExtractConnectedTrianglesMode
+            # ColorConnectedTrianglesMode,
+            # ExtractConnectedTrianglesMode
         )
 
         self.translate_selected = TranslateSelectedParticlesMode(self.session)
@@ -148,8 +148,8 @@ class ArtiaX(Model):
         self.delete_picked_triangle = DeletePickedTriangleMode(self.session)
         self.delete_picked_tetra = DeletePickedTetraMode(self.session)
         self.mask_connected_triangles = MaskConnectedTrianglesMode(self.session)
-        self.color_connected_triangles = ColorConnectedTrianglesMode(self.session)
-        self.extract_connected_triangles = ExtractConnectedTrianglesMode(self.session)
+        # self.color_connected_triangles = ColorConnectedTrianglesMode(self.session)
+        # self.extract_connected_triangles = ExtractConnectedTrianglesMode(self.session)
         self.session.ui.mouse_modes.add_mode(self.translate_selected)
         self.session.ui.mouse_modes.add_mode(self.rotate_selected)
         self.session.ui.mouse_modes.add_mode(self.translate_picked)
@@ -159,8 +159,8 @@ class ArtiaX(Model):
         self.session.ui.mouse_modes.add_mode(self.delete_picked_triangle)
         self.session.ui.mouse_modes.add_mode(self.delete_picked_tetra)
         self.session.ui.mouse_modes.add_mode(self.mask_connected_triangles)
-        self.session.ui.mouse_modes.add_mode(self.color_connected_triangles)
-        self.session.ui.mouse_modes.add_mode(self.extract_connected_triangles)
+        # self.session.ui.mouse_modes.add_mode(self.color_connected_triangles)
+        # self.session.ui.mouse_modes.add_mode(self.extract_connected_triangles)
 
     @property
     def tomograms(self):
