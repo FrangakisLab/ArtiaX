@@ -31,7 +31,7 @@ or derivations thereof.=== UCSF ChimeraX Copyright ===-->
             <p> Used to set the center and width of a linear contrast slope,
               used as a quick, reproducible way of changing the contrast
               settings. Contrast can still be adjusted using the <b>Volume
-                Viewer</b> box if desired. </p>
+                Viewer</b> box if desired. By pressing the "Invert Contrast" button, a new tomogram is created for which the density values are inverted.</p>
           </li>
           <li> <b>Navigation:</b>
             <p> Changes the slice direction and which slice is currently shown.
@@ -48,6 +48,15 @@ or derivations thereof.=== UCSF ChimeraX Copyright ===-->
             <p> Sets the camera to view the tomogram from one of the standard
               directions. Also changes the slice direction so that the slice
               plane is parallel to the viewing plane. </p>
+          </li>
+          <li> <b>Processing:</b>
+            <p> Includes different options for tomogram processing. In the "Average" section, the user can create a copy of the tomogram averaged in the set direction, using the number of nearest slabs for the averaging.
+            In the "Filtering" area, the user can create a copy of the tomogram that is filtered using a Low Pass or High Pass filter.
+            A Gaussian or Cosine decay can be selected. If the unit is set to pixels and the pass frequency is set to zero the center of decay will be at zero. If decay size is set to zero a box filter is used. If the unit is set to "angstrom", the decay size is always set to 1/pass*0.25.</p>
+          </li>
+          <li> <b>Tomogram arithmetics:</b>
+            <p> GUI incorporation of arithmetic operations for tomograms. The tomogram for which the ArtiaX options tab is currently activated is the first operand.
+              A second operand can be selected as well as the desired operation (Addition, Subtraction, Multiplication, Division). After pressing "Compute", a new tomogram will be generated from the result of this operation.</p>
           </li>
         </ul>
       </li>
@@ -87,7 +96,7 @@ or derivations thereof.=== UCSF ChimeraX Copyright ===-->
             </p>
           </li>
           <li> <b>Manipulation:</b>
-            <p> Used to delete or reset particle to their original positions. </p>
+            <p> Used to delete or reset particle to their original positions. The "Remove Duplicates" section allows for deleting particle duplicates or particles that are within a specified radius (in angstrom) to each other. </p>
           </li>
           <li> <b>Selection/Display:</b>
             <p> Lets the user select or display particles based on some
@@ -95,6 +104,84 @@ or derivations thereof.=== UCSF ChimeraX Copyright ===-->
               Particularly useful when a particle list contains information from
               more than one tomogram or when the particles are numbered. Also
               works well with the "Manipulation" options. </p>
+          </li>
+        </ul>
+      </li>
+      <li> <b>Reorient:</b>
+        <p> The <b>Reorient</b> tab allows to reorient the particles.
+        </p>
+        <ul>
+          <li> <b>Reorient Particles:</b>
+            <p>Reorients the particle according to their order in the particle list, so that every particle points to the next one in the particle list.
+            </p>
+          </li>
+          <li> <b>Create new, reordered particle list:</b>
+            <p>Creates a new, reordered particle list. One of two options can be selected. Select one particle as a start and press "To closest" to reorder the particles, starting with one particle and then continuing further to its closest neighbor.
+            The other option is to ......? </p>
+          </li>
+        </ul>
+      </li>
+      <li> <b>Geometric Model:</b>
+        <p> The <b>Geometric Model</b> tab includes all options surrounding the possible geometric  models. For example, you can change the way the models are fitted to the particle lists they originate from. Additionally, the models can be populated with particles to create new particle lists based on the models.
+        </p>
+        <ul>
+          <li> <b>Colour Options:</b>
+            <p>Used to change the color and transparency of the geomodel.
+            </p>
+          </li>
+          <li> <b>Generate Points:</b>
+            <p> Randomly generating points on a surface, sphere or line. The options and methods are further explained here <a href="artiax_generate_points_on_surface.html"> <i>artiax gen on surface</i></a> and there <a href="artiax_generate_points_in_surface.html"> <i>artiax gen in surface</i></a>. For some types of geomodels more options for particle population are located further down below in the geomodel tab.</p>
+          </li>
+        </ul>
+        <p> The following options depend on what kind of geomodel is currently selected.  </p>
+        <ul>
+          <li> <b>Sphere Options</b>
+            <p> Further options only applicable to line geomodels. Press "Update Sphere" to redraw the sphere after e.g. moving some of its defining particles. Press "Reorient Particles" to reorient the selected particles so that their z-axis points away from sphere.</p>
+          </li>
+          <li> <b>Curved Line Options</b>
+            <p> Further options only applicable to line geomodels. </p>
+            <ul>
+              <li> <b>Line Display:</b>
+                <p> Includes various options to modify the line. Change the line thickness by varying the line radius. Press "Update Line" to redraw the line after e.g. moving some ifts defining particles or "Remove Deleted Particles" after deleting some particles of the corresponding particle list.
+                  This can also be set to happen automatically.
+                </p>
+              </li>
+              <li> <b>Change line fitting:</b>
+                <p> Change the polynomial degree and resolution of the fitted line or smoothen it.  </p>
+              </li>
+              <li> <b>Move camera along line:</b>
+                <p> Moves the camera along the line. The line is used to define the camera path, with different settings to define e.g. viewing and moving direction. Useful for recording videos in combination with the 'movie record' command.
+                </p>
+              </li>
+              <li> <b>Populate line with evenly spaced particles:</b>
+                <p> Detailed option to populate the line with particles and generate a new particle list. The interparticle distance and the orientation of the particles can be defined.
+                </p>
+              </li>
+            </ul>
+          </li>
+          <li> <b>Surface Options</b>
+            <p> Further options only applicable to surface geomodels. Also you can update the sphere after e.g. moving some of its defining particles and reorient the selected particles so that their z-axis points along the normal of the closest part of the surface. </p>
+            <ul>
+              <li> <b>Change surface fitting:</b>
+                <p>Change the fitting method, resolution and base level of the surface.
+                </p>
+              </li>
+              <li> <b>Populate surface with particles in every vertex:</b>
+                <p> Detailed option to populate the surface with particles and generate a new particle list. Particles will be placed in every vertex. To modify the density of population, just change the resolution of the surface to lessen the amount of vertices.</p>
+              </li>
+            </ul>
+          </li>
+          <li> <b>Boundary Options</b>
+            <p> Further options only applicable to boundary geomodels. Also you can update the boundary after e.g. moving some of its defining particles and reorient the selected particles so that their z-axis points along the average normal of the corner. </p>
+            <ul>
+              <li> <b>Change boundary fitting:</b>
+                <p>Vary the alpha value
+                </p>
+              </li>
+            </ul>
+          </li>
+          <li> <b>Triangulation Surface Options</b>
+            <p> Further options only applicable to triangulation surface geomodels. Also you can update the surface after e.g. moving some of its defining particles and reorient the selected particles so that their z-axis points away from the surface. </p>
           </li>
         </ul>
       </li>

@@ -13,11 +13,11 @@
     <h3><a href="../artiax_index.html#commands">Command</a>: artiax save</h3>
     <h3 class="usage">
       <a href="usageconventions.html">Usage</a>: <br>
-      <b>save</b> <strong>filename</strong> <i>path</i> [<strong>format</strong> <i>type</i>] <strong>partlist/geomodel</strong> <a href="atomspec.html#hierarchy"><i>model-spec</i></a> <strong>volume</strong> <i><a href="atomspec.html#hierarchy"><i>model-spec</i></a></i> | (<strong>voldim</strong> <i>dimensions</i> <strong>voxelsize</strong> <i>size</i>) [<strong>prefix</strong> <i>string</i>] [<strong>tomonumber</strong> <i>integer</i>]
+      <b>save</b> <strong>filename</strong> <i>path</i> [<strong>format</strong> <i>type</i>] <strong>partlist/geomodel</strong> <a href="atomspec.html#hierarchy"><i>model-spec</i></a> <strong>volume</strong> <i><a href="atomspec.html#hierarchy"><i>model-spec</i></a></i> | (<strong>voldim</strong> <i>dimensions</i> <strong>voxelsize</strong> <i>size</i>) [<strong>prefix</strong> <i>string</i>] [<strong>tomonumber</strong> <i>integer</i>] [<strong>prior</strong> <i>True/False</i>]
 
     </h3>
 
-    <p>The <b>save</b> command is based on ChimeraX’s save command. For further information regarding the underlying structure, check the ChimeraX save command documentation. The argument keys partlist or geomodel allow you to save a particle list or geomodel to a specified file. The model, format, and file path can be defined. </p>
+    <p>The <b>save</b> command is based on ChimeraX’s save command. For further information regarding the underlying structure, check the ChimeraX save command documentation. The argument keys partlist or geomodel allow you to save a particle list or geomodel to a specified file. The model, format, and file path can be defined.  </p>
 
     <table border="1">
       <tbody>
@@ -47,11 +47,16 @@
 
     <p> Examples: </p>
     <blockquote>
-      <b>save filename /path/to/output partlist #1.2.1 format motl<br>
-      save filename /path/to/output geomodel #1.3.1 <br></b>
+      <b>save /path/to/output/filename partlist #1.2.1 format motl<br>
+      save /path/to/output/filename  geomodel #1.3.1 <br></b>
     </blockquote>
 
-    <p>Saving a particle list in RELION-5 format requires additional arguments. To compute the coordinates, the dimensions and pixel size of the corresponding tomogram are needed. This information can either be extracted from a tomogram volume already loaded in ArtiaX or specified manually. To correctly populate the 'rlnTomoName' column in the created star file, you can specify the desired prefix that precedes the tomogram number. When saving newly created particles, a tomogram number can be specified, which will be written in 'rlnTomoName' after the prefix.  </p>
+    <p>Saving a particle list in RELION-5 format requires additional arguments. To compute the coordinates, the dimensions and pixel size of the corresponding tomogram are needed.
+      This information can either be extracted from a tomogram volume already loaded in ArtiaX or specified manually.
+      To correctly populate the 'rlnTomoName' column in the created star file, you can specify the desired prefix that precedes the tomogram number. When saving newly created particles, a tomogram number can be specified, which will be written in 'rlnTomoName' after the prefix.
+      Also, the user needs to decide if the star file should be created with rlnTomoSubtomogramRot/Tilt/Psi and rlnAnglePriorTilt/Psi columns or without.
+      The creation of these columns influences the processing in the RELION-5 pipeline and is especially helpful if the particles are situated within a geometric context, e.g. membrane proteins.
+      Further information regarding this can be found in the RELION-5 documentation. If the prior option is set to false, the angle information will only be written out in the rlnAngleRot/Tilt/Psi columns. </p>
 
     <table border="1">
       <tbody>
@@ -85,14 +90,19 @@
           <td>Specifies corresponding tomogram number. Input will be used for newly created particles as value after the prefix in 'rlnTomoName'. (e.g., <i>42</i>).</td>
           <td style="text-align: center;"><em>integer</em></td>
         </tr>
+        <tr>
+          <td style="text-align: center;"><strong>prior</strong></td>
+          <td>Specifies the columns that will be created for the star file regarding the angle information. If set to True, the star file will include rlnTomoSubtomogramRot/Tilt/Psi columns, rlnAngleRot/Tilt/Psi columns and rlnAnglePriorTilt/Psi columns. If set to False, the file will include only rlnAngleRot/Tilt/Psi columns. </td>
+          <td style="text-align: center;"><em>True/False</em></td>
+        </tr>
       </tbody>
     </table>
 
     <p> Examples: </p>
     <blockquote>
-      <b>save filename /path/to/output format relion5 partlist #1.2.1 voldim 896,696,250 voxelsize 11.52 prefix tomo<br>
-      save filename /path/to/output format relion5 partlist #1.3.1 volume #1.1.1 prefix TS_<br>
-      save filename /path/to/output format relion5 partlist #1.2.1 volume #1.2.1 prefix tomo_ tomonumber 42<br></b>
+      <b>save  /path/to/output/filename format relion5 partlist #1.2.1 voldim 896,696,250 voxelsize 11.52 prefix tomo prior True<br>
+      save  /path/to/output/filename format relion5 partlist #1.3.1 volume #1.1.1 prefix TS_ prior False<br>
+      save  /path/to/output/filename format relion5 partlist #1.2.1 volume #1.2.1 prefix tomo_ tomonumber 42 prior True<br></b>
     </blockquote>
 
     <p></p>

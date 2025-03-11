@@ -30,12 +30,20 @@ class FilterOptionsWidget(QWidget):
         self._auto_decay = True
 
         layout = QVBoxLayout()
+        layout.setSpacing(0)  # Reduce spacing
+        layout.setContentsMargins(0, 0, 0, 0)  # Remove extra margins
         from .NLabelValue import NLabelValue
         from .RadioButtonsStringOptions import RadioButtonsStringOptions
         from .AutoManualWidget import AutoManualWidget
         self.decay_method_buttons = RadioButtonsStringOptions('Decay', ["Gaussian", 'Raised Cosine'])
         self.pf_edit = NLabelValue(['Pass'], only_pos_values=True)
         self.decay_edit = AutoManualWidget("Decay size")
+
+        # Set size policies for child widgets
+        self.decay_method_buttons.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.pf_edit.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.decay_edit.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+
         layout.addWidget(self.decay_method_buttons)
         layout.addWidget(self.pf_edit)
         layout.addWidget(self.decay_edit)

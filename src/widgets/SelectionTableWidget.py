@@ -106,9 +106,21 @@ class SelectionTableWidget(QWidget):
             ParticleList instance to read from and select on.
         """
         self.partlist = partlist
-        self.attributes = partlist.get_main_attributes()
-        self.minima = partlist.get_attribute_min(self.attributes)
-        self.maxima = partlist.get_attribute_max(self.attributes)
+        attr = partlist.get_main_attributes()
+        min = partlist.get_attribute_min(attr)
+        max = partlist.get_attribute_max(attr)
+
+        #check if attribute is numerical
+        for index, value in enumerate(min):
+            if isinstance(value, (int, float)) and not isinstance(value, (bool, str)):
+                continue
+            else:
+                del attr[index]
+                del min[index]
+                del max[index]
+        self.attributes = attr
+        self.minima = min
+        self.maxima = max
         self.attribute_constant = [False]*len(self.attributes)
 
         for idx, mini in enumerate(self.minima):

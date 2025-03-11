@@ -33,7 +33,7 @@ class GenerateInSurfaceOptions(QWidget):
         from .NLabelValue import NLabelValue
         from .RadioButtonsStringOptions import RadioButtonsStringOptions
         self.method_buttons = RadioButtonsStringOptions('Method', ["Uniform", 'Poisson Disk', 'Regular Grid'])
-        self.options_edits = NLabelValue(['Number of Points', 'Radius'], only_pos_values=True)
+        self.options_edits = NLabelValue(['Number of Points', 'Radius [Angstrom]'], only_pos_values=True)
         self.generate_button = QPushButton("Generate Points in Surface")
         layout.addWidget(self.method_buttons)
         layout.addWidget(self.options_edits)

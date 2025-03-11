@@ -91,10 +91,19 @@ class PopulatedModel(GeoModel):
         self.triggers.activate_trigger(GEOMODEL_CHANGED, self)
 
     def create_particle_list(self):
+
         """Creates a new particle list with the positions from sphere_places."""
         artia = self.session.ArtiaX
+        # Get pixelsize from currently selected particle list
+        pl = artia.partlists.get(artia.options_partlist)
+        pixsize = pl.origin_pixelsize
+
+        # Create new particle list
         artia.create_partlist(name=self.name + " particles")
         partlist = artia.partlists.child_models()[-1]
+
+        # Set pixelsize
+        partlist.origin_pixelsize = pixsize
 
         # Get UI and ensure we stay in geomodel tab
         from ..tool import ArtiaXUI

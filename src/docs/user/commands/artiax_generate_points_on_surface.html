@@ -10,8 +10,8 @@
     <h3 class="usage"><a href="usageconventions.html">Usage</a>: <br>
       <b>artiax gen on surface</b> <a href="atomspec.html#hierarchy"><i>model-spec</i></a>
        <i>method</i> <i>numPts</i> [<strong>radius</strong> <i>value</i>] </h3>
-    <p> The <b>artiax gene on surface</b> command generates points on the chosen surface. Two different
-      methods of generating points are available. Similar to the
+    <p> The <b>artiax gen on surface</b> command generates points on the chosen surface. Two different
+      methods of generating points are available. The pixelsize of this new particle list will be the same as for the currently activated (options selected) particle list. If no particle list is selected, the default pixelsize is 1. Similar to the
       <a href="artiax_generate_points_in_surface.html"><i>artiax gen in surface</i></a> command.</p>
     <table style="width: 1006px; height: 380px;" border="1">
       <tbody>
@@ -41,14 +41,14 @@
         </tr>
         <tr>
           <td style="text-align: center;"><strong>radius</strong></td>
-          <td>The poisson disk radius used for the <strong>poisson</strong> method.</td>
+          <td>The poisson disk radius in angstrom used for the <strong>poisson</strong> method.</td>
           <td style="text-align: center;"><em>float</em></td>
         </tr>
       </tbody>
     </table>
     <p> Examples: </p>
     <blockquote> <b>artiax gen on surface #1.3.1 uniform 100 <br>
-        artiax gen on surface #1.3.1 poisson 50 radius 10 </b> </blockquote>
+        artiax gen on surface #1.3.1 poisson 50 radius 20 </b> </blockquote>
     <p></p>
     <hr>
     <address>BMLS Frangakis Group / August 2023</address>

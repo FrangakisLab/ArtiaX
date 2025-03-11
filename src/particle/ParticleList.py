@@ -2,7 +2,11 @@
 
 # General imports
 from __future__ import annotations
+
+from operator import length_hint
+
 import numpy as np
+import math
 from importlib import import_module
 
 # ChimeraX imports
@@ -517,7 +521,17 @@ class ParticleList(Model):
             if self.size == 0:
                 minima.append(0)
             else:
-                minima.append(min([getattr(m, a) for m in self.markers.atoms]))
+                is_numeric = True
+                values=[getattr(m, a) for m in self.markers.atoms]
+                #check if attribute is numerical
+                for index, value in enumerate(values):
+                    if not isinstance(value, (int, float)) or isinstance(value, (bool, str)):
+                        is_numeric = False
+                        break  # No need to check further if one value is not numeric
+                if is_numeric:
+                    minima.append(min(values))
+                else:
+                    minima.append(None)
 
         return minima
 
@@ -527,7 +541,17 @@ class ParticleList(Model):
             if self.size == 0:
                 maxima.append(0)
             else:
-                maxima.append(max([getattr(m, a) for m in self.markers.atoms]))
+                is_numeric=True
+                values = [getattr(m, a) for m in self.markers.atoms]
+                #check if attribute is numerical
+                for index, value in enumerate(values):
+                    if not isinstance(value, (int, float)) or isinstance(value, (bool, str)):
+                        is_numeric = False
+                        break  # No need to check further if one value is not numeric
+                if is_numeric:
+                    maxima.append(max(values))
+                else:
+                    maxima.append(None)
 
         return maxima
 
@@ -535,13 +559,30 @@ class ParticleList(Model):
         info = {}
 
         for a in attrs:
-            info[a] = {}
-            info[a]["min"] = min([getattr(m, a) for m in self.markers.atoms])
-            info[a]["max"] = max([getattr(m, a) for m in self.markers.atoms])
-            info[a]["mean"] = np.mean([getattr(m, a) for m in self.markers.atoms])
-            info[a]["std"] = np.std([getattr(m, a) for m in self.markers.atoms])
-            info[a]["var"] = np.var([getattr(m, a) for m in self.markers.atoms])
-            info[a]["alias"] = self.data._data_keys[a]
+            is_numeric = False
+            values=[getattr(m, a) for m in self.markers.atoms]
+            for index, value in enumerate(values):
+                if isinstance(value, (int, float)) and not isinstance(value, (bool, str)):
+                    is_numeric = True
+
+            if is_numeric:
+                info[a] = {}
+                info[a]["min"] = min(values)
+                info[a]["max"] = max(values)
+                info[a]["mean"] = np.mean(values)
+                info[a]["std"] = np.std(values)
+                info[a]["var"] = np.var(values)
+                info[a]["alias"] = self.data._data_keys[a]
+            else:
+                info[a] = {}
+                info[a]["min"] = 0
+                info[a]["max"] = 0
+                info[a]["mean"] = 0
+                info[a]["std"] = 0
+                info[a]["var"] = 0
+                info[a]["alias"] = self.data._data_keys[a]
+
+
 
             if a in self.data._default_params.values():
                 idx = list(self.data._default_params.values()).index(a)
@@ -759,6 +800,9 @@ class ParticleList(Model):
 
         # Do it this way, because deleting atoms happens all at once, so we cannot individually set masks
         from numpy import zeros, logical_not, logical_or
+
+        #find index of
+        #print(f"deleting particle {particle_ids}")
 
         mask = zeros((self.size,), dtype=bool)
         prev_ids = self._data.particle_ids
@@ -1353,3 +1397,81 @@ def invert_selection(session):
         if plist.visible:
             markerset = plist.markers
             markerset.atoms.selecteds = logical_not(markerset.atoms.selecteds)
+
+
+
+def delete_duplicates(session, models, radius=0):
+    if not hasattr(session, "ArtiaX"):
+        return
+
+    for pl in session.ArtiaX.partlists.iter():
+        for id in models:
+            if f"{pl.id_string}" == id:
+                # Find the particle list
+                selected_pl = pl
+                particle_ids = selected_pl.particle_ids
+                attri = selected_pl.get_main_attributes()
+
+                tomoname = None
+                if "rlnTomoName" in attri:
+                    tomoname = selected_pl.get_values_of_attribute("rlnTomoName")
+                elif "tomo_number" in attri:
+                    tomoname = selected_pl.get_values_of_attribute("tomo_number")
+                elif "tomo" in attri:
+                    tomoname = selected_pl.get_values_of_attribute("tomo")
+
+                # If no tomogram info, treat all particles as one tomogram
+                if not tomoname:
+                    print(
+                        f"Warning: Tomogram information not found for particle list ID {id}. Treating all particles as one tomogram.")
+                    tomoname = [0] * len(particle_ids)  # Assign all particles to one "virtual tomogram"
+
+                # Create a dictionary to group coordinates by tomogram
+                tomo_coordinates = {}
+                tomo_particle_ids = {}
+
+                for pid, tomo_id in zip(particle_ids, tomoname):
+                    particle, marker = pl._map[pid]
+                    coord = particle.coord
+
+                    if tomo_id not in tomo_coordinates:
+                        tomo_coordinates[tomo_id] = []
+                        tomo_particle_ids[tomo_id] = []
+
+                    tomo_coordinates[tomo_id].append(coord)
+                    tomo_particle_ids[tomo_id].append(pid)
+
+                # Check for duplicates within each tomogram
+                duplicate_ids = []
+
+                for tomo_id, coords in tomo_coordinates.items():
+                    ids = tomo_particle_ids[tomo_id]
+                    duplicates = []
+
+                    for i, coord1 in enumerate(coords):
+                        for j in range(i + 1, len(coords)):
+                            coord2 = coords[j]
+
+                            # Calculate Euclidean distance
+                            distance = math.sqrt(
+                                (coord1[0] - coord2[0]) ** 2 +
+                                (coord1[1] - coord2[1]) ** 2 +
+                                (coord1[2] - coord2[2]) ** 2
+                            )
+
+                            if distance <= radius:
+                                duplicates.append((i, j))
+                                #print(f"Tomogram {tomo_id}: Adding particle {i} to deletion list, "f"distance {distance} to particle {j}")
+
+                    # Map duplicate indices to particle IDs
+                    for i, j in duplicates:
+                        if ids[i] not in duplicate_ids:
+                            duplicate_ids.append(ids[i])
+
+                if duplicate_ids:
+                    print(f"Deleting {len(duplicate_ids)} particles")
+                    selected_pl.delete_data(duplicate_ids)
+                else:
+                    print(f"No duplicates found.")
+
+

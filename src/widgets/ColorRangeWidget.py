@@ -252,9 +252,26 @@ class ColorRangeWidget(QWidget):
 
         # Get the attributes
         self.partlist = partlist
-        self.attributes = partlist.get_main_attributes()
-        self.minima = partlist.get_attribute_min(self.attributes)
-        self.maxima = partlist.get_attribute_max(self.attributes)
+        attr = partlist.get_main_attributes()
+        min = partlist.get_attribute_min(attr)
+        max = partlist.get_attribute_max(attr)
+
+        # Create new lists to store valid values
+        valid_attr = []
+        valid_min = []
+        valid_max = []
+
+        # check if attribute is numerical
+        for index, value in enumerate(min):
+            if isinstance(value, (int, float)) and not isinstance(value, (bool, str)):
+                valid_attr.append(attr[index])
+                valid_min.append(min[index])
+                valid_max.append(max[index])
+                continue
+
+        self.attributes = valid_attr
+        self.minima = valid_min
+        self.maxima = valid_max
         self.attribute_constant = [False] * len(self.attributes)
 
         for idx, mini in enumerate(self.minima):
@@ -518,6 +535,7 @@ class ColorRangeWidget(QWidget):
 
         elif self._mode == "gradient":
             palette, attribute, minimum, maximum = self._get_selection()
+            print(f"minimum: {minimum}, maximum: {maximum}")
             transparency = self.transparency_slider.value
             self.partlist.color_settings = {'mode': 'gradient',
                                             'palette': palette,

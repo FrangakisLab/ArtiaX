@@ -5,12 +5,13 @@ from typing import Any, Dict, List, Tuple, Union
 import numpy as np
 import starfile
 import pandas as pd
+from scipy.sparse.csgraph import depth_first_order
 from scipy.spatial.transform import Rotation as R
 import os
 
 # Chimerax
 import chimerax
-from chimerax.core.commands import StringArg
+from chimerax.core.commands import StringArg, BoolArg
 from chimerax.core.errors import UserError
 from chimerax.core.session import Session
 from chimerax.core.models import Model
@@ -31,12 +32,12 @@ class RELION5ParticleData(ParticleData):
 
     DATA_KEYS = {
         "rlnTomoName": [],
-        "rlnCoordinateX": [],
-        "rlnCoordinateY": [],
-        "rlnCoordinateZ": [],
-        "rlnOriginX":[],
-        "rlnOriginY": [],
-        "rlnOriginZ": [],
+        "rlnCenteredCoordinateXAngst": [],
+        "rlnCenteredCoordinateYAngst": [],
+        "rlnCenteredCoordinateZAngst": [],
+        "rlnOriginXAngst":[],
+        "rlnOriginYAngst": [],
+        "rlnOriginZAngst": [],
         "rlnTomoSubtomogramRot": [],
         "rlnTomoSubtomogramTilt": [],
         "rlnTomoSubtomogramPsi": [],
@@ -48,9 +49,9 @@ class RELION5ParticleData(ParticleData):
     }
 
     DEFAULT_PARAMS = {
-        "pos_x": "rlnCoordinateX",
-        "pos_y": "rlnCoordinateY",
-        "pos_z": "rlnCoordinateZ",
+        "pos_x": "rlnCenteredCoordinateXAngst",
+        "pos_y": "rlnCenteredCoordinateYAngst",
+        "pos_z": "rlnCenteredCoordinateZAngst",
         "shift_x": "rlnOriginX",
         "shift_y": "rlnOriginY",
         "shift_z": "rlnOriginZ",
@@ -73,6 +74,7 @@ class RELION5ParticleData(ParticleData):
         prefix: str = None,
         suffix: str = None,
         volume: Model = None,
+        prior: bool = True,
     ) -> None:
         self.remaining_loops = {}
         self.remaining_data = {}
@@ -86,6 +88,7 @@ class RELION5ParticleData(ParticleData):
         self.suffix = suffix
         self.oripix = oripix
         self.volume = volume
+        self.prior = prior
 
         super().__init__(
             session,
@@ -97,10 +100,9 @@ class RELION5ParticleData(ParticleData):
 
 
 
-    # reading of Relion5 files is included in Relion.RelionParticleData
     def read_file(self, voxelsize = None, dimensions = None, prefix = None, suffix = None, volume = None) -> None:
         """Reads RELION5 star file."""
-
+        #print("import as relion5")
         ### Collect all necessary information for computation
         #Validate information
         if self.prefix is not None:
@@ -130,7 +132,6 @@ class RELION5ParticleData(ParticleData):
         #TODO: can be removed
         #input not through command line but through opening gui, therefore open additional window
         elif self.dimensions is None:
-            #print("open pop up in read")
             from ...widgets.Relion5ReadAddInfo import CoordInputDialogRead
             # get information through widget about tomogram size and pixelsize
             dialog = CoordInputDialogRead(self.session)
@@ -161,7 +162,6 @@ class RELION5ParticleData(ParticleData):
         x_center = x_size / 2
         y_center = y_size / 2
         z_center = z_size / 2
-        #print(x_center)
 
 
         # Take the good loop, store the rest and the loop name so we can write it out again later on
@@ -173,6 +173,8 @@ class RELION5ParticleData(ParticleData):
         # What is present
         df_keys = list(df.keys())
         additional_keys = df_keys
+        self.remember_keys_order = list(df_keys)
+        #print("key order", self.remember_keys_order)
 
         # Do we have tomo names?
         names_present = False
@@ -181,7 +183,6 @@ class RELION5ParticleData(ParticleData):
 
             # Sanity check names
             first_name = names[0]
-            #print(first_name)
 
             # Ensure proper handling of prefix and suffix
             if prefix:  # Only check if prefix is not None or empty
@@ -227,8 +228,6 @@ class RELION5ParticleData(ParticleData):
                     num = n[len(prefix):] if prefix else n  # Handle the case where there's no suffix
 
 
-
-
             names_present = True
             additional_keys.remove("rlnTomoName")
         else:
@@ -236,26 +235,50 @@ class RELION5ParticleData(ParticleData):
 
         #check if origin there
         origin_present = False
-        if "rlnOriginXAngst" in df_keys:
+        origin_angstrom=False
+
+        if "rlnOriginZ" in df_keys:
             origin_present = True
+
+            additional_keys.remove("rlnOriginX")
+            additional_keys.remove("rlnOriginY")
+            additional_keys.remove("rlnOriginZ")
+
+        elif "rlnOriginZAngst" in df_keys:
+            origin_present = True
+            origin_angstrom = True
+
+            self._data_keys["rlnOriginXAngst"] = []
+            self._data_keys["rlnOriginYAngst"] = []
+            self._data_keys["rlnOriginZAngst"] = []
+
+            self._default_params["shift_x"] = "rlnOriginXAngst"
+            self._default_params["shift_y"] = "rlnOriginYAngst"
+            self._default_params["shift_z"] = "rlnOriginZAngst"
+
             additional_keys.remove("rlnOriginXAngst")
+            additional_keys.remove("rlnOriginYAngst")
+            additional_keys.remove("rlnOriginZAngst")
+
+
+
 
 
         # If angles are not there, take note
         rot_present = False
         if "rlnAngleRot" in df_keys:
             rot_present = True
-            additional_keys.remove("rlnAngleRot")
+            #additional_keys.remove("rlnAngleRot")
 
         tilt_present = False
         if "rlnAngleTilt" in df_keys:
             tilt_present = True
-            additional_keys.remove("rlnAngleTilt")
+            #additional_keys.remove("rlnAngleTilt")
 
         psi_present = False
         if "rlnAnglePsi" in df_keys:
             psi_present = True
-            additional_keys.remove("rlnAnglePsi")
+            #additional_keys.remove("rlnAnglePsi")
 
         tomo_rot_present = False
         if 'rlnTomoSubtomogramRot' in df_keys:
@@ -284,6 +307,8 @@ class RELION5ParticleData(ParticleData):
                 self._data_keys[key] = []
             else:
                 self.remaining_data[key] = df[key]
+                additional_entries.append(key)
+                self._data_keys[key] = []
 
 
         # Store everything
@@ -328,27 +353,42 @@ class RELION5ParticleData(ParticleData):
             p["pos_z"] = (row["rlnCenteredCoordinateZAngst"] / pixsize) + z_center
 
             # Shift
-            if origin_present == True:
-                p["shift_x"] = -row["rlnOriginXAngst"]
-                p["shift_y"] = -row["rlnOriginYAngst"]
-                p["shift_z"] = -row["rlnOriginZAngst"]
+            if origin_present:
+                if origin_angstrom:
+                    #transfer from Angstrom yo pixel
+                    # Note negation due to convention
+                    p["shift_x"] = -row["rlnOriginXAngst"] / pixsize
+                    p["shift_y"] = -row["rlnOriginYAngst"] / pixsize
+                    p["shift_z"] = -row["rlnOriginZAngst"] / pixsize
+                else:
+                    # Note negation due to convention
+                    p["shift_x"] = -row["rlnOriginX"]
+                    p["shift_y"] = -row["rlnOriginY"]
+                    p["shift_z"] = -row["rlnOriginZ"]
             else:
                 p["shift_x"] = 0
                 p["shift_y"] = 0
                 p["shift_z"] = 0
 
 
+
             # Orientation
+
+            self.read_rel5_and_combined=False
+
             if rot_present and tilt_present and psi_present and tomo_rot_present and tomo_psi_present and tomo_tilt_present:
+                self.read_rel5_and_combined=True
+
                 # Box angles in degrees
+
                 box_angle_rot = row['rlnTomoSubtomogramRot']
                 box_angle_tilt = row['rlnTomoSubtomogramTilt']
                 box_angle_psi = row['rlnTomoSubtomogramPsi']
 
                 # Particle angles in degrees
-                particle_angle_rot = row['rlnAngleRot']
-                particle_angle_tilt = row['rlnAngleTilt']
-                particle_angle_psi = row['rlnAnglePsi']
+                self.particle_angle_rot = row['rlnAngleRot']
+                self.particle_angle_tilt = row['rlnAngleTilt']
+                self.particle_angle_psi = row['rlnAnglePsi']
 
                 # Convert box angles to a rotation matrix (ZYZ convention, lowercase extrinsic)
                 box_rotation = R.from_euler('zyz', [box_angle_rot, box_angle_tilt, box_angle_psi],
@@ -356,8 +396,8 @@ class RELION5ParticleData(ParticleData):
 
                 # Convert particle angles to a rotation matrix (ZYZ convention, uppercase intrinsic)
                 particle_rotation = R.from_euler('ZYZ',
-                                                 [particle_angle_rot, particle_angle_tilt,
-                                                  particle_angle_psi],
+                                                 [self.particle_angle_rot, self.particle_angle_tilt,
+                                                  self.particle_angle_psi],
                                                  degrees=True).as_matrix()
 
                 # Combine rotations by multiplying the matrices (box followed by particle)
@@ -371,8 +411,11 @@ class RELION5ParticleData(ParticleData):
 
                 # Store the combined Euler angles in the p dictionary
                 p['ang_1'] = combined_euler_angles[0]  # Combined rot
+                self.combined_angles_rot = combined_euler_angles[0]
                 p['ang_2'] = combined_euler_angles[1]  # Combined tilt
+                self.combined_angles_tilt = combined_euler_angles[1]
                 p['ang_3'] = combined_euler_angles[2]  # Combined psi
+                self.combined_angles_psi = combined_euler_angles[2]
 
             # if only rlnAngle present
             elif rot_present and tilt_present and psi_present:
@@ -392,9 +435,16 @@ class RELION5ParticleData(ParticleData):
                 p['ang_2'] = 0
                 p['ang_3'] = 0
 
-            # Everything else
+            # Storing Everything else
             for attr in additional_entries:
-                p[attr] = float(row[attr])
+                if attr in self.remaining_data:
+                    #all strings
+                    p[attr] = str(row[attr])
+                else:
+                    #all numbers
+                    p[attr] = float(row[attr])
+
+        #print(f"last key check:{self.remember_keys_order}")
 
     def write_file(
         self,
@@ -405,6 +455,7 @@ class RELION5ParticleData(ParticleData):
         suffix: str = None,
         tomonumber: int = None,
         pixelsize: float = None,
+        prior: bool=True
     ) -> None:
 
         self.dimensions = dimensions
@@ -412,7 +463,7 @@ class RELION5ParticleData(ParticleData):
         self.suffix = suffix
         self.tomonumber = tomonumber
         self.pixelsize = pixelsize
-
+        self.prior = prior
 
         x_size, y_size, z_size, name = 0, 0, 0, ""
 
@@ -428,7 +479,6 @@ class RELION5ParticleData(ParticleData):
 
         if self.tomonumber != 9999:  #None was not possible for placeholder signaling no user input, therefore 9999
             tomogram_name = self.tomonumber
-            #print(f"Corresponding tomogram number: {tomogram_name}")
         else:
             tomogram_name = None
 
@@ -458,24 +508,17 @@ class RELION5ParticleData(ParticleData):
                 # Zero-pad the number based on the leading zeros
                 formatted_num = f"{num:0{leading_zeros}d}"
                 if suffix is not None and prefix is not None:
-                    print("a")
-                    print(formatted_num)
                     if int(formatted_num) == 0:
                         data['rlnTomoName'][idx] = f"{prefix}{tomogram_name}{suffix}"
                     else:
                         data['rlnTomoName'][idx] = f"{prefix}{formatted_num}{suffix}"
                 elif prefix is not None:
-                    print("b")
-                    print(formatted_num)
-                    print(prefix)
                     if int(formatted_num) == 0:
-                        print("i am here")
+                        #print("i am here")
                         data['rlnTomoName'][idx] = f"{prefix}{tomogram_name}"
                     else:
                         data['rlnTomoName'][idx] = f"{prefix}{formatted_num}"
                 elif suffix is not None:
-                    print("c")
-                    print(formatted_num)
                     if int(formatted_num) == 0:
                         data['rlnTomoName'][idx] = f"{tomogram_name}{suffix}"
                     else:
@@ -499,100 +542,195 @@ class RELION5ParticleData(ParticleData):
                     data['rlnTomoName'][idx] = f"{formatted_num}{suffix}"
 
 
-        # Angles
-        remove_angles = (0, 90, 0)
-
         for idx in range(len(data['rlnTomoSubtomogramRot'])):
-            # Extract the original rlnTomoSubtomogram angles
-            tomo_rot = data['rlnTomoSubtomogramRot'][idx]
-            tomo_tilt = data['rlnTomoSubtomogramTilt'][idx]
-            tomo_psi = data['rlnTomoSubtomogramPsi'][idx]
 
-            # Convert rlnTomoSubtomogram angles to rotation matrix
-            rotation_matrix = R.from_euler('zyz', [tomo_rot, tomo_tilt, tomo_psi], degrees=True).as_matrix()
+            # Angles, set default
+            remove_angles = [0, 90, 0]
+            prior_tilt=90
+            prior_psi=0
 
-            # Create a new rotation matrix for the angles to remove
-            remove_rotation_matrix = R.from_euler('zyz', remove_angles, degrees=True).as_matrix()
+            #if particle list was read in as relion5 and angles were combined, remember original rlnAngle values
+            if hasattr(self, 'read_rel5_and_combined') and self.read_rel5_and_combined:
+                try:
+                    saved_rlnAngles_Rot=data['rlnAngleRot'][idx]
+                    saved_rlnAngles_Tilt=data['rlnAngleTilt'][idx]
+                    saved_rlnAngles_Psi=data['rlnAnglePsi'][idx]
+                except KeyError:
+                    #adding default if particle list was read in as rel5 but new particles were added to the list
+                    saved_rlnAngles_Rot=0
+                    saved_rlnAngles_Tilt=90
+                    saved_rlnAngles_Psi=0
 
-            # Combine the two rotations: original rotation minus the removal rotation
-            # Inverting the remove_rotation to effectively "remove" it
-            resulting_rotation_matrix = rotation_matrix @ remove_rotation_matrix.T
+                try:
+                    saved_rlnAnglesPriorTilt=data['rlnAnglesTiltPrior'][idx]
+                    saved_rlnAnglesPriorPsi=data['rlnAnglesPsiPrior'][idx]
 
-            # Convert the resulting rotation matrix back to Euler angles
-            combined_euler_angles = R.from_matrix(resulting_rotation_matrix).as_euler('zyz', degrees=True)
+                except KeyError:
+                    # adding default if particle list was read in as rel5 but new particles were added to the list
+                    saved_rlnAnglesPriorTilt=90
+                    saved_rlnAnglesPriorPsi=0
 
-            # Update data with new angle sets
-            data['rlnTomoSubtomogramRot'][idx] = combined_euler_angles[0]
-            data['rlnTomoSubtomogramTilt'][idx] = combined_euler_angles[1]
-            data['rlnTomoSubtomogramPsi'][idx] = combined_euler_angles[2]
+            if prior == False:
+                # move Angle values to rlnAngle columns
+                data['rlnAngleRot'][idx] = data['rlnTomoSubtomogramRot'][idx]
+                data['rlnAngleTilt'][idx] = data['rlnTomoSubtomogramTilt'][idx]
+                data['rlnAnglePsi'][idx] = data['rlnTomoSubtomogramPsi'][idx]
 
-            # Also create rlnAngle with (0, 90, 0)
-            data['rlnAngleRot'] = remove_angles[0]
-            data['rlnAngleTilt'] = remove_angles[1]
-            data['rlnAnglePsi'] = remove_angles[2]
+                # delete rlnTomoSubtomo columns and Prior columns
+                #del data['rlnTomoSubtomogramRot']
+                #del data['rlnTomoSubtomogramTilt']
+                #del data['rlnTomoSubtomogramPsi']
+                #del data['rlnAngleTiltPrior']
+                #del data['rlnAnglePsiPrior']
 
-            # Also create rlnAngle with (0, 90, 0)
-            data['rlnAngleTiltPrior'] = remove_angles[1]
-            data['rlnAnglePsiPrior'] = remove_angles[2]
+            elif prior ==  True:
+                # Extract the original rlnTomoSubtomogram angles
+                tomo_rot = data['rlnTomoSubtomogramRot'][idx]
+                tomo_tilt = data['rlnTomoSubtomogramTilt'][idx]
+                tomo_psi = data['rlnTomoSubtomogramPsi'][idx]
+                #print(f"rot:{tomo_rot}, tilt:{tomo_tilt}, psi:{tomo_psi}")
+
+
+                # if particle list was already read in as relion5, replace remove_angles with actual rlnAngle values
+                if hasattr(self, 'read_rel5_and_combined') and self.read_rel5_and_combined:
+                    remove_angles[0]= saved_rlnAngles_Rot
+                    remove_angles[1]= saved_rlnAngles_Tilt
+                    remove_angles[2]= saved_rlnAngles_Psi
+                    #print(f"remove angles{remove_angles}")
+                    prior_tilt = saved_rlnAnglesPriorTilt
+                    #print(f"prior tilt : {prior_tilt}")
+                    prior_psi = saved_rlnAnglesPriorPsi
+
+                # Convert rlnTomoSubtomogram angles to rotation matrix
+                rotation_matrix = R.from_euler('zyz', [tomo_rot, tomo_tilt, tomo_psi], degrees=True).as_matrix()
+
+                # Create a new rotation matrix for the angles to remove
+                remove_rotation_matrix = R.from_euler('ZYZ', remove_angles, degrees=True).as_matrix()
+
+                # Combine the two rotations: original rotation minus the removal rotation
+                # Inverting the remove_rotation to effectively "remove" it
+                resulting_rotation_matrix = rotation_matrix @ remove_rotation_matrix.T
+
+                # Convert the resulting rotation matrix back to Euler angles
+                combined_euler_angles = R.from_matrix(resulting_rotation_matrix).as_euler('zyz', degrees=True)
+
+                # Update data with new angle sets
+                data['rlnTomoSubtomogramRot'][idx] = combined_euler_angles[0]
+                data['rlnTomoSubtomogramTilt'][idx] = combined_euler_angles[1]
+                data['rlnTomoSubtomogramPsi'][idx] = combined_euler_angles[2]
+
+                data['rlnAngleRot'][idx] = remove_angles[0]
+                data['rlnAngleTilt'][idx] = remove_angles[1]
+                data['rlnAnglePsi'][idx] = remove_angles[2]
+
+                # Also create rlnAnglePrior with (0, 90, 0)
+                data['rlnAngleTiltPrior'] = prior_tilt
+                data['rlnAnglePsiPrior'] = prior_psi
+
 
         #Coordinates
-        #combine shift und pos since rlnOrigin no longer in relion5
-        for idx, v in enumerate(data["rlnCoordinateX"]):
-                data["rlnCoordinateX"][idx] = (data["rlnOriginX"][idx] + data["rlnCoordinateX"][idx])
-                data["rlnCoordinateY"][idx] = (data["rlnOriginY"][idx] + data["rlnCoordinateY"][idx])
-                data["rlnCoordinateZ"][idx] = (data["rlnOriginZ"][idx] + data["rlnCoordinateZ"][idx])
-
-        #removing rlnOrigin
-        # Remove key 'key2'
-        if 'rlnOriginX' in data:
+            # Convert shifts back to their convention (*-1)
+        if "rlnOriginXAngst" in self._data_keys.keys():
+            for idx, v in enumerate(data["rlnOriginXAngst"]):
+                #change internal shift in pixel back to Angstrom
+                data["rlnOriginXAngst"][idx] = data["rlnOriginXAngst"][idx] * -1 *pixsize
+                data["rlnOriginYAngst"][idx] = data["rlnOriginYAngst"][idx] * -1 *pixsize
+                data["rlnOriginZAngst"][idx] = data["rlnOriginZAngst"][idx] * -1 *pixsize
+        else:
+            #combine pos with shift since rlnOrigin no longer in relion5
+            for idx, v in enumerate(data["rlnOriginX"]):
+                data["rlnOriginX"][idx] *= -1
+                data["rlnOriginY"][idx] *= -1
+                data["rlnOriginZ"][idx] *= -1
+                data["rlnCenteredCoordinateXAngst"][idx] = (data["rlnOriginX"][idx] + data["rlnCenteredCoordinateXAngst"][idx])
+                data["rlnCenteredCoordinateYAngst"][idx] = (data["rlnOriginY"][idx] + data["rlnCenteredCoordinateYAngst"][idx])
+                data["rlnCenteredCoordinateZAngst"][idx] = (data["rlnOriginZ"][idx] + data["rlnCenteredCoordinateZAngst"][idx])
+            #removing rlnOrigin column
             del data['rlnOriginX']
-        if 'rlnOriginY' in data:
             del data['rlnOriginY']
-        if 'rlnOriginZ' in data:
             del data['rlnOriginZ']
 
 
-
-        for idx, v in enumerate(data["rlnCoordinateX"]):
+        for idx, v in enumerate(data["rlnCenteredCoordinateXAngst"]):
                 # changes unit from pixel to Angstrom and makes coordinate centered
-                #print("before")
-                #print(data["rlnCoordinateX"][idx])
                 # center coordinate
-                data["rlnCoordinateX"][idx] = (
-                    data["rlnCoordinateX"][idx]
+                data["rlnCenteredCoordinateXAngst"][idx] = (
+                    data["rlnCenteredCoordinateXAngst"][idx]
                 ) - x_center
-                data["rlnCoordinateY"][idx] = (
-                    data["rlnCoordinateY"][idx]
+                data["rlnCenteredCoordinateYAngst"][idx] = (
+                    data["rlnCenteredCoordinateYAngst"][idx]
                 ) - y_center
-                data["rlnCoordinateZ"][idx] = (
-                    data["rlnCoordinateZ"][idx]
+                data["rlnCenteredCoordinateZAngst"][idx] = (
+                    data["rlnCenteredCoordinateZAngst"][idx]
                 ) - z_center
 
                 # convert coordinate unit from pixel to angstrom
-                data["rlnCoordinateX"][idx] *= pixsize
-                data["rlnCoordinateY"][idx] *= pixsize
-                data["rlnCoordinateZ"][idx] *= pixsize
+                data["rlnCenteredCoordinateXAngst"][idx] *= pixsize
+                data["rlnCenteredCoordinateYAngst"][idx] *= pixsize
+                data["rlnCenteredCoordinateZAngst"][idx] *= pixsize
+
+        #if splitting was not desired, delete unecessary columns
+        if prior == False:
+            # delete rlnTomoSubtomo columns and Prior columns
+            del data['rlnTomoSubtomogramRot']
+            del data['rlnTomoSubtomogramTilt']
+            del data['rlnTomoSubtomogramPsi']
+            del data['rlnAngleTiltPrior']
+            del data['rlnAnglePsiPrior']
 
 
         #Change coordinates column names
         # Define the old-to-new key mapping
-        rename_keys = {
-            'rlnCoordinateZ': 'rlnCenteredCoordinateZAngst',
-            'rlnCoordinateX': 'rlnCenteredCoordinateXAngst',
-            'rlnCoordinateY': 'rlnCenteredCoordinateYAngst'
-        }
+        #rename_keys = {
+            #'rlnCoordinateZ': 'rlnCenteredCoordinateZAngst',
+            #'rlnCoordinateX': 'rlnCenteredCoordinateXAngst',
+            #'rlnCoordinateY': 'rlnCenteredCoordinateYAngst'
+        #}
 
         # Create a new dictionary to store the updated key order
-        new_data = {}
+        #new_data = {}
 
         # Iterate over the original dictionary and rename the keys
-        for key, value in data.items():
+        #for key, value in data.items():
             # If the key needs to be renamed, use the new key
-            new_data[rename_keys.get(key, key)] = value
+        #    new_data[rename_keys.get(key, key)] = value
 
         # Replace the old dictionary with the new one
-        data = new_data
+        #data = new_data
 
+        #reorder columns
+        #remember column order if imported as relion5
+        if hasattr(self, 'remember_keys_order'):
+            #print("old keys", self.remember_keys_order)
+            # Step 1: Check column names
+            #print(f"order vorher{self.remember_keys_order}")
+            #print(f"order after{data.keys()}")
+            data_columns = set(data.keys())
+            list_columns = set(self.remember_keys_order)
+            columns_match=False
+
+            if data_columns != list_columns:
+                missing_in_data = list(list_columns - data_columns)
+                extra_in_data = list(data_columns - list_columns)
+                #print(f"Missing columns in DataFrame: {missing_in_data}")
+                #print(f"Extra columns in DataFrame: {extra_in_data}")
+            else:
+                #print("Column names match.")
+                columns_match=True
+
+            # Step 2: Reorder columns
+            #if data_columns == list_columns:
+            #    data = data[self.remember_keys_order]
+            #    print("Reordered DataFrame:")
+            #    print(data)
+
+            # Step 2: Reorder columns
+            if columns_match==True:
+                if isinstance(data, dict):  # Check if data is a dictionary
+                    data = {key: data[key] for key in self.remember_keys_order if key in data}
+                    #print("reordered columns")
+                #else:
+                    #raise TypeError("Expected 'data' to be a dictionary.")
 
         df = pd.DataFrame(data=data)
 
@@ -690,9 +828,9 @@ class RELION5OpenerInfo(ArtiaXOpenerInfo):
         elif (dimensions is None and volume is None) or (voxelsize is None and volume is None):
             from ...widgets.Relion5ReadAddInfo import CoordInputDialogRead
             print("Information is missing, opening input window")
-            print("Example for expected Syntax: open /your/path/relion5_file.star format relion5 voldim 896,696,250 voxelsize 11.52 prefix TS_ ")
-            print("Example for expected Syntax: open /your/path/relion5_file.star format relion5 volume #1.1.1 prefix tomo ")
-            print("Please provide either a volume or the volume dimensions and pixelsize of your tomogram. To correctly read the column 'rlnTomoName' in the star file, the desired prefix that preceeds the tomogram number can be specified")
+            #print("Example for expected Syntax: open /your/path/relion5_file.star format relion5 voldim 896,696,250 voxelsize 11.52 prefix TS_ ")
+            #print("Example for expected Syntax: open /your/path/relion5_file.star format relion5 volume #1.1.1 prefix tomo ")
+            #print("Please provide either a volume or the volume dimensions and pixelsize of your tomogram. To correctly read the column 'rlnTomoName' in the star file, the desired prefix that preceeds the tomogram number can be specified")
             dialog = CoordInputDialogRead(session)
             x, y, z, voxelsize, prefix, suffix = dialog.get_info_read()
             dimensions = x,y,z
@@ -734,7 +872,7 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
     def additional_content(
         self,
     ):
-        from Qt.QtWidgets import QLineEdit, QLabel, QHBoxLayout, QVBoxLayout, QGroupBox
+        from Qt.QtWidgets import QLineEdit, QLabel, QHBoxLayout, QVBoxLayout, QGroupBox, QCheckBox, QToolButton
         from ...widgets.NLabelValue import NLabelValue
         from ...widgets.IgnorantComboBox import IgnorantComboBox
 
@@ -744,6 +882,13 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         self._keep_name_prefix_layout = QHBoxLayout()  # Horizontal layout for prefix
         self._keep_name_prefix_label = QLabel("Prefix:")  # Label for prefix
         self._keep_name_prefix_edit = QLineEdit("")  # Text input for prefix
+
+        # Add the tooltip button for Prefix input
+        self._help_button_prefix = QToolButton()
+        self._help_button_prefix.setText("?")
+        self._help_button_prefix.setToolTip(
+            "Enter the prefix that will precede the tomogram number in 'rlnTomoName'. Example: 'Tomo_' will result in 'Tomo_001', 'Tomo_002', etc.")
+        self._keep_name_prefix_layout.addWidget(self._help_button_prefix)  # Add the button next to the prefix input
         self._keep_name_prefix_layout.addWidget(self._keep_name_prefix_label)
         self._keep_name_prefix_layout.addWidget(self._keep_name_prefix_edit)
         # Set the initial prefix value when the widget is first loaded
@@ -762,7 +907,7 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         #self._keep_combined_layout.addLayout(self._keep_name_suffix_layout)  # Add suffix layout
 
         # Create a group box to hold both prefix and suffix inputs
-        self._keep_tomoname_group = QGroupBox("Prefix preceeding tomogram number in 'rlnTomoName':")
+        self._keep_tomoname_group = QGroupBox("Prefix:")
         self._keep_tomoname_group.setLayout(self._keep_combined_layout)  # Set combined layout to group box
         #self._keep_tomoname_group.setCheckable(True)  # Make group box checkable
         #self._keep_tomoname_group.setChecked(False)  # Initially unchecked (disabled)
@@ -772,6 +917,14 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         self._name_layout = QHBoxLayout()
         self._name_label = QLabel("TomoNumber:")
         self._name_edit = QLineEdit("")
+
+        # Add the tooltip button for TomoNumber input
+        self._help_button_tomo_number = QToolButton()
+        self._help_button_tomo_number.setText("?")
+        self._help_button_tomo_number.setToolTip(
+            "Enter the tomogram number for the new particle list.\nThis is required if a tomogram number is not yet assigned to the particles,\ne.g. if the particles were newly created or if the input particle list did not include this information.")
+        self._name_layout.addWidget(self._help_button_tomo_number)  # Add the button next to the tomo number input
+
         self._name_layout.addWidget(self._name_label)
         self._name_layout.addWidget(self._name_edit)
 
@@ -779,10 +932,8 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         self._combined_layout = QVBoxLayout()
         self._combined_layout.addLayout(self._name_layout)  # Add tomo number layout
 
-        self._tomoname_group = QGroupBox("Set new TomoNumber (Required input for newly created particles or if assignment of tomogram number doesnt't exist yet):")
+        self._tomoname_group = QGroupBox("Set new TomoNumber:")
         self._tomoname_group.setLayout(self._combined_layout)
-        self._tomoname_group.setCheckable(True)
-        self._tomoname_group.setChecked(True)
 
 
 
@@ -819,6 +970,8 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         self._dim_layout.addWidget(self._dim_widget)
         self._dim_layout.addLayout(self._vs_layout)
 
+
+
         # Group
         self._dim_group = QGroupBox("Set Volume Dimensions:")
         self._dim_group.setLayout(self._dim_layout)
@@ -835,10 +988,42 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
 
         self._vol_combobox.currentIndexChanged.connect(self._on_vol_combobox)
 
+        # Split / No Split Section
+        self._split_layout = QHBoxLayout()
+
+        # Checkboxes
+        self._split_checkbox = QCheckBox("Create File with Prior")
+        self._nosplit_checkbox = QCheckBox("Create File without Prior")
+
+        # Question mark icon with tooltip
+        self._help_button_prior_true = QToolButton()
+        self._help_button_prior_true.setText("?")
+        self._help_button_prior_true.setToolTip(
+            "Create a particle list with rlnAngleRot/Tilt/Prior, rlnTomoSubtomogramRot/Tilt/Psi and rlnAnglePriorTilt/Psi columns. \nThis can be useful for particles with a relevant geometric context, e.g. membrane proteins or filaments. \nThe orientation of the geometric context will be written out in the rlnTomoSubtomogramRot/Tilt/Psi columns \nand the particle is then positioned in relation to this structure using the columns rlnAngleRot/Tilt/Psi. \nThe RELION-5 processing pipeline can then restrain the rotation around the angles specified in rlnAnglePriorTilt/Psi. \nFurther information can be found in the RELION-5 documentation. ")
+
+        # Question mark icon with tooltip
+        self._help_button_prior_false = QToolButton()
+        self._help_button_prior_false.setText("?")
+        self._help_button_prior_false.setToolTip(
+            "Create a particle list with rlnAngleRot/Tilt/Psi columns. \nUseful for particles without geometric context, like e.g. cytosolic particles ")
+
+        # Add checkboxes and help button to layout
+        self._split_layout.addWidget(self._help_button_prior_true)
+        self._split_layout.addWidget(self._split_checkbox)
+        self._split_layout.addWidget(self._help_button_prior_false)
+        self._split_layout.addWidget(self._nosplit_checkbox)
+
+
+
+        # Group box for Split options
+        self._split_group = QGroupBox("Output Options:")
+        self._split_group.setLayout(self._split_layout)
+
         self._main = QVBoxLayout()
         self._main.addWidget(self._tomoname_group)
         self._main.addWidget(self._keep_tomoname_group)
         self._main.addWidget(self._dim_group)
+        self._main.addWidget(self._split_group)
 
         from Qt.QtCore import Qt
 
@@ -852,7 +1037,6 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         if not hasattr(self.session, 'rel5_import_prefix'):
             self.session.rel5_import_prefix = {}  # Initialize the dictionary if it doesn't exist, e.g. when read as relion or em
         default_prefix = self.session.rel5_import_prefix.get(model_name, "")  # Get prefix or empty string
-        print(f"Model Name: {model_name}, Prefix: {self.session.rel5_import_prefix.get(model_name, 'Not Found')}")
 
         # Update the QLineEdit with the new prefix
         self._keep_name_prefix_edit.setText(default_prefix)
@@ -904,8 +1088,20 @@ class RELION5SaveArgsWidget(SaveArgsWidget):
         else:
             name_number = 9999   #if name_number was not supplied during input, set as integer placeholder because None doesnt work
 
-        print(f"Name_number:{name_number}")
-        txt = f"voldim {x:.3f},{y:.3f},{z:.3f} voxelsize {v:.3f} prefix {prefix} suffix {name_suffix} tomonumber {name_number}"
+        prior=False
+        #Prior
+        if self._split_checkbox.isChecked() and self._nosplit_checkbox.isChecked():
+            raise UserError("Please select either 'Create File with Prior' or 'Create File without Prior'")
+        if self._split_checkbox.isChecked():
+            prior=True
+        elif self._nosplit_checkbox.isChecked():
+            prior=False
+        else:
+            raise UserError("Please select either ...or ....")
+
+
+        #print(f"Name_number:{name_number}")
+        txt = f"voldim {x:.3f},{y:.3f},{z:.3f} voxelsize {v:.3f} prefix {prefix} suffix {name_suffix} tomonumber {name_number} prior {prior}"
 
         return txt
 
@@ -923,22 +1119,23 @@ class RELION5SaverInfo(ArtiaXSaverInfo):
         prefix: str = None,
         suffix: str = None,
         tomonumber: int = None,
+        prior: bool = True,
     ) -> None:
 
         # UserErrors for input through command line
         if voldim is None and volume is None:
-            print("Example for expected Syntax: save /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 volume #1.1.1 prefix tomo_ tomonumber 17")
-            print("Example for expected Syntax: open /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 voldim 896,696,250 voxelsize 11.52 prefix tomo_ tomonumber 17 ")
+            #print("Example for expected Syntax: save /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 volume #1.1.1 prefix tomo_ tomonumber 17")
+            #print("Example for expected Syntax: open /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 voldim 896,696,250 voxelsize 11.52 prefix tomo_ tomonumber 17 ")
             print("Please provide either a volume or the volume dimensions and pixelsize of your tomogram. To correctly populate the column 'rlnTomoName' in the star file, the desired prefix that preceeds the tomogram number can be specified, as well as a fixed tomogram number.")
             raise UserError("No volume dimensions provided.")
         if voxelsize is None and volume is None:
-            print("Example for expected Syntax: save /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 volume #1.1.1 prefix tomo_ tomonumber 17")
-            print("Example for expected Syntax: open /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 voldim 896,696,250 voxelsize 11.52 prefix tomo_ tomonumber 17 ")
+            #print("Example for expected Syntax: save /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 volume #1.1.1 prefix tomo_ tomonumber 17")
+            #print("Example for expected Syntax: open /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 voldim 896,696,250 voxelsize 11.52 prefix tomo_ tomonumber 17 ")
             print("Please provide either a volume or the volume dimensions and pixelsize of your tomogram. To correctly populate the column 'rlnTomoName' in the star file, the desired prefix that preceeds the tomogram number can be specified, as well as a fixed tomogram number.")
             raise UserError("No voxelsize provided.")
         if volume is not None and voldim is not None:
-            print("Example for expected Syntax: save /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 volume #1.1.1 prefix tomo_ tomonumber 17")
-            print("Example for expected Syntax: open /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 voldim 896,696,250 voxelsize 11.52 prefix tomo_ tomonumber 17 ")
+            #print("Example for expected Syntax: save /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 volume #1.1.1 prefix tomo_ tomonumber 17")
+            #print("Example for expected Syntax: open /your/path/desired_relion5_file.star format relion5 partlist #1.2.1 voldim 896,696,250 voxelsize 11.52 prefix tomo_ tomonumber 17 ")
             print("Please provide either a volume or the volume dimensions and pixelsize of your tomogram. To correctly populate the column 'rlnTomoName' in the star file, the desired prefix that preceeds the tomogram number can be specified, as well as a fixed tomogram number.")
             raise UserError("Please only provide either the dimensions or a volume.")
 
@@ -970,6 +1167,7 @@ class RELION5SaverInfo(ArtiaXSaverInfo):
             prefix=prefix,
             suffix=suffix,
             tomonumber=tomonumber,
+            prior=prior
 
         )
 
@@ -985,6 +1183,7 @@ class RELION5SaverInfo(ArtiaXSaverInfo):
             "prefix": StringArg,
             "suffix": StringArg,
             "tomonumber": IntArg,
+            "prior": BoolArg,
         }
 
 
