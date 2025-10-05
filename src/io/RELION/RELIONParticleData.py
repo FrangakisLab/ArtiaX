@@ -141,6 +141,19 @@ class RELIONParticleData(ParticleData):
             if "rlnCoordinateZ" in list(val.keys()):
                 data_loop = key
                 break
+            elif 'wrpCoordinateZ1' in list(val.keys()): # Check whether it's a Warp/M starfile and if so, edit parameter names.
+                print(f"Changing Warp/M starfile columns to Relion format.")
+                wrp_to_rln = [('wrpCoordinateX1', 'rlnCoordinateX'),
+                              ('wrpCoordinateY1', 'rlnCoordinateY'),
+                              ('wrpCoordinateZ1', 'rlnCoordinateZ'),
+                              ('wrpAngleRot1', 'rlnAngleRot'),
+                              ('wrpAngleTilt1', 'rlnAngleTilt'),
+                              ('wrpAnglePsi1', 'rlnAnglePsi'), ]
+                for old, new in wrp_to_rln:
+                    if old in val.columns:
+                        print(f'renaming {old} to {new}')
+                        val.rename(columns={old: new}, inplace=True)
+                data_loop = key
 
         # Abort if none found
         if data_loop is None:
@@ -260,14 +273,21 @@ class RELIONParticleData(ParticleData):
 
         # Now make particles
         df.reset_index()
+
+        _raised_tomoname_parse_error = False
         for idx, row in df.iterrows():
             p = self.new_particle()
 
             # Name
             if names_present:
-                n = row["rlnTomoName"].split("_")
-                num = int(n[-1])
-                p["rlnTomoName"] = num
+                try:
+                    n = row["rlnTomoName"].split("_")
+                    num = int(n[-1])
+                    p["rlnTomoName"] = num
+                except Exception as e:
+                    "" if _raised_tomoname_parse_error else print(f'Could not parse rlnTomoName the original way - applying workaround.')
+                    _raised_tomoname_parse_error = True
+                    p["rlnTomoName"] = int(''.join(filter(str.isdigit, row["rlnTomoName"])))
 
             # Position
             p["pos_x"] = row["rlnCoordinateX"]
