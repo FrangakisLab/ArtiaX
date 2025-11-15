@@ -1301,16 +1301,13 @@ def selected_collections(session, exclude_rot_lock=False):
 
     for plist in artia.partlists.iter():
         scm = plist.collection_model
-        markers = plist.markers
 
         if plist.rotation_locked and exclude_rot_lock:
             continue
 
-        if any(plist.selected_particles):
+        if plist.selected_particles is not None and any(plist.selected_particles):
             selected_drawings.append(scm)
-            position_masks.append(
-                np.logical_or(scm.position_mask(), markers.position_mask())
-            )
+            position_masks.append(plist.selected_particles.copy())
 
     return selected_drawings, position_masks
 
