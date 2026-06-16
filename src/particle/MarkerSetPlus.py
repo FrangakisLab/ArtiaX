@@ -43,7 +43,10 @@ class MarkerSetPlus(MarkerSet):
 
         # Handlers
         self.triggers.add_handler("changes", self._handle_changes)
-        self.session.triggers.add_handler('mouse hover', self._catch_hover)
+        # Keep a reference so the session-level handler can be removed on delete(); otherwise
+        # the session keeps a strong reference to this (deleted) MarkerSet forever, leaking it
+        # and firing _catch_hover on every mouse hover event indefinitely.
+        self._hover_handler = self.session.triggers.add_handler('mouse hover', self._catch_hover)
 
     def delete(self):
         # # Delete all the triggers
@@ -53,6 +56,12 @@ class MarkerSetPlus(MarkerSet):
         # self.triggers.delete_trigger(MARKER_COLOR_CHANGED)
         # self.triggers.delete_trigger(MARKER_SELECTED)
         # self.triggers.delete_trigger(MARKER_DISPLAY_CHANGED)
+
+        # Remove the session-level 'mouse hover' handler so it stops firing and stops
+        # keeping this deleted MarkerSet (and its ParticleList) alive.
+        if getattr(self, "_hover_handler", None) is not None:
+            self.session.triggers.remove_handler(self._hover_handler)
+            self._hover_handler = None
 
         # Delete self
         MarkerSet.delete(self)
