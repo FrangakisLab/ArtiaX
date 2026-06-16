@@ -68,10 +68,23 @@ class Tomogram(VolumePlus):
 
         # Whether to clip a slab around this tomogram
         self._is_clipped = False
-        self.triggers.add_handler(RENDERING_OPTIONS_CHANGED, self.update_clip)
+        # Keep a reference so the handler can be removed on delete(). update_clip is a bound
+        # method of this Tomogram, so registering it on the tomogram's own trigger set creates
+        # a reference cycle; removing it on delete() lets the (large) tomogram be freed promptly
+        # by refcounting instead of waiting for a cyclic GC pass.
+        self._rendering_options_handler = self.triggers.add_handler(RENDERING_OPTIONS_CHANGED, self.update_clip)
 
         # Update display
         self.update_drawings()
+
+    def delete(self):
+        # Break the self-referential handler cycle before deleting so this tomogram's volume
+        # data is released immediately rather than lingering until cyclic garbage collection.
+        if getattr(self, "_rendering_options_handler", None) is not None:
+            self.triggers.remove_handler(self._rendering_options_handler)
+            self._rendering_options_handler = None
+
+        super().delete()
 
     @property
     def pixelsize(self):
