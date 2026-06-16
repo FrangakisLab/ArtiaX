@@ -264,7 +264,7 @@ class RELIONParticleData(ParticleData):
         # Additional data (everything that is a number)
         additional_entries = []
         for key in additional_keys:
-            if np.issubdtype(df.dtypes[key], np.number):
+            if pd.api.types.is_numeric_dtype(df.dtypes[key]):
                 additional_entries.append(key)
                 self._data_keys[key] = []
             else:
